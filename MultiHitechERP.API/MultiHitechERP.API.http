@@ -1,0 +1,6 @@
+@MultiHitechERP.API_HostAddress = http://localhost:5217
+
+GET {{MultiHitechERP.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
