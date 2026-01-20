@@ -23,9 +23,21 @@ builder.Services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
+builder.Services.AddScoped<IMachineRepository, MachineRepository>();
+builder.Services.AddScoped<IProcessRepository, ProcessRepository>();
+builder.Services.AddScoped<IOperatorRepository, OperatorRepository>();
+builder.Services.AddScoped<IDrawingRepository, DrawingRepository>();
 
 // Register Services
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IMaterialService, MaterialService>();
+builder.Services.AddScoped<IMachineService, MachineService>();
+builder.Services.AddScoped<IProcessService, ProcessService>();
+builder.Services.AddScoped<IOperatorService, OperatorService>();
+builder.Services.AddScoped<IDrawingService, DrawingService>();
 
 // CORS for frontend
 builder.Services.AddCors(options =>

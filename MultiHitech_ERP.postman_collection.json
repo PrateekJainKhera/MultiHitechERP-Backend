@@ -1,0 +1,471 @@
+{
+	"info": {
+		"_postman_id": "multihitech-erp-api",
+		"name": "MultiHitech ERP API",
+		"description": "Complete API collection for MultiHitech ERP System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Customers",
+			"item": [
+				{
+					"name": "Create Customer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customerCode\": \"CUST001\",\n  \"customerName\": \"ABC Industries Pvt Ltd\",\n  \"contactPerson\": \"Rajesh Kumar\",\n  \"email\": \"rajesh@abcindustries.com\",\n  \"phone\": \"022-12345678\",\n  \"mobile\": \"9876543210\",\n  \"address\": \"Plot No 123, MIDC Area\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"country\": \"India\",\n  \"pinCode\": \"400001\",\n  \"gstNumber\": \"27AABCU9603R1ZM\",\n  \"panNumber\": \"AABCU9603R\",\n  \"customerType\": \"Manufacturing\",\n  \"industry\": \"Automobile\",\n  \"creditDays\": 45,\n  \"creditLimit\": 500000,\n  \"paymentTerms\": \"Net 45 Days\",\n  \"customerRating\": \"A\",\n  \"classification\": \"Premium\",\n  \"remarks\": \"Long-term customer\",\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/customers",
+							"host": ["{{base_url}}"],
+							"path": ["api", "customers"]
+						}
+					}
+				},
+				{
+					"name": "Get All Customers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/customers",
+							"host": ["{{base_url}}"],
+							"path": ["api", "customers"]
+						}
+					}
+				},
+				{
+					"name": "Get Customer by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/customers/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "customers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "paste-customer-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Customer by Code",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/customers/by-code/CUST001",
+							"host": ["{{base_url}}"],
+							"path": ["api", "customers", "by-code", "CUST001"]
+						}
+					}
+				},
+				{
+					"name": "Get Active Customers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/customers/active",
+							"host": ["{{base_url}}"],
+							"path": ["api", "customers", "active"]
+						}
+					}
+				},
+				{
+					"name": "Search Customers by Name",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/customers/search?searchTerm=ABC",
+							"host": ["{{base_url}}"],
+							"path": ["api", "customers", "search"],
+							"query": [
+								{
+									"key": "searchTerm",
+									"value": "ABC"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Customers by City",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/customers/by-city/Mumbai",
+							"host": ["{{base_url}}"],
+							"path": ["api", "customers", "by-city", "Mumbai"]
+						}
+					}
+				},
+				{
+					"name": "Activate Customer",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/customers/:id/activate",
+							"host": ["{{base_url}}"],
+							"path": ["api", "customers", ":id", "activate"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "paste-customer-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Deactivate Customer",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/customers/:id/deactivate",
+							"host": ["{{base_url}}"],
+							"path": ["api", "customers", ":id", "deactivate"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "paste-customer-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Materials",
+			"item": [
+				{
+					"name": "Create Material",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"materialCode\": \"MAT001\",\n  \"materialName\": \"EN8 Steel Rod - 50mm Dia\",\n  \"category\": \"Steel\",\n  \"subCategory\": \"Carbon Steel\",\n  \"materialType\": \"Round Bar\",\n  \"grade\": \"EN8\",\n  \"specification\": \"IS 2062 Grade A\",\n  \"description\": \"Carbon steel round bar for general engineering\",\n  \"hsnCode\": \"72163100\",\n  \"standardLength\": 6000,\n  \"diameter\": 50,\n  \"primaryUOM\": \"KG\",\n  \"secondaryUOM\": \"MTR\",\n  \"conversionFactor\": 15.4,\n  \"weightPerMeter\": 15.4,\n  \"weightPerPiece\": 92.4,\n  \"density\": 7.85,\n  \"standardCost\": 75,\n  \"minStockLevel\": 1000,\n  \"maxStockLevel\": 5000,\n  \"reorderLevel\": 1500,\n  \"reorderQuantity\": 2000,\n  \"leadTimeDays\": 7,\n  \"preferredSupplierName\": \"Steel Suppliers Co\",\n  \"storageLocation\": \"Rack A1\",\n  \"remarks\": \"High-demand material\",\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/materials",
+							"host": ["{{base_url}}"],
+							"path": ["api", "materials"]
+						}
+					}
+				},
+				{
+					"name": "Get All Materials",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/materials",
+							"host": ["{{base_url}}"],
+							"path": ["api", "materials"]
+						}
+					}
+				},
+				{
+					"name": "Get Material by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/materials/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "materials", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "paste-material-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Materials by Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/materials/by-category/Steel",
+							"host": ["{{base_url}}"],
+							"path": ["api", "materials", "by-category", "Steel"]
+						}
+					}
+				},
+				{
+					"name": "Get Low Stock Materials",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/materials/low-stock",
+							"host": ["{{base_url}}"],
+							"path": ["api", "materials", "low-stock"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Machines",
+			"item": [
+				{
+					"name": "Create Machine",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"machineCode\": \"MCH001\",\n  \"machineName\": \"CNC Lathe Machine - Fanuc\",\n  \"machineType\": \"CNC Lathe\",\n  \"category\": \"Turning\",\n  \"manufacturer\": \"HAAS Automation\",\n  \"model\": \"ST-30\",\n  \"serialNumber\": \"HAAS-ST30-2023-1234\",\n  \"yearOfManufacture\": 2023,\n  \"capacity\": 300,\n  \"capacityUnit\": \"mm\",\n  \"specifications\": \"Max turning dia: 300mm, Max length: 600mm\",\n  \"maxWorkpieceLength\": 600,\n  \"maxWorkpieceDiameter\": 300,\n  \"chuckSize\": 250,\n  \"department\": \"Machining\",\n  \"shopFloor\": \"Shop Floor 1\",\n  \"location\": \"Bay A\",\n  \"hourlyRate\": 800,\n  \"powerConsumption\": 15,\n  \"operatorsRequired\": 1,\n  \"maintenanceSchedule\": \"Every 1000 hours\",\n  \"remarks\": \"High-precision CNC machine\",\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/machines",
+							"host": ["{{base_url}}"],
+							"path": ["api", "machines"]
+						}
+					}
+				},
+				{
+					"name": "Get All Machines",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/machines",
+							"host": ["{{base_url}}"],
+							"path": ["api", "machines"]
+						}
+					}
+				},
+				{
+					"name": "Get Available Machines",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/machines/available",
+							"host": ["{{base_url}}"],
+							"path": ["api", "machines", "available"]
+						}
+					}
+				},
+				{
+					"name": "Get Machines by Type",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/machines/by-type/CNC Lathe",
+							"host": ["{{base_url}}"],
+							"path": ["api", "machines", "by-type", "CNC Lathe"]
+						}
+					}
+				},
+				{
+					"name": "Assign Machine to Job Card",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "\"JOB-001\""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/machines/:id/assign",
+							"host": ["{{base_url}}"],
+							"path": ["api", "machines", ":id", "assign"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "paste-machine-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Release Machine from Job Card",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/machines/:id/release",
+							"host": ["{{base_url}}"],
+							"path": ["api", "machines", ":id", "release"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "paste-machine-id-here"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Processes",
+			"item": [
+				{
+					"name": "Create Process",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"processCode\": \"PROC001\",\n  \"processName\": \"CNC Turning Operation\",\n  \"processType\": \"Machining\",\n  \"category\": \"Turning\",\n  \"department\": \"Machining\",\n  \"description\": \"CNC lathe turning operation for cylindrical parts\",\n  \"processDetails\": \"Rough turning, finish turning, grooving, threading\",\n  \"machineType\": \"CNC Lathe\",\n  \"defaultMachineName\": \"CNC Lathe Machine - Fanuc\",\n  \"standardSetupTimeMin\": 30,\n  \"standardCycleTimeMin\": 120,\n  \"standardCycleTimePerPiece\": 15,\n  \"skillLevel\": \"Advanced\",\n  \"operatorsRequired\": 1,\n  \"hourlyRate\": 800,\n  \"standardCostPerPiece\": 200,\n  \"requiresQC\": true,\n  \"qcCheckpoints\": \"Dimensional check, surface finish\",\n  \"isOutsourced\": false,\n  \"remarks\": \"Critical process\",\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/processes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "processes"]
+						}
+					}
+				},
+				{
+					"name": "Get All Processes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/processes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "processes"]
+						}
+					}
+				},
+				{
+					"name": "Get Active Processes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/processes/active",
+							"host": ["{{base_url}}"],
+							"path": ["api", "processes", "active"]
+						}
+					}
+				},
+				{
+					"name": "Get Outsourced Processes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/processes/outsourced",
+							"host": ["{{base_url}}"],
+							"path": ["api", "processes", "outsourced"]
+						}
+					}
+				},
+				{
+					"name": "Get Processes by Type",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/processes/by-type/Machining",
+							"host": ["{{base_url}}"],
+							"path": ["api", "processes", "by-type", "Machining"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Get All Orders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/orders",
+							"host": ["{{base_url}}"],
+							"path": ["api", "orders"]
+						}
+					}
+				},
+				{
+					"name": "Get Order by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/orders/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "orders", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "paste-order-id-here"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Pending Drawing Review",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/orders/pending-drawing-review",
+							"host": ["{{base_url}}"],
+							"path": ["api", "orders", "pending-drawing-review"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5217",
+			"type": "string"
+		}
+	]
+}
