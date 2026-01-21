@@ -1,7 +1,7 @@
 # MultiHitech ERP API - Testing Guide
 
 **API Base URL:** `http://localhost:5217`
-**Last Updated:** 2026-01-19
+**Last Updated:** 2026-01-20
 
 ---
 
@@ -24,8 +24,11 @@ Open browser: `http://localhost:5217/swagger`
 2. **Materials** - Create materials for production
 3. **Machines** - Create machines for processing
 4. **Processes** - Create manufacturing processes
-5. **Orders** - Create orders (requires customers)
+5. **Operators** - Create operators for job execution
 6. **Products** - Create products (requires materials, processes)
+7. **Drawings** - Create drawings for products
+8. **Orders** - Create orders (requires customers, products)
+9. **Job Cards** - Create job cards with dependencies (requires orders, processes, drawings)
 
 ---
 
@@ -1004,6 +1007,459 @@ After completing all tests, you should have:
 
 ---
 
+## 9️⃣ Job Card API Testing (Planning Module)
+
+### Base URL: `/api/jobcards`
+
+### ✅ Create Job Card (POST)
+
+**Endpoint:** `POST http://localhost:5217/api/jobcards`
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Test Data 1 - Cutting Job Card (No Dependencies):**
+```json
+{
+  "jobCardNo": "JC-2024-001",
+  "creationType": "Manual",
+  "orderId": "order-guid-from-orders-api",
+  "orderNo": "ORD-001",
+  "drawingId": "drawing-guid-from-drawings-api",
+  "drawingNumber": "DWG-2024-001",
+  "drawingRevision": "A",
+  "processId": "process-guid-for-cutting",
+  "processName": "Cutting",
+  "stepNo": 1,
+  "quantity": 10,
+  "estimatedSetupTimeMin": 30,
+  "estimatedCycleTimeMin": 120,
+  "estimatedTotalTimeMin": 150,
+  "materialStatus": "Pending",
+  "priority": "High",
+  "scheduleStatus": "Not Scheduled",
+  "createdBy": "Planner",
+  "prerequisiteJobCardIds": []
+}
+```
+
+**Test Data 2 - CNC Turning Job Card (With Dependency):**
+```json
+{
+  "jobCardNo": "JC-2024-002",
+  "creationType": "Manual",
+  "orderId": "order-guid-from-orders-api",
+  "orderNo": "ORD-001",
+  "drawingId": "drawing-guid-from-drawings-api",
+  "drawingNumber": "DWG-2024-001",
+  "drawingRevision": "A",
+  "processId": "process-guid-for-cnc-turning",
+  "processName": "CNC Turning",
+  "stepNo": 2,
+  "quantity": 10,
+  "estimatedSetupTimeMin": 45,
+  "estimatedCycleTimeMin": 180,
+  "estimatedTotalTimeMin": 225,
+  "materialStatus": "Pending",
+  "priority": "High",
+  "scheduleStatus": "Not Scheduled",
+  "createdBy": "Planner",
+  "prerequisiteJobCardIds": ["guid-of-JC-2024-001"]
+}
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": "Job card 'JC-2024-002' created successfully",
+  "data": "new-job-card-guid",
+  "errors": null
+}
+```
+
+---
+
+### 📋 Get All Job Cards (GET)
+
+**Endpoint:** `GET http://localhost:5217/api/jobcards`
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": null,
+  "data": [
+    {
+      "id": "guid",
+      "jobCardNo": "JC-2024-001",
+      "status": "Pending",
+      "quantity": 10,
+      "completedQty": 0,
+      "materialStatus": "Pending",
+      "scheduleStatus": "Not Scheduled",
+      ...
+    }
+  ],
+  "errors": null
+}
+```
+
+---
+
+### 🔍 Get Job Cards by Order (GET)
+
+**Endpoint:** `GET http://localhost:5217/api/jobcards/by-order/{orderId}`
+
+**Example:** `GET http://localhost:5217/api/jobcards/by-order/order-guid-here`
+
+---
+
+### 🎯 Get Ready for Scheduling (GET)
+
+**Endpoint:** `GET http://localhost:5217/api/jobcards/ready-for-scheduling`
+
+**Returns:** All job cards with:
+- Status = "Pending"
+- MaterialStatus = "Available"
+- No unresolved dependencies
+
+---
+
+### 🚫 Get Blocked Job Cards (GET)
+
+**Endpoint:** `GET http://localhost:5217/api/jobcards/blocked`
+
+**Returns:** Job cards that have unresolved dependencies
+
+---
+
+### ▶️ Start Job Card Execution (POST)
+
+**Endpoint:** `POST http://localhost:5217/api/jobcards/{id}/start`
+
+**Example:** `POST http://localhost:5217/api/jobcards/job-card-guid/start`
+
+**Prerequisites:**
+- Job card must have no unresolved dependencies
+- MaterialStatus must be "Available" or "Issued"
+- Status must be "Pending" or "Ready"
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": "Job card execution started",
+  "data": true,
+  "errors": null
+}
+```
+
+---
+
+### ✅ Complete Job Card Execution (POST)
+
+**Endpoint:** `POST http://localhost:5217/api/jobcards/{id}/complete`
+
+**Example:** `POST http://localhost:5217/api/jobcards/job-card-guid/complete`
+
+**What Happens:**
+1. Job card status → "Completed"
+2. Actual time calculated (end - start)
+3. All dependencies where this is a prerequisite → auto-resolved
+4. Dependent job cards → unblocked
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": "Job card execution completed",
+  "data": true,
+  "errors": null
+}
+```
+
+---
+
+### 📊 Update Quantities (POST)
+
+**Endpoint:** `POST http://localhost:5217/api/jobcards/{id}/update-quantities`
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+  "completedQty": 8,
+  "rejectedQty": 1,
+  "reworkQty": 1,
+  "inProgressQty": 0
+}
+```
+
+**Validation:** Total quantities cannot exceed job card quantity
+
+---
+
+### 🏭 Assign Machine (POST)
+
+**Endpoint:** `POST http://localhost:5217/api/jobcards/{id}/assign-machine`
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+  "machineId": "machine-guid",
+  "machineName": "CNC-01"
+}
+```
+
+---
+
+### 👷 Assign Operator (POST)
+
+**Endpoint:** `POST http://localhost:5217/api/jobcards/{id}/assign-operator`
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+  "operatorId": "operator-guid",
+  "operatorName": "Rajesh Kumar"
+}
+```
+
+---
+
+### 🔗 Get Dependencies (GET)
+
+**Get Prerequisites (jobs this one depends on):**
+```
+GET http://localhost:5217/api/jobcards/{id}/prerequisites
+```
+
+**Get Dependents (jobs that depend on this one):**
+```
+GET http://localhost:5217/api/jobcards/{id}/dependents
+```
+
+---
+
+### ➕ Add Dependency (POST)
+
+**Endpoint:** `POST http://localhost:5217/api/jobcards/{dependentId}/add-dependency`
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+  "prerequisiteJobCardId": "prerequisite-job-card-guid"
+}
+```
+
+**Validation:**
+- Prevents circular dependencies
+- Prerequisite must exist
+
+---
+
+### 📈 Update Job Card Status (POST)
+
+**Endpoint:** `POST http://localhost:5217/api/jobcards/{id}/status`
+
+**Body:**
+```json
+{
+  "status": "Ready"
+}
+```
+
+**Valid Statuses:**
+- "Pending"
+- "Ready"
+- "Scheduled"
+- "In Progress"
+- "Completed"
+- "Blocked"
+
+---
+
+### 📦 Update Material Status (POST)
+
+**Endpoint:** `POST http://localhost:5217/api/jobcards/{id}/material-status`
+
+**Body:**
+```json
+{
+  "materialStatus": "Available"
+}
+```
+
+**Valid Material Statuses:**
+- "Pending"
+- "Requested"
+- "Available"
+- "Issued"
+- "Consumed"
+
+---
+
+### 📅 Update Schedule Status (POST)
+
+**Endpoint:** `POST http://localhost:5217/api/jobcards/{id}/schedule-status`
+
+**Body:**
+```json
+{
+  "scheduleStatus": "Scheduled",
+  "startDate": "2024-01-25T08:00:00Z",
+  "endDate": "2024-01-25T11:30:00Z"
+}
+```
+
+---
+
+### 🎬 Job Card Testing Workflow
+
+**Complete End-to-End Test:**
+
+1. **Create Order** (from Orders API)
+2. **Create Drawing** (from Drawings API)
+3. **Create Processes** (Cutting, Turning, Grinding)
+4. **Create Job Card 1 - Cutting** (no dependencies)
+   ```
+   POST /api/jobcards
+   ```
+5. **Create Job Card 2 - Turning** (depends on JC1)
+   ```
+   POST /api/jobcards
+   prerequisiteJobCardIds: [JC1-guid]
+   ```
+6. **Create Job Card 3 - Grinding** (depends on JC2)
+   ```
+   POST /api/jobcards
+   prerequisiteJobCardIds: [JC2-guid]
+   ```
+7. **Check Blocked Jobs**
+   ```
+   GET /api/jobcards/blocked
+   → Should show JC2 and JC3 (blocked)
+   ```
+8. **Update Material Status for JC1**
+   ```
+   POST /api/jobcards/{jc1-id}/material-status
+   { "materialStatus": "Available" }
+   ```
+9. **Check Ready for Scheduling**
+   ```
+   GET /api/jobcards/ready-for-scheduling
+   → Should show JC1 only
+   ```
+10. **Start JC1**
+    ```
+    POST /api/jobcards/{jc1-id}/start
+    ```
+11. **Complete JC1**
+    ```
+    POST /api/jobcards/{jc1-id}/complete
+    → JC2 should now be unblocked
+    ```
+12. **Verify JC2 is Unblocked**
+    ```
+    GET /api/jobcards/blocked
+    → Should show only JC3 now
+    ```
+13. **Update Material for JC2 and Start/Complete**
+14. **Verify JC3 is Unblocked**
+15. **Continue workflow through JC3**
+
+---
+
+### ⚠️ Common Job Card Errors
+
+**Error: Circular Dependency**
+```json
+{
+  "success": false,
+  "message": "Cannot create dependency - would create circular dependency with job card {guid}",
+  "errors": ["CircularDependencyDetected"]
+}
+```
+
+**Error: Unresolved Dependencies**
+```json
+{
+  "success": false,
+  "message": "Cannot start - job card has unresolved dependencies",
+  "errors": ["UnresolvedDependencies"]
+}
+```
+
+**Error: Material Not Available**
+```json
+{
+  "success": false,
+  "message": "Cannot start - material status is 'Pending'",
+  "errors": ["MaterialNotAvailable"]
+}
+```
+
+**Error: Version Mismatch (Concurrent Edit)**
+```json
+{
+  "success": false,
+  "message": "Job card has been modified by another user. Please refresh and try again.",
+  "errors": ["OptimisticLockingFailure"]
+}
+```
+
+**Error: Cannot Delete**
+```json
+{
+  "success": false,
+  "message": "Cannot delete job card - 2 other job cards depend on it",
+  "errors": ["HasDependents"]
+}
+```
+
+---
+
+### 📊 Job Card Query Endpoints Summary
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/jobcards` | All job cards |
+| `GET /api/jobcards/{id}` | By ID |
+| `GET /api/jobcards/by-job-card-no/{no}` | By job card number |
+| `GET /api/jobcards/by-order/{orderId}` | All for an order |
+| `GET /api/jobcards/by-process/{processId}` | All for a process |
+| `GET /api/jobcards/by-status/{status}` | Filter by status |
+| `GET /api/jobcards/by-machine/{machineId}` | Machine workload |
+| `GET /api/jobcards/by-operator/{operatorId}` | Operator workload |
+| `GET /api/jobcards/ready-for-scheduling` | Ready to schedule |
+| `GET /api/jobcards/scheduled` | Scheduled jobs |
+| `GET /api/jobcards/in-progress` | Currently running |
+| `GET /api/jobcards/blocked` | Blocked by dependencies |
+
+---
+
 ## 📞 Support
 
 If you encounter issues:
@@ -1011,6 +1467,7 @@ If you encounter issues:
 2. Verify database is running
 3. Check [BACKEND_PROGRESS.md](BACKEND_PROGRESS.md) for status
 4. Review this guide for correct request format
+5. For Job Card issues, check [JOB_CARD_MODULE_SUMMARY.md](JOB_CARD_MODULE_SUMMARY.md)
 
 ---
 

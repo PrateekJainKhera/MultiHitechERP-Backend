@@ -28,6 +28,8 @@ builder.Services.AddScoped<IMachineRepository, MachineRepository>();
 builder.Services.AddScoped<IProcessRepository, ProcessRepository>();
 builder.Services.AddScoped<IOperatorRepository, OperatorRepository>();
 builder.Services.AddScoped<IDrawingRepository, DrawingRepository>();
+builder.Services.AddScoped<IJobCardDependencyRepository, JobCardDependencyRepository>();
+builder.Services.AddScoped<IJobCardRepository, JobCardRepository>();
 
 // Register Services
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -38,6 +40,7 @@ builder.Services.AddScoped<IMachineService, MachineService>();
 builder.Services.AddScoped<IProcessService, ProcessService>();
 builder.Services.AddScoped<IOperatorService, OperatorService>();
 builder.Services.AddScoped<IDrawingService, DrawingService>();
+builder.Services.AddScoped<IJobCardService, JobCardService>();
 
 // CORS for frontend
 builder.Services.AddCors(options =>
