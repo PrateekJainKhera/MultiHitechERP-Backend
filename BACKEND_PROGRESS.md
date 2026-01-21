@@ -1,11 +1,11 @@
 # MultiHitech ERP Backend - Progress Tracker
 
-**Last Updated:** 2026-01-20
+**Last Updated:** 2026-01-21
 **API Status:** ✅ RUNNING on http://localhost:5217
 
 ---
 
-## 🎯 Current Status: **Phase 1C - Planning Module (Job Cards) Complete!**
+## 🎯 Current Status: **Phase 1D - Stores Module (Material Requisition) Complete!**
 
 ### ✅ **Completed (100%)**
 
@@ -60,8 +60,11 @@
 - ✅ IDrawingRepository + DrawingRepository (ADO.NET - 450+ lines)
 - ✅ IJobCardDependencyRepository + JobCardDependencyRepository (ADO.NET - 350+ lines with circular dependency detection)
 - ✅ IJobCardRepository + JobCardRepository (ADO.NET - 850+ lines with dependency management)
-- ✅ 15 repository interfaces defined
-- ✅ **10 repositories fully implemented** (Order, Customer, Material, Machine, Process, Product, Operator, Drawing, JobCard, JobCardDependency)
+- ✅ IMaterialRequisitionRepository + MaterialRequisitionRepository (ADO.NET - 450+ lines with approval workflow)
+- ✅ IMaterialPieceRepository + MaterialPieceRepository (ADO.NET - 500+ lines with FIFO logic)
+- ✅ IMaterialIssueRepository + MaterialIssueRepository (ADO.NET - 350+ lines)
+- ✅ 18 repository interfaces defined
+- ✅ **13 repositories fully implemented** (Order, Customer, Material, Machine, Process, Product, Operator, Drawing, JobCard, JobCardDependency, MaterialRequisition, MaterialPiece, MaterialIssue)
 
 #### **7. Service Layer**
 - ✅ IOrderService + OrderService (600+ lines with business logic)
@@ -73,13 +76,16 @@
 - ✅ IOperatorService + OperatorService (complete with job card assignment)
 - ✅ IDrawingService + DrawingService (complete with revision control)
 - ✅ IJobCardService + JobCardService (700+ lines with dependency management & workflow enforcement)
-- ✅ **9 services fully implemented**
+- ✅ IMaterialRequisitionService + MaterialRequisitionService (650+ lines with FIFO allocation & issuance logic)
+- ✅ **10 services fully implemented**
   - ✅ Business rules enforcement
   - ✅ Validation logic
   - ✅ ApiResponse<T> wrapping
   - ✅ Error handling
   - ✅ Dependency resolution
   - ✅ Optimistic locking
+  - ✅ FIFO material allocation
+  - ✅ Material issuance workflow
 
 #### **8. API Layer**
 - ✅ **OrdersController** (14 REST endpoints)
@@ -91,7 +97,8 @@
 - ✅ **OperatorsController** (17 REST endpoints: CRUD, availability, assignment, queries by shift/skill/department)
 - ✅ **DrawingsController** (13 REST endpoints: CRUD, revision control, pending approval, by product/type)
 - ✅ **JobCardsController** (26 REST endpoints: CRUD, status/material/schedule updates, execution, dependencies, queries)
-- ✅ **Total: 140 REST endpoints across 9 controllers**
+- ✅ **MaterialRequisitionsController** (23 REST endpoints: CRUD, approval/rejection, allocation/deallocation, issuance, queries by status/priority/order/job card)
+- ✅ **Total: 163 REST endpoints across 10 controllers**
 
 #### **9. DTOs**
 - ✅ **Order DTOs:** CreateOrderRequest, UpdateOrderRequest, UpdateDrawingReviewRequest, OrderResponse
@@ -103,8 +110,9 @@
 - ✅ **Operator DTOs:** CreateOperatorRequest, UpdateOperatorRequest, OperatorResponse
 - ✅ **Drawing DTOs:** CreateDrawingRequest, UpdateDrawingRequest, DrawingResponse
 - ✅ **JobCard DTOs:** CreateJobCardRequest, UpdateJobCardRequest, JobCardResponse
+- ✅ **Material Requisition DTOs:** CreateMaterialRequisitionRequest, UpdateMaterialRequisitionRequest, AllocateMaterialRequest, IssueMaterialRequest, MaterialRequisitionResponse, MaterialPieceResponse, MaterialIssueResponse
 - ✅ ApiResponse<T> (standard wrapper)
-- ✅ **Total: 28 DTOs created with validation attributes**
+- ✅ **Total: 35 DTOs created with validation attributes**
 
 #### **10. Testing**
 - ✅ Project builds successfully
@@ -120,16 +128,16 @@
 |----------|----------|-------|----------|
 | Models | 23 | 23 | 100% ✅ |
 | Enums | 12 | 12 | 100% ✅ |
-| Repository Interfaces | 15 | 15 | 100% ✅ |
-| Repository Implementations | 10 | 15 | 67% ⏳ |
-| Service Interfaces | 9 | 15 | 60% ⏳ |
-| Service Implementations | 9 | 15 | 60% ⏳ |
-| Controllers | 9 | 15 | 60% ⏳ |
-| DTOs | 28 | 45+ | 62% ⏳ |
+| Repository Interfaces | 18 | 18 | 100% ✅ |
+| Repository Implementations | 13 | 18 | 72% ⏳ |
+| Service Interfaces | 10 | 18 | 56% ⏳ |
+| Service Implementations | 10 | 18 | 56% ⏳ |
+| Controllers | 10 | 18 | 56% ⏳ |
+| DTOs | 35 | 50+ | 70% ⏳ |
 | Database Schema | 1 | 1 | 100% ✅ |
 | Infrastructure | 1 | 1 | 100% ✅ |
 
-**Overall Backend Progress: ~82%** 🎉
+**Overall Backend Progress: ~85%** 🎉
 
 ---
 
@@ -213,21 +221,29 @@
 
 ---
 
-### **Phase 1D - Stores Module (Week 5)**
+### **Phase 1D - Stores Module (Week 5)** ✅ **COMPLETE**
 
-#### **1. Material Requisition**
-- ⏳ Implement MaterialRequisitionRepository
-- ⏳ Create MaterialRequisitionService
-- ⏳ Create MaterialRequisitionsController
-- ⏳ Material requisition workflow
-- ⏳ Approval logic
+#### **1. Material Requisition** ✅
+- ✅ MaterialRequisitionRepository (ADO.NET - 450+ lines with approval workflow)
+- ✅ MaterialRequisitionService (650+ lines with FIFO allocation logic)
+- ✅ MaterialRequisitionsController (23 REST endpoints)
+- ✅ Material requisition workflow (Create → Pending → Approve/Reject)
+- ✅ Approval/Rejection logic with reason tracking
+- ✅ Material Requisition DTOs (Create, Update, Response)
 
-#### **2. Material Allocation**
-- ⏳ Implement MaterialPieceRepository (length-based tracking)
-- ⏳ FIFO selection algorithm
-- ⏳ Length consumption tracking
-- ⏳ Material allocation service
-- ⏳ Issue/Return logic
+#### **2. Material Allocation** ✅
+- ✅ MaterialPieceRepository (ADO.NET - 500+ lines with length-based tracking)
+- ✅ MaterialIssueRepository (ADO.NET - 350+ lines)
+- ✅ FIFO selection algorithm (ORDER BY ReceivedDate ASC)
+- ✅ Length consumption tracking (OriginalLengthMM → CurrentLengthMM)
+- ✅ Material allocation service methods:
+  - ✅ AllocateMaterialsAsync - FIFO allocation to requisition
+  - ✅ DeallocateMaterialsAsync - Return materials to available
+  - ✅ IssueMaterialsAsync - Physical issuance to production
+  - ✅ GetAllocatedPiecesAsync - Track allocated pieces
+  - ✅ GetIssuanceHistoryAsync - Audit trail
+- ✅ Material Piece & Issue DTOs (Response models)
+- ✅ Issue/Return logic with status tracking (Available → Allocated → Issued → Consumed)
 
 ---
 
@@ -373,7 +389,8 @@ Postman: `GET http://localhost:5217/api/orders`
 
 - ✅ **8 Master Data Modules Complete** (Order, Customer, Material, Machine, Process, Product, Operator, Drawing)
 - ✅ **Planning Module Complete** with Job Card & Dependency Management
-- ✅ **140 REST endpoints** across 9 controllers
+- ✅ **Stores Module Complete** with Material Requisition & FIFO Allocation
+- ✅ **163 REST endpoints** across 10 controllers
 - ✅ ADO.NET pattern established and working
 - ✅ **Circular dependency detection** using recursive CTE
 - ✅ **Dependency resolution** - automatic unblocking when prerequisites complete
@@ -385,6 +402,10 @@ Postman: `GET http://localhost:5217/api/orders`
 - ✅ Operator assignment and availability tracking
 - ✅ **Job card workflow enforcement** (Pending → Ready → In Progress → Completed)
 - ✅ Material status tracking for job cards
+- ✅ **FIFO material allocation** - oldest material issued first
+- ✅ **Length-based material tracking** for steel rods/pipes
+- ✅ Material requisition approval workflow
+- ✅ Physical material issuance to production
 - ✅ API tested and confirmed working
 - ✅ Swagger documentation available
 
@@ -402,5 +423,5 @@ Postman: `GET http://localhost:5217/api/orders`
 ---
 
 **Project Status: ON TRACK** ✅
-**Next Milestone: Stores Module (Material Requisition & Allocation)** 🎯
+**Next Milestone: Production Module (Job Card Execution)** 🎯
 **Estimated Completion: 6-8 weeks total** 📅
