@@ -33,6 +33,9 @@ builder.Services.AddScoped<IJobCardRepository, JobCardRepository>();
 builder.Services.AddScoped<IMaterialRequisitionRepository, MaterialRequisitionRepository>();
 builder.Services.AddScoped<IMaterialPieceRepository, MaterialPieceRepository>();
 builder.Services.AddScoped<IMaterialIssueRepository, MaterialIssueRepository>();
+builder.Services.AddScoped<IJobCardExecutionRepository, JobCardExecutionRepository>();
+builder.Services.AddScoped<IQCResultRepository, QCResultRepository>();
+builder.Services.AddScoped<IDeliveryChallanRepository, DeliveryChallanRepository>();
 
 // Register Services
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -45,6 +48,9 @@ builder.Services.AddScoped<IOperatorService, OperatorService>();
 builder.Services.AddScoped<IDrawingService, DrawingService>();
 builder.Services.AddScoped<IJobCardService, JobCardService>();
 builder.Services.AddScoped<IMaterialRequisitionService, MaterialRequisitionService>();
+builder.Services.AddScoped<IProductionService, ProductionService>();
+builder.Services.AddScoped<IQualityService, QualityService>();
+builder.Services.AddScoped<IDispatchService, DispatchService>();
 
 // CORS for frontend
 builder.Services.AddCors(options =>

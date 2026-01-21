@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using MultiHitechERP.API.Common;
+using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Stores;
 using MultiHitechERP.API.Repositories.Interfaces;
 using MultiHitechERP.API.Services.Interfaces;

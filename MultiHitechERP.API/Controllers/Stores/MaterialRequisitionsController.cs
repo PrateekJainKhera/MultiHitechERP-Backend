@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using MultiHitechERP.API.Common;
 using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Stores;

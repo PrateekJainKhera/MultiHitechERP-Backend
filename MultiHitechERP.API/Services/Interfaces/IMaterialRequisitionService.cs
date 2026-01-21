@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using MultiHitechERP.API.Common;
+using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Stores;
 
 namespace MultiHitechERP.API.Services.Interfaces
