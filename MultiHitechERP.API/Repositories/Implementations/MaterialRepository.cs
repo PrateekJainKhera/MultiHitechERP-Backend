@@ -83,7 +83,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Materials (
-                    Id, MaterialCode, MaterialName, Category, SubCategory, MaterialType,
+                    MaterialCode, MaterialName, Category, SubCategory, MaterialType,
                     Grade, Specification, Description, HSNCode,
                     StandardLength, Diameter, Thickness, Width,
                     PrimaryUOM, SecondaryUOM, ConversionFactor,
@@ -93,7 +93,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     PreferredSupplierId, PreferredSupplierName, StorageLocation, StorageConditions,
                     IsActive, Status, Remarks, CreatedAt, CreatedBy
                 ) VALUES (
-                    @Id, @MaterialCode, @MaterialName, @Category, @SubCategory, @MaterialType,
+                    @MaterialCode, @MaterialName, @Category, @SubCategory, @MaterialType,
                     @Grade, @Specification, @Description, @HSNCode,
                     @StandardLength, @Diameter, @Thickness, @Width,
                     @PrimaryUOM, @SecondaryUOM, @ConversionFactor,
@@ -102,19 +102,20 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     @MinStockLevel, @MaxStockLevel, @ReorderLevel, @ReorderQuantity, @LeadTimeDays,
                     @PreferredSupplierId, @PreferredSupplierName, @StorageLocation, @StorageConditions,
                     @IsActive, @Status, @Remarks, @CreatedAt, @CreatedBy
-                )";
+                );
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            material.Id = 0;
             material.CreatedAt = DateTime.UtcNow;
             AddMaterialParameters(command, material);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            var materialId = (int)await command.ExecuteScalarAsync();
+            material.Id = materialId;
 
-            return material.Id;
+            return materialId;
         }
 
         public async Task<bool> UpdateAsync(Material material)
