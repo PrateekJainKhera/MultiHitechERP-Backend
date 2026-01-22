@@ -10,12 +10,12 @@ namespace MultiHitechERP.API.Models.Masters
         public Guid Id { get; set; }
         public string CustomerCode { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
+        public string CustomerType { get; set; } = string.Empty; // 'Direct', 'Agent', 'Dealer'
 
         // Contact Information
         public string? ContactPerson { get; set; }
         public string? Email { get; set; }
         public string? Phone { get; set; }
-        public string? Mobile { get; set; }
 
         // Address
         public string? Address { get; set; }
@@ -25,25 +25,18 @@ namespace MultiHitechERP.API.Models.Masters
         public string? PinCode { get; set; }
 
         // Business Details
-        public string? GSTNumber { get; set; }
-        public string? PANNumber { get; set; }
-        public string? CustomerType { get; set; }
-        public string? Industry { get; set; }
+        public string? GSTNo { get; set; }
+        public string? PANNo { get; set; }
 
         // Payment Terms
-        public int? CreditDays { get; set; }
-        public decimal? CreditLimit { get; set; }
+        public int CreditDays { get; set; } = 0;
+        public decimal CreditLimit { get; set; } = 0;
         public string? PaymentTerms { get; set; }
 
         // Status
         public bool IsActive { get; set; } = true;
-        public string? Status { get; set; } = "Active";
 
-        // Rating & Classification
-        public string? CustomerRating { get; set; }
-        public string? Classification { get; set; }
-
-        public string? Remarks { get; set; }
+        // Audit
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
         public DateTime? UpdatedAt { get; set; }

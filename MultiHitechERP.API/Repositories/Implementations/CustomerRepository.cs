@@ -104,19 +104,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Customers (
-                    Id, CustomerCode, CustomerName, ContactPerson, Email, Phone, Mobile,
+                    Id, CustomerCode, CustomerName, CustomerType,
+                    ContactPerson, Email, Phone,
                     Address, City, State, Country, PinCode,
-                    GSTNumber, PANNumber, CustomerType, Industry,
+                    GSTNo, PANNo,
                     CreditDays, CreditLimit, PaymentTerms,
-                    IsActive, Status, CustomerRating, Classification,
-                    Remarks, CreatedAt, CreatedBy
+                    IsActive, CreatedAt, CreatedBy
                 ) VALUES (
-                    @Id, @CustomerCode, @CustomerName, @ContactPerson, @Email, @Phone, @Mobile,
+                    @Id, @CustomerCode, @CustomerName, @CustomerType,
+                    @ContactPerson, @Email, @Phone,
                     @Address, @City, @State, @Country, @PinCode,
-                    @GSTNumber, @PANNumber, @CustomerType, @Industry,
+                    @GSTNo, @PANNo,
                     @CreditDays, @CreditLimit, @PaymentTerms,
-                    @IsActive, @Status, @CustomerRating, @Classification,
-                    @Remarks, @CreatedAt, @CreatedBy
+                    @IsActive, @CreatedAt, @CreatedBy
                 )";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -139,27 +139,21 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 UPDATE Masters_Customers SET
                     CustomerName = @CustomerName,
+                    CustomerType = @CustomerType,
                     ContactPerson = @ContactPerson,
                     Email = @Email,
                     Phone = @Phone,
-                    Mobile = @Mobile,
                     Address = @Address,
                     City = @City,
                     State = @State,
                     Country = @Country,
                     PinCode = @PinCode,
-                    GSTNumber = @GSTNumber,
-                    PANNumber = @PANNumber,
-                    CustomerType = @CustomerType,
-                    Industry = @Industry,
+                    GSTNo = @GSTNo,
+                    PANNo = @PANNo,
                     CreditDays = @CreditDays,
                     CreditLimit = @CreditLimit,
                     PaymentTerms = @PaymentTerms,
                     IsActive = @IsActive,
-                    Status = @Status,
-                    CustomerRating = @CustomerRating,
-                    Classification = @Classification,
-                    Remarks = @Remarks,
                     UpdatedAt = @UpdatedAt,
                     UpdatedBy = @UpdatedBy
                 WHERE Id = @Id";
@@ -196,7 +190,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 UPDATE Masters_Customers
-                SET IsActive = 1, Status = 'Active', UpdatedAt = @UpdatedAt
+                SET IsActive = 1, UpdatedAt = @UpdatedAt
                 WHERE Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -215,7 +209,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 UPDATE Masters_Customers
-                SET IsActive = 0, Status = 'Inactive', UpdatedAt = @UpdatedAt
+                SET IsActive = 0, UpdatedAt = @UpdatedAt
                 WHERE Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -355,14 +349,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 CustomerCode = reader.GetString(reader.GetOrdinal("CustomerCode")),
                 CustomerName = reader.GetString(reader.GetOrdinal("CustomerName")),
 
+                CustomerType = reader.GetString(reader.GetOrdinal("CustomerType")),
+
                 ContactPerson = reader.IsDBNull(reader.GetOrdinal("ContactPerson"))
                     ? null : reader.GetString(reader.GetOrdinal("ContactPerson")),
                 Email = reader.IsDBNull(reader.GetOrdinal("Email"))
                     ? null : reader.GetString(reader.GetOrdinal("Email")),
                 Phone = reader.IsDBNull(reader.GetOrdinal("Phone"))
                     ? null : reader.GetString(reader.GetOrdinal("Phone")),
-                Mobile = reader.IsDBNull(reader.GetOrdinal("Mobile"))
-                    ? null : reader.GetString(reader.GetOrdinal("Mobile")),
 
                 Address = reader.IsDBNull(reader.GetOrdinal("Address"))
                     ? null : reader.GetString(reader.GetOrdinal("Address")),
@@ -375,32 +369,17 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 PinCode = reader.IsDBNull(reader.GetOrdinal("PinCode"))
                     ? null : reader.GetString(reader.GetOrdinal("PinCode")),
 
-                GSTNumber = reader.IsDBNull(reader.GetOrdinal("GSTNumber"))
-                    ? null : reader.GetString(reader.GetOrdinal("GSTNumber")),
-                PANNumber = reader.IsDBNull(reader.GetOrdinal("PANNumber"))
-                    ? null : reader.GetString(reader.GetOrdinal("PANNumber")),
-                CustomerType = reader.IsDBNull(reader.GetOrdinal("CustomerType"))
-                    ? null : reader.GetString(reader.GetOrdinal("CustomerType")),
-                Industry = reader.IsDBNull(reader.GetOrdinal("Industry"))
-                    ? null : reader.GetString(reader.GetOrdinal("Industry")),
+                GSTNo = reader.IsDBNull(reader.GetOrdinal("GSTNo"))
+                    ? null : reader.GetString(reader.GetOrdinal("GSTNo")),
+                PANNo = reader.IsDBNull(reader.GetOrdinal("PANNo"))
+                    ? null : reader.GetString(reader.GetOrdinal("PANNo")),
 
-                CreditDays = reader.IsDBNull(reader.GetOrdinal("CreditDays"))
-                    ? null : reader.GetInt32(reader.GetOrdinal("CreditDays")),
-                CreditLimit = reader.IsDBNull(reader.GetOrdinal("CreditLimit"))
-                    ? null : reader.GetDecimal(reader.GetOrdinal("CreditLimit")),
+                CreditDays = reader.GetInt32(reader.GetOrdinal("CreditDays")),
+                CreditLimit = reader.GetDecimal(reader.GetOrdinal("CreditLimit")),
                 PaymentTerms = reader.IsDBNull(reader.GetOrdinal("PaymentTerms"))
                     ? null : reader.GetString(reader.GetOrdinal("PaymentTerms")),
 
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
-                Status = reader.IsDBNull(reader.GetOrdinal("Status"))
-                    ? null : reader.GetString(reader.GetOrdinal("Status")),
-                CustomerRating = reader.IsDBNull(reader.GetOrdinal("CustomerRating"))
-                    ? null : reader.GetString(reader.GetOrdinal("CustomerRating")),
-                Classification = reader.IsDBNull(reader.GetOrdinal("Classification"))
-                    ? null : reader.GetString(reader.GetOrdinal("Classification")),
-
-                Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks"))
-                    ? null : reader.GetString(reader.GetOrdinal("Remarks")),
 
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy"))
@@ -417,11 +396,11 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Id", customer.Id);
             command.Parameters.AddWithValue("@CustomerCode", customer.CustomerCode);
             command.Parameters.AddWithValue("@CustomerName", customer.CustomerName);
+            command.Parameters.AddWithValue("@CustomerType", customer.CustomerType);
 
             command.Parameters.AddWithValue("@ContactPerson", (object?)customer.ContactPerson ?? DBNull.Value);
             command.Parameters.AddWithValue("@Email", (object?)customer.Email ?? DBNull.Value);
             command.Parameters.AddWithValue("@Phone", (object?)customer.Phone ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Mobile", (object?)customer.Mobile ?? DBNull.Value);
 
             command.Parameters.AddWithValue("@Address", (object?)customer.Address ?? DBNull.Value);
             command.Parameters.AddWithValue("@City", (object?)customer.City ?? DBNull.Value);
@@ -429,21 +408,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Country", (object?)customer.Country ?? DBNull.Value);
             command.Parameters.AddWithValue("@PinCode", (object?)customer.PinCode ?? DBNull.Value);
 
-            command.Parameters.AddWithValue("@GSTNumber", (object?)customer.GSTNumber ?? DBNull.Value);
-            command.Parameters.AddWithValue("@PANNumber", (object?)customer.PANNumber ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CustomerType", (object?)customer.CustomerType ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Industry", (object?)customer.Industry ?? DBNull.Value);
+            command.Parameters.AddWithValue("@GSTNo", (object?)customer.GSTNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@PANNo", (object?)customer.PANNo ?? DBNull.Value);
 
-            command.Parameters.AddWithValue("@CreditDays", (object?)customer.CreditDays ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CreditLimit", (object?)customer.CreditLimit ?? DBNull.Value);
+            command.Parameters.AddWithValue("@CreditDays", customer.CreditDays);
+            command.Parameters.AddWithValue("@CreditLimit", customer.CreditLimit);
             command.Parameters.AddWithValue("@PaymentTerms", (object?)customer.PaymentTerms ?? DBNull.Value);
 
             command.Parameters.AddWithValue("@IsActive", customer.IsActive);
-            command.Parameters.AddWithValue("@Status", (object?)customer.Status ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CustomerRating", (object?)customer.CustomerRating ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Classification", (object?)customer.Classification ?? DBNull.Value);
-
-            command.Parameters.AddWithValue("@Remarks", (object?)customer.Remarks ?? DBNull.Value);
 
             command.Parameters.AddWithValue("@CreatedAt", customer.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", (object?)customer.CreatedBy ?? DBNull.Value);

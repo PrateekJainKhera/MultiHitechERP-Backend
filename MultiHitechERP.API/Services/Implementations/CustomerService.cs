@@ -112,7 +112,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 }
 
                 // Business Rule 4: Validate GST format if provided
-                if (!string.IsNullOrWhiteSpace(request.GSTNumber) && request.GSTNumber.Length != 15)
+                if (!string.IsNullOrWhiteSpace(request.GSTNo) && request.GSTNo.Length != 15)
                 {
                     return ApiResponse<Guid>.ErrorResponse("GST number must be 15 characters long");
                 }
@@ -122,27 +122,21 @@ namespace MultiHitechERP.API.Services.Implementations
                 {
                     CustomerCode = request.CustomerCode.Trim().ToUpper(),
                     CustomerName = request.CustomerName.Trim(),
+                    CustomerType = request.CustomerType.Trim(),
                     ContactPerson = request.ContactPerson?.Trim(),
                     Email = request.Email?.Trim().ToLower(),
                     Phone = request.Phone?.Trim(),
-                    Mobile = request.Mobile?.Trim(),
                     Address = request.Address?.Trim(),
                     City = request.City?.Trim(),
                     State = request.State?.Trim(),
                     Country = request.Country?.Trim() ?? "India",
                     PinCode = request.PinCode?.Trim(),
-                    GSTNumber = request.GSTNumber?.Trim().ToUpper(),
-                    PANNumber = request.PANNumber?.Trim().ToUpper(),
-                    CustomerType = request.CustomerType ?? "Regular",
-                    Industry = request.Industry?.Trim(),
+                    GSTNo = request.GSTNo?.Trim().ToUpper(),
+                    PANNo = request.PANNo?.Trim().ToUpper(),
                     CreditDays = request.CreditDays ?? 0,
                     CreditLimit = request.CreditLimit ?? 0,
                     PaymentTerms = request.PaymentTerms ?? "Net 30 Days",
-                    IsActive = true,
-                    Status = "Active",
-                    CustomerRating = request.CustomerRating ?? "Standard",
-                    Classification = request.Classification ?? "B",
-                    Remarks = request.Remarks?.Trim(),
+                    IsActive = request.IsActive,
                     CreatedBy = request.CreatedBy?.Trim() ?? "System"
                 };
 
@@ -178,7 +172,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 }
 
                 // Business Rule 2: Validate GST format if provided
-                if (!string.IsNullOrWhiteSpace(request.GSTNumber) && request.GSTNumber.Length != 15)
+                if (!string.IsNullOrWhiteSpace(request.GSTNo) && request.GSTNo.Length != 15)
                 {
                     return ApiResponse<bool>.ErrorResponse("GST number must be 15 characters long");
                 }
@@ -186,27 +180,21 @@ namespace MultiHitechERP.API.Services.Implementations
                 // Update customer
                 existingCustomer.CustomerCode = request.CustomerCode.Trim().ToUpper();
                 existingCustomer.CustomerName = request.CustomerName.Trim();
+                existingCustomer.CustomerType = request.CustomerType.Trim();
                 existingCustomer.ContactPerson = request.ContactPerson?.Trim();
                 existingCustomer.Email = request.Email?.Trim().ToLower();
                 existingCustomer.Phone = request.Phone?.Trim();
-                existingCustomer.Mobile = request.Mobile?.Trim();
                 existingCustomer.Address = request.Address?.Trim();
                 existingCustomer.City = request.City?.Trim();
                 existingCustomer.State = request.State?.Trim();
                 existingCustomer.Country = request.Country?.Trim();
                 existingCustomer.PinCode = request.PinCode?.Trim();
-                existingCustomer.GSTNumber = request.GSTNumber?.Trim().ToUpper();
-                existingCustomer.PANNumber = request.PANNumber?.Trim().ToUpper();
-                existingCustomer.CustomerType = request.CustomerType;
-                existingCustomer.Industry = request.Industry?.Trim();
-                existingCustomer.CreditDays = request.CreditDays;
-                existingCustomer.CreditLimit = request.CreditLimit;
+                existingCustomer.GSTNo = request.GSTNo?.Trim().ToUpper();
+                existingCustomer.PANNo = request.PANNo?.Trim().ToUpper();
+                existingCustomer.CreditDays = request.CreditDays ?? 0;
+                existingCustomer.CreditLimit = request.CreditLimit ?? 0;
                 existingCustomer.PaymentTerms = request.PaymentTerms?.Trim();
                 existingCustomer.IsActive = request.IsActive;
-                existingCustomer.Status = request.Status;
-                existingCustomer.CustomerRating = request.CustomerRating;
-                existingCustomer.Classification = request.Classification;
-                existingCustomer.Remarks = request.Remarks?.Trim();
                 existingCustomer.UpdatedBy = request.UpdatedBy?.Trim() ?? "System";
                 existingCustomer.UpdatedAt = DateTime.UtcNow;
 
@@ -383,27 +371,21 @@ namespace MultiHitechERP.API.Services.Implementations
                 Id = customer.Id,
                 CustomerCode = customer.CustomerCode,
                 CustomerName = customer.CustomerName,
+                CustomerType = customer.CustomerType,
                 ContactPerson = customer.ContactPerson,
                 Email = customer.Email,
                 Phone = customer.Phone,
-                Mobile = customer.Mobile,
                 Address = customer.Address,
                 City = customer.City,
                 State = customer.State,
                 Country = customer.Country,
                 PinCode = customer.PinCode,
-                GSTNumber = customer.GSTNumber,
-                PANNumber = customer.PANNumber,
-                CustomerType = customer.CustomerType,
-                Industry = customer.Industry,
+                GSTNo = customer.GSTNo,
+                PANNo = customer.PANNo,
                 CreditDays = customer.CreditDays,
                 CreditLimit = customer.CreditLimit,
                 PaymentTerms = customer.PaymentTerms,
                 IsActive = customer.IsActive,
-                Status = customer.Status,
-                CustomerRating = customer.CustomerRating,
-                Classification = customer.Classification,
-                Remarks = customer.Remarks,
                 CreatedAt = customer.CreatedAt,
                 CreatedBy = customer.CreatedBy,
                 UpdatedAt = customer.UpdatedAt,

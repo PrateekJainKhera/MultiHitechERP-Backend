@@ -58,7 +58,6 @@ builder.Services.AddScoped<IDispatchService, DispatchService>();
 builder.Services.AddScoped<IBOMService, BOMService>();
 builder.Services.AddScoped<IChildPartService, ChildPartService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
-builder.Services.AddScoped<ISupplierService, SupplierService>();
 
 // CORS for frontend
 builder.Services.AddCors(options =>

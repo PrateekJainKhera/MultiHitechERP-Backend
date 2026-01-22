@@ -1,0 +1,399 @@
+{
+	"info": {
+		"name": "MultiHitech ERP API - Master Data Testing",
+		"description": "Complete API collection for testing all 8 master data modules",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5217",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Customer Module",
+			"item": [
+				{
+					"name": "Create Customer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customerCode\": \"CUST001\",\n  \"customerName\": \"ABC Industries\",\n  \"customerType\": \"Direct\",\n  \"contactPerson\": \"Rajesh Kumar\",\n  \"phone\": \"9876543210\",\n  \"email\": \"rajesh@abcindustries.com\",\n  \"address\": \"Plot No. 15, Industrial Area, Phase 2\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"country\": \"India\",\n  \"pinCode\": \"400001\",\n  \"gstNo\": \"27AABCU1234A1Z5\",\n  \"panNo\": \"AABCU1234A\",\n  \"creditLimit\": 500000,\n  \"creditDays\": 45,\n  \"paymentTerms\": \"Net 45\",\n  \"isActive\": true,\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/customers",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers"]
+						}
+					}
+				},
+				{
+					"name": "Get All Customers",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/customers",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers"]
+						}
+					}
+				},
+				{
+					"name": "Get Customer by Code",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/customers/by-code/CUST001",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers", "by-code", "CUST001"]
+						}
+					}
+				},
+				{
+					"name": "Get Active Customers",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/customers/active",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers", "active"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Product Module",
+			"item": [
+				{
+					"name": "Create Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"productCode\": \"PROD001\",\n  \"productName\": \"Magnetic Roller 250mm\",\n  \"productDescription\": \"250mm diameter magnetic roller for printing industry\",\n  \"category\": \"Magnetic Rollers\",\n  \"productType\": \"Finished Goods\",\n  \"hsnCode\": \"84439190\",\n  \"unitOfMeasure\": \"NOS\",\n  \"standardCost\": 15000,\n  \"sellingPrice\": 25000,\n  \"weight\": 45.5,\n  \"length\": 250,\n  \"width\": 250,\n  \"height\": 1200,\n  \"specifications\": \"Diameter: 250mm, Length: 1200mm, Magnetic Strength: 3000 Gauss\",\n  \"isActive\": true,\n  \"leadTimeDays\": 15,\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "products"]
+						}
+					}
+				},
+				{
+					"name": "Get All Products",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "products"]
+						}
+					}
+				},
+				{
+					"name": "Get Product by Code",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/products/by-code/PROD001",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "products", "by-code", "PROD001"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Material Module",
+			"item": [
+				{
+					"name": "Create Material - EN8 Steel",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"materialCode\": \"MAT001\",\n  \"materialName\": \"EN8 Round Bar 50mm\",\n  \"materialDescription\": \"EN8 Steel Round Bar, 50mm diameter\",\n  \"category\": \"Raw Material\",\n  \"materialType\": \"Steel\",\n  \"grade\": \"EN8\",\n  \"primaryUOM\": \"KG\",\n  \"secondaryUOM\": \"MTR\",\n  \"conversionFactor\": 15.4,\n  \"standardCost\": 85,\n  \"reorderLevel\": 500,\n  \"minimumStock\": 300,\n  \"maximumStock\": 2000,\n  \"leadTimeDays\": 7,\n  \"supplierName\": \"Steel Trading Co.\",\n  \"specifications\": \"Diameter: 50mm, Grade: EN8, Hardness: 180-220 BHN\",\n  \"hsnCode\": \"72151090\",\n  \"isActive\": true,\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/materials",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "materials"]
+						}
+					}
+				},
+				{
+					"name": "Get All Materials",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/materials",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "materials"]
+						}
+					}
+				},
+				{
+					"name": "Get Material by Code",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/materials/by-code/MAT001",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "materials", "by-code", "MAT001"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Machine Module",
+			"item": [
+				{
+					"name": "Create Machine - CNC Lathe",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"machineCode\": \"CNC-01\",\n  \"machineName\": \"CNC Turning Center TC-500\",\n  \"machineType\": \"CNC Lathe\",\n  \"manufacturer\": \"DMG MORI\",\n  \"model\": \"CTX 500\",\n  \"serialNumber\": \"CTX500-2023-001\",\n  \"yearOfManufacture\": 2023,\n  \"department\": \"Turning\",\n  \"location\": \"Shop Floor - Zone A\",\n  \"capacity\": \"Max Dia: 500mm, Max Length: 1500mm\",\n  \"specifications\": \"3-Jaw Chuck, Live Tooling, 12-Station Turret\",\n  \"maintenanceSchedule\": \"Monthly\",\n  \"lastMaintenanceDate\": \"2026-01-15\",\n  \"nextMaintenanceDate\": \"2026-02-15\",\n  \"status\": \"Available\",\n  \"isActive\": true,\n  \"operatingCostPerHour\": 450,\n  \"powerRating\": \"25 KW\",\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/machines",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "machines"]
+						}
+					}
+				},
+				{
+					"name": "Get All Machines",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/machines",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "machines"]
+						}
+					}
+				},
+				{
+					"name": "Get Available Machines",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/machines/available",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "machines", "available"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Process Module",
+			"item": [
+				{
+					"name": "Create Process - CNC Turning",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"processCode\": \"TURN-01\",\n  \"processName\": \"CNC Turning\",\n  \"processDescription\": \"Precision turning operation on CNC lathe\",\n  \"processType\": \"Machining\",\n  \"department\": \"Turning\",\n  \"standardTime\": 120,\n  \"setupTime\": 30,\n  \"costPerHour\": 500,\n  \"isOutsourced\": false,\n  \"isActive\": true,\n  \"qualityCheckRequired\": true,\n  \"skillRequired\": \"CNC Operator Level 2\",\n  \"machineType\": \"CNC Lathe\",\n  \"remarks\": \"Requires coolant and cutting tools\",\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/processes",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "processes"]
+						}
+					}
+				},
+				{
+					"name": "Get All Processes",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/processes",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "processes"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "6. Operator Module",
+			"item": [
+				{
+					"name": "Create Operator",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"employeeCode\": \"EMP001\",\n  \"operatorName\": \"Suresh Patil\",\n  \"contactNumber\": \"9876543210\",\n  \"email\": \"suresh.patil@company.com\",\n  \"department\": \"Turning\",\n  \"shift\": \"Day\",\n  \"skillLevel\": \"Level 2\",\n  \"skillSet\": \"CNC Turning, Manual Lathe\",\n  \"experienceYears\": 8,\n  \"hourlyRate\": 250,\n  \"joiningDate\": \"2018-03-15\",\n  \"status\": \"Available\",\n  \"isActive\": true,\n  \"certifications\": \"CNC Programming, ISO 9001\",\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/operators",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "operators"]
+						}
+					}
+				},
+				{
+					"name": "Get All Operators",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/operators",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "operators"]
+						}
+					}
+				},
+				{
+					"name": "Get Available Operators",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/operators/available",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "operators", "available"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "7. Drawing Module",
+			"item": [
+				{
+					"name": "Create Drawing",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"drawingNumber\": \"DRG-2026-001\",\n  \"drawingTitle\": \"Magnetic Roller Assembly\",\n  \"productId\": \"{{productId}}\",\n  \"revisionNumber\": \"A\",\n  \"drawingType\": \"Assembly\",\n  \"preparedBy\": \"Design Team\",\n  \"approvedBy\": \"Chief Engineer\",\n  \"drawingDate\": \"2026-01-20\",\n  \"approvalDate\": \"2026-01-22\",\n  \"filePath\": \"/drawings/DRG-2026-001-A.pdf\",\n  \"fileFormat\": \"PDF\",\n  \"remarks\": \"Initial release for production\",\n  \"status\": \"Approved\",\n  \"isActive\": true,\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/drawings",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "drawings"]
+						}
+					}
+				},
+				{
+					"name": "Get All Drawings",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/drawings",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "drawings"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "8. Supplier Module",
+			"item": [
+				{
+					"name": "Create Supplier - Heat Treatment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"supplierCode\": \"SUP001\",\n  \"supplierName\": \"Heat Treatment Services Pvt Ltd\",\n  \"supplierType\": \"Outsourcing\",\n  \"category\": \"Heat Treatment\",\n  \"contactPerson\": \"Amit Shah\",\n  \"contactNumber\": \"9876543210\",\n  \"email\": \"amit@heattreatment.com\",\n  \"addressLine1\": \"Plot 25, MIDC Industrial Area\",\n  \"addressLine2\": \"Bhosari\",\n  \"city\": \"Pune\",\n  \"state\": \"Maharashtra\",\n  \"country\": \"India\",\n  \"postalCode\": \"411026\",\n  \"gstNumber\": \"27AABCH1234B1Z5\",\n  \"paymentTerms\": \"Net 30\",\n  \"creditDays\": 30,\n  \"processCapabilities\": \"Hardening, Tempering, Case Hardening, Annealing\",\n  \"standardLeadTimeDays\": 5,\n  \"remarks\": \"ISO 9001:2015 Certified\",\n  \"createdBy\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/supplier",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "supplier"]
+						}
+					}
+				},
+				{
+					"name": "Get All Suppliers",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/supplier",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "supplier"]
+						}
+					}
+				},
+				{
+					"name": "Approve Supplier",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"approvedBy\": \"Purchase Manager\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/supplier/{{supplierId}}/approve",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "supplier", "{{supplierId}}", "approve"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
