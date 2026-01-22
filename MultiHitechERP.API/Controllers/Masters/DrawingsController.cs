@@ -7,7 +7,7 @@ using MultiHitechERP.API.Services.Interfaces;
 namespace MultiHitechERP.API.Controllers.Masters
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/drawings")]
     public class DrawingsController : ControllerBase
     {
         private readonly IDrawingService _drawingService;

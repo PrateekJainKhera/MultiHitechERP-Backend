@@ -199,22 +199,21 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Drawings
-                (Id, DrawingNumber, DrawingTitle, ProductId, ProductCode, ProductName, RevisionNumber, RevisionDate,
-                 RevisionDescription, DrawingType, Category, FilePath, FileName, FileFormat, FileSize,
-                 PreparedBy, CheckedBy, ApprovedBy, ApprovalDate, MaterialSpecification, Finish, ToleranceGrade,
+                (DrawingNumber, DrawingTitle, ProductId, ProductCode, ProductName, RevisionNumber, RevisionDate,
+                 RevisionDescription, DrawingType, Category, FilePath, FileFormat, FileSize,
+                 PreparedBy, CheckedBy, ApprovalDate, MaterialSpecification, Finish, ToleranceGrade,
                  TreatmentRequired, OverallLength, OverallWidth, OverallHeight, Weight,
-                 IsActive, Status, IsLatestRevision, PreviousRevisionId, VersionNumber,
+                 IsActive, IsLatestRevision, PreviousRevisionId, VersionNumber,
                  Remarks, CreatedAt, CreatedBy)
                 VALUES
-                (@Id, @DrawingNumber, @DrawingTitle, @ProductId, @ProductCode, @ProductName, @RevisionNumber, @RevisionDate,
-                 @RevisionDescription, @DrawingType, @Category, @FilePath, @FileName, @FileFormat, @FileSize,
-                 @PreparedBy, @CheckedBy, @ApprovedBy, @ApprovalDate, @MaterialSpecification, @Finish, @ToleranceGrade,
+                (@DrawingNumber, @DrawingTitle, @ProductId, @ProductCode, @ProductName, @RevisionNumber, @RevisionDate,
+                 @RevisionDescription, @DrawingType, @Category, @FilePath, @FileFormat, @FileSize,
+                 @PreparedBy, @CheckedBy, @ApprovalDate, @MaterialSpecification, @Finish, @ToleranceGrade,
                  @TreatmentRequired, @OverallLength, @OverallWidth, @OverallHeight, @Weight,
-                 @IsActive, @Status, @IsLatestRevision, @PreviousRevisionId, @VersionNumber,
-                 @Remarks, @CreatedAt, @CreatedBy)";
+                 @IsActive, @IsLatestRevision, @PreviousRevisionId, @VersionNumber,
+                 @Remarks, @CreatedAt, @CreatedBy);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
-            var drawingId = 0;
-            drawing.Id = drawingId;
             drawing.CreatedAt = DateTime.UtcNow;
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -223,7 +222,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             AddDrawingParameters(command, drawing);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            var drawingId = (int)await command.ExecuteScalarAsync();
+            drawing.Id = drawingId;
 
             return drawingId;
         }
@@ -243,12 +243,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     DrawingType = @DrawingType,
                     Category = @Category,
                     FilePath = @FilePath,
-                    FileName = @FileName,
                     FileFormat = @FileFormat,
                     FileSize = @FileSize,
                     PreparedBy = @PreparedBy,
                     CheckedBy = @CheckedBy,
-                    ApprovedBy = @ApprovedBy,
                     ApprovalDate = @ApprovalDate,
                     MaterialSpecification = @MaterialSpecification,
                     Finish = @Finish,
@@ -259,7 +257,6 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     OverallHeight = @OverallHeight,
                     Weight = @Weight,
                     IsActive = @IsActive,
-                    Status = @Status,
                     IsLatestRevision = @IsLatestRevision,
                     PreviousRevisionId = @PreviousRevisionId,
                     VersionNumber = @VersionNumber,
@@ -407,7 +404,11 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         private static void AddDrawingParameters(SqlCommand command, Drawing drawing)
         {
-            command.Parameters.AddWithValue("@Id", drawing.Id);
+            // Only add Id for UPDATE operations (when Id > 0)
+            if (drawing.Id > 0)
+            {
+                command.Parameters.AddWithValue("@Id", drawing.Id);
+            }
             command.Parameters.AddWithValue("@DrawingNumber", drawing.DrawingNumber);
             command.Parameters.AddWithValue("@DrawingTitle", drawing.DrawingTitle);
             command.Parameters.AddWithValue("@ProductId", (object?)drawing.ProductId ?? DBNull.Value);
