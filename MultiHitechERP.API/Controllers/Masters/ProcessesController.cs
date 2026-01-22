@@ -7,7 +7,7 @@ using MultiHitechERP.API.Services.Interfaces;
 namespace MultiHitechERP.API.Controllers.Masters
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/processes")]
     public class ProcessesController : ControllerBase
     {
         private readonly IProcessService _processService;

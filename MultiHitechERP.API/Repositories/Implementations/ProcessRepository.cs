@@ -83,7 +83,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Processes (
-                    Id, ProcessCode, ProcessName, ProcessType, Category, Department,
+                    ProcessCode, ProcessName, ProcessType, Category, Department,
                     Description, ProcessDetails,
                     MachineType, DefaultMachineId, DefaultMachineName,
                     StandardSetupTimeMin, StandardCycleTimeMin, StandardCycleTimePerPiece,
@@ -93,7 +93,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     IsOutsourced, PreferredVendor,
                     IsActive, Status, Remarks, CreatedAt, CreatedBy
                 ) VALUES (
-                    @Id, @ProcessCode, @ProcessName, @ProcessType, @Category, @Department,
+                    @ProcessCode, @ProcessName, @ProcessType, @Category, @Department,
                     @Description, @ProcessDetails,
                     @MachineType, @DefaultMachineId, @DefaultMachineName,
                     @StandardSetupTimeMin, @StandardCycleTimeMin, @StandardCycleTimePerPiece,
@@ -102,19 +102,20 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     @RequiresQC, @QCCheckpoints,
                     @IsOutsourced, @PreferredVendor,
                     @IsActive, @Status, @Remarks, @CreatedAt, @CreatedBy
-                )";
+                );
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            process.Id = 0;
             process.CreatedAt = DateTime.UtcNow;
             AddProcessParameters(command, process);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            var processId = (int)await command.ExecuteScalarAsync();
+            process.Id = processId;
 
-            return process.Id;
+            return processId;
         }
 
         public async Task<bool> UpdateAsync(Process process)
