@@ -17,7 +17,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<Machine?> GetByIdAsync(Guid id)
+        public async Task<Machine?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Masters_Machines WHERE Id = @Id";
 
@@ -79,7 +79,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return machines;
         }
 
-        public async Task<Guid> InsertAsync(Machine machine)
+        public async Task<int> InsertAsync(Machine machine)
         {
             const string query = @"
                 INSERT INTO Masters_Machines (
@@ -107,7 +107,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            machine.Id = Guid.NewGuid();
+            machine.Id = 0;
             machine.CreatedAt = DateTime.UtcNow;
             AddMachineParameters(command, machine);
 
@@ -145,7 +145,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Masters_Machines WHERE Id = @Id";
 
@@ -157,7 +157,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> UpdateStatusAsync(Guid id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status)
         {
             const string query = "UPDATE Masters_Machines SET Status = @Status, UpdatedAt = @UpdatedAt WHERE Id = @Id";
 
@@ -171,7 +171,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> UpdateAvailabilityAsync(Guid id, bool isAvailable, DateTime? availableFrom)
+        public async Task<bool> UpdateAvailabilityAsync(int id, bool isAvailable, DateTime? availableFrom)
         {
             const string query = @"
                 UPDATE Masters_Machines
@@ -189,7 +189,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> AssignToJobCardAsync(Guid id, string jobCardNo)
+        public async Task<bool> AssignToJobCardAsync(int id, string jobCardNo)
         {
             const string query = @"
                 UPDATE Masters_Machines
@@ -206,7 +206,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> ReleaseFromJobCardAsync(Guid id)
+        public async Task<bool> ReleaseFromJobCardAsync(int id)
         {
             const string query = @"
                 UPDATE Masters_Machines
@@ -313,7 +313,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new Machine
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 MachineCode = reader.GetString(reader.GetOrdinal("MachineCode")),
                 MachineName = reader.GetString(reader.GetOrdinal("MachineName")),
                 MachineType = reader.IsDBNull(reader.GetOrdinal("MachineType")) ? null : reader.GetString(reader.GetOrdinal("MachineType")),

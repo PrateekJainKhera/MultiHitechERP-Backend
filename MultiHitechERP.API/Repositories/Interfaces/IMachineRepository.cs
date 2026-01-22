@@ -11,21 +11,21 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface IMachineRepository
     {
         // Basic CRUD Operations
-        Task<Machine?> GetByIdAsync(Guid id);
+        Task<Machine?> GetByIdAsync(int id);
         Task<Machine?> GetByMachineCodeAsync(string machineCode);
         Task<IEnumerable<Machine>> GetAllAsync();
         Task<IEnumerable<Machine>> GetActiveMachinesAsync();
 
         // Create, Update, Delete
-        Task<Guid> InsertAsync(Machine machine);
+        Task<int> InsertAsync(Machine machine);
         Task<bool> UpdateAsync(Machine machine);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Status & Availability Operations
-        Task<bool> UpdateStatusAsync(Guid id, string status);
-        Task<bool> UpdateAvailabilityAsync(Guid id, bool isAvailable, DateTime? availableFrom);
-        Task<bool> AssignToJobCardAsync(Guid id, string jobCardNo);
-        Task<bool> ReleaseFromJobCardAsync(Guid id);
+        Task<bool> UpdateStatusAsync(int id, string status);
+        Task<bool> UpdateAvailabilityAsync(int id, bool isAvailable, DateTime? availableFrom);
+        Task<bool> AssignToJobCardAsync(int id, string jobCardNo);
+        Task<bool> ReleaseFromJobCardAsync(int id);
 
         // Queries
         Task<IEnumerable<Machine>> GetAvailableMachinesAsync();

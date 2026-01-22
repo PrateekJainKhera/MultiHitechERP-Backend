@@ -9,15 +9,15 @@ namespace MultiHitechERP.API.DTOs.Request
     public class StockOutRequest
     {
         [Required]
-        public Guid MaterialId { get; set; }
+        public int MaterialId { get; set; }
 
         [Required]
         [Range(0.01, double.MaxValue)]
         public decimal Quantity { get; set; }
 
-        public Guid? JobCardId { get; set; }
+        public int? JobCardId { get; set; }
 
-        public Guid? RequisitionId { get; set; }
+        public int? RequisitionId { get; set; }
 
         [Required]
         [StringLength(100)]

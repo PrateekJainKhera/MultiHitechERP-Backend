@@ -26,7 +26,7 @@ namespace MultiHitechERP.API.Controllers.Planning
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(int id)
         {
             var result = await _jobCardService.GetByIdAsync(id);
             return result.Success ? Ok(result) : NotFound(result);
@@ -40,14 +40,14 @@ namespace MultiHitechERP.API.Controllers.Planning
         }
 
         [HttpGet("by-order/{orderId}")]
-        public async Task<IActionResult> GetByOrderId(Guid orderId)
+        public async Task<IActionResult> GetByOrderId(int orderId)
         {
             var result = await _jobCardService.GetByOrderIdAsync(orderId);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpGet("by-process/{processId}")]
-        public async Task<IActionResult> GetByProcessId(Guid processId)
+        public async Task<IActionResult> GetByProcessId(int processId)
         {
             var result = await _jobCardService.GetByProcessIdAsync(processId);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -71,7 +71,7 @@ namespace MultiHitechERP.API.Controllers.Planning
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateJobCardRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateJobCardRequest request)
         {
             if (id != request.Id)
                 return BadRequest("ID mismatch");
@@ -84,7 +84,7 @@ namespace MultiHitechERP.API.Controllers.Planning
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(int id)
         {
             var result = await _jobCardService.DeleteJobCardAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -92,21 +92,21 @@ namespace MultiHitechERP.API.Controllers.Planning
 
         // Status Operations
         [HttpPost("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateJobCardStatusRequest request)
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateJobCardStatusRequest request)
         {
             var result = await _jobCardService.UpdateStatusAsync(id, request.Status);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/material-status")]
-        public async Task<IActionResult> UpdateMaterialStatus(Guid id, [FromBody] UpdateMaterialStatusRequest request)
+        public async Task<IActionResult> UpdateMaterialStatus(int id, [FromBody] UpdateMaterialStatusRequest request)
         {
             var result = await _jobCardService.UpdateMaterialStatusAsync(id, request.MaterialStatus);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/schedule-status")]
-        public async Task<IActionResult> UpdateScheduleStatus(Guid id, [FromBody] UpdateScheduleStatusRequest request)
+        public async Task<IActionResult> UpdateScheduleStatus(int id, [FromBody] UpdateScheduleStatusRequest request)
         {
             var result = await _jobCardService.UpdateScheduleStatusAsync(id, request.ScheduleStatus, request.StartDate, request.EndDate);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -114,14 +114,14 @@ namespace MultiHitechERP.API.Controllers.Planning
 
         // Assignment Operations
         [HttpPost("{id}/assign-machine")]
-        public async Task<IActionResult> AssignMachine(Guid id, [FromBody] AssignMachineRequest request)
+        public async Task<IActionResult> AssignMachine(int id, [FromBody] AssignMachineRequest request)
         {
             var result = await _jobCardService.AssignMachineAsync(id, request.MachineId, request.MachineName);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/assign-operator")]
-        public async Task<IActionResult> AssignOperator(Guid id, [FromBody] AssignOperatorRequest request)
+        public async Task<IActionResult> AssignOperator(int id, [FromBody] AssignOperatorRequest request)
         {
             var result = await _jobCardService.AssignOperatorAsync(id, request.OperatorId, request.OperatorName);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -129,21 +129,21 @@ namespace MultiHitechERP.API.Controllers.Planning
 
         // Execution Operations
         [HttpPost("{id}/start")]
-        public async Task<IActionResult> StartExecution(Guid id)
+        public async Task<IActionResult> StartExecution(int id)
         {
             var result = await _jobCardService.StartExecutionAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/complete")]
-        public async Task<IActionResult> CompleteExecution(Guid id)
+        public async Task<IActionResult> CompleteExecution(int id)
         {
             var result = await _jobCardService.CompleteExecutionAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/update-quantities")]
-        public async Task<IActionResult> UpdateQuantities(Guid id, [FromBody] UpdateQuantitiesRequest request)
+        public async Task<IActionResult> UpdateQuantities(int id, [FromBody] UpdateQuantitiesRequest request)
         {
             var result = await _jobCardService.UpdateQuantitiesAsync(id, request.CompletedQty, request.RejectedQty, request.ReworkQty, request.InProgressQty);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -151,28 +151,28 @@ namespace MultiHitechERP.API.Controllers.Planning
 
         // Dependency Operations
         [HttpGet("{id}/dependents")]
-        public async Task<IActionResult> GetDependentJobCards(Guid id)
+        public async Task<IActionResult> GetDependentJobCards(int id)
         {
             var result = await _jobCardService.GetDependentJobCardsAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpGet("{id}/prerequisites")]
-        public async Task<IActionResult> GetPrerequisiteJobCards(Guid id)
+        public async Task<IActionResult> GetPrerequisiteJobCards(int id)
         {
             var result = await _jobCardService.GetPrerequisiteJobCardsAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/add-dependency")]
-        public async Task<IActionResult> AddDependency(Guid id, [FromBody] AddDependencyRequest request)
+        public async Task<IActionResult> AddDependency(int id, [FromBody] AddDependencyRequest request)
         {
             var result = await _jobCardService.AddDependencyAsync(id, request.PrerequisiteJobCardId);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpDelete("dependencies/{dependencyId}")]
-        public async Task<IActionResult> RemoveDependency(Guid dependencyId)
+        public async Task<IActionResult> RemoveDependency(int dependencyId)
         {
             var result = await _jobCardService.RemoveDependencyAsync(dependencyId);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -208,14 +208,14 @@ namespace MultiHitechERP.API.Controllers.Planning
         }
 
         [HttpGet("by-machine/{machineId}")]
-        public async Task<IActionResult> GetByMachineId(Guid machineId)
+        public async Task<IActionResult> GetByMachineId(int machineId)
         {
             var result = await _jobCardService.GetByMachineIdAsync(machineId);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpGet("by-operator/{operatorId}")]
-        public async Task<IActionResult> GetByOperatorId(Guid operatorId)
+        public async Task<IActionResult> GetByOperatorId(int operatorId)
         {
             var result = await _jobCardService.GetByOperatorIdAsync(operatorId);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -242,13 +242,13 @@ namespace MultiHitechERP.API.Controllers.Planning
 
     public class AssignMachineRequest
     {
-        public Guid MachineId { get; set; }
+        public int MachineId { get; set; }
         public string MachineName { get; set; } = string.Empty;
     }
 
     public class AssignOperatorRequest
     {
-        public Guid OperatorId { get; set; }
+        public int OperatorId { get; set; }
         public string OperatorName { get; set; } = string.Empty;
     }
 
@@ -262,6 +262,6 @@ namespace MultiHitechERP.API.Controllers.Planning
 
     public class AddDependencyRequest
     {
-        public Guid PrerequisiteJobCardId { get; set; }
+        public int PrerequisiteJobCardId { get; set; }
     }
 }

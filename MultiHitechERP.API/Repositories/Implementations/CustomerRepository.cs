@@ -20,7 +20,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<Customer?> GetByIdAsync(Guid id)
+        public async Task<Customer?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Masters_Customers WHERE Id = @Id";
 
@@ -100,38 +100,39 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return customers;
         }
 
-        public async Task<Guid> InsertAsync(Customer customer)
+        public async Task<int> InsertAsync(Customer customer)
         {
             const string query = @"
                 INSERT INTO Masters_Customers (
-                    Id, CustomerCode, CustomerName, CustomerType,
+                    CustomerCode, CustomerName, CustomerType,
                     ContactPerson, Email, Phone,
                     Address, City, State, Country, PinCode,
                     GSTNo, PANNo,
                     CreditDays, CreditLimit, PaymentTerms,
                     IsActive, CreatedAt, CreatedBy
                 ) VALUES (
-                    @Id, @CustomerCode, @CustomerName, @CustomerType,
+                    @CustomerCode, @CustomerName, @CustomerType,
                     @ContactPerson, @Email, @Phone,
                     @Address, @City, @State, @Country, @PinCode,
                     @GSTNo, @PANNo,
                     @CreditDays, @CreditLimit, @PaymentTerms,
                     @IsActive, @CreatedAt, @CreatedBy
-                )";
+                );
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            customer.Id = Guid.NewGuid();
             customer.CreatedAt = DateTime.UtcNow;
             customer.IsActive = true;
 
             AddCustomerParameters(command, customer);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            var customerId = (int)await command.ExecuteScalarAsync();
+            customer.Id = customerId;
 
-            return customer.Id;
+            return customerId;
         }
 
         public async Task<bool> UpdateAsync(Customer customer)
@@ -171,7 +172,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Masters_Customers WHERE Id = @Id";
 
@@ -186,7 +187,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> ActivateAsync(Guid id)
+        public async Task<bool> ActivateAsync(int id)
         {
             const string query = @"
                 UPDATE Masters_Customers
@@ -205,7 +206,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeactivateAsync(Guid id)
+        public async Task<bool> DeactivateAsync(int id)
         {
             const string query = @"
                 UPDATE Masters_Customers
@@ -345,7 +346,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new Customer
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 CustomerCode = reader.GetString(reader.GetOrdinal("CustomerCode")),
                 CustomerName = reader.GetString(reader.GetOrdinal("CustomerName")),
 

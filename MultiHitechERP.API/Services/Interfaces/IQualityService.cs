@@ -13,15 +13,15 @@ namespace MultiHitechERP.API.Services.Interfaces
     public interface IQualityService
     {
         // Basic CRUD Operations
-        Task<ApiResponse<QCResult>> GetByIdAsync(Guid id);
+        Task<ApiResponse<QCResult>> GetByIdAsync(int id);
         Task<ApiResponse<IEnumerable<QCResult>>> GetAllAsync();
-        Task<ApiResponse<Guid>> CreateQCResultAsync(QCResult qcResult);
+        Task<ApiResponse<int>> CreateQCResultAsync(QCResult qcResult);
         Task<ApiResponse<bool>> UpdateQCResultAsync(QCResult qcResult);
-        Task<ApiResponse<bool>> DeleteQCResultAsync(Guid id);
+        Task<ApiResponse<bool>> DeleteQCResultAsync(int id);
 
         // QC-specific Queries
-        Task<ApiResponse<IEnumerable<QCResult>>> GetByJobCardIdAsync(Guid jobCardId);
-        Task<ApiResponse<IEnumerable<QCResult>>> GetByOrderIdAsync(Guid orderId);
+        Task<ApiResponse<IEnumerable<QCResult>>> GetByJobCardIdAsync(int jobCardId);
+        Task<ApiResponse<IEnumerable<QCResult>>> GetByOrderIdAsync(int orderId);
         Task<ApiResponse<IEnumerable<QCResult>>> GetByInspectionTypeAsync(string inspectionType);
         Task<ApiResponse<IEnumerable<QCResult>>> GetByStatusAsync(string status);
         Task<ApiResponse<IEnumerable<QCResult>>> GetByInspectorAsync(string inspectorName);
@@ -33,10 +33,10 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<IEnumerable<QCResult>>> GetReworkRequiredAsync();
 
         // QC Operations
-        Task<ApiResponse<Guid>> RecordInspectionAsync(Guid jobCardId, int quantityInspected, int quantityPassed, int quantityRejected, int? quantityRework, string inspectedBy, string inspectionType, string? defectDescription = null, string? defectCategory = null);
-        Task<ApiResponse<bool>> UpdateQCStatusAsync(Guid id, string status);
-        Task<ApiResponse<bool>> ApproveQCResultAsync(Guid id, string approvedBy);
-        Task<ApiResponse<bool>> RejectQCResultAsync(Guid id, string rejectionReason);
+        Task<ApiResponse<int>> RecordInspectionAsync(int jobCardId, int quantityInspected, int quantityPassed, int quantityRejected, int? quantityRework, string inspectedBy, string inspectionType, string? defectDescription = null, string? defectCategory = null);
+        Task<ApiResponse<bool>> UpdateQCStatusAsync(int id, string status);
+        Task<ApiResponse<bool>> ApproveQCResultAsync(int id, string approvedBy);
+        Task<ApiResponse<bool>> RejectQCResultAsync(int id, string rejectionReason);
 
         // Approval Workflow
         Task<ApiResponse<IEnumerable<QCResult>>> GetPendingApprovalsAsync();
@@ -44,13 +44,13 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<IEnumerable<QCResult>>> GetFailedQCAsync();
 
         // Statistics
-        Task<ApiResponse<int>> GetTotalInspectedQuantityForJobCardAsync(Guid jobCardId);
-        Task<ApiResponse<int>> GetTotalPassedQuantityForJobCardAsync(Guid jobCardId);
-        Task<ApiResponse<int>> GetTotalRejectedQuantityForJobCardAsync(Guid jobCardId);
-        Task<ApiResponse<decimal>> GetPassRateForJobCardAsync(Guid jobCardId);
+        Task<ApiResponse<int>> GetTotalInspectedQuantityForJobCardAsync(int jobCardId);
+        Task<ApiResponse<int>> GetTotalPassedQuantityForJobCardAsync(int jobCardId);
+        Task<ApiResponse<int>> GetTotalRejectedQuantityForJobCardAsync(int jobCardId);
+        Task<ApiResponse<decimal>> GetPassRateForJobCardAsync(int jobCardId);
         Task<ApiResponse<decimal>> GetOverallPassRateAsync(DateTime? startDate = null, DateTime? endDate = null);
 
         // Latest Result
-        Task<ApiResponse<QCResult>> GetLatestResultForJobCardAsync(Guid jobCardId);
+        Task<ApiResponse<QCResult>> GetLatestResultForJobCardAsync(int jobCardId);
     }
 }

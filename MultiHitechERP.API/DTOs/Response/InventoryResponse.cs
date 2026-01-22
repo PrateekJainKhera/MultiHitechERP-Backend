@@ -7,8 +7,8 @@ namespace MultiHitechERP.API.DTOs.Response
     /// </summary>
     public class InventoryResponse
     {
-        public Guid Id { get; set; }
-        public Guid MaterialId { get; set; }
+        public int Id { get; set; }
+        public int MaterialId { get; set; }
 
         // Material Reference
         public string? MaterialCode { get; set; }

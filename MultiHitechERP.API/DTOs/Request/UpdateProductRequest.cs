@@ -6,40 +6,58 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateProductRequest
     {
         [Required]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
-        [Required(ErrorMessage = "Product code is required")]
-        public string ProductCode { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Part code is required")]
+        public string PartCode { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Product name is required")]
-        public string ProductName { get; set; } = string.Empty;
+        public int? CustomerId { get; set; }
+        public string? CustomerName { get; set; }
 
-        public string? Category { get; set; }
-        public string? SubCategory { get; set; }
-        public string? ProductType { get; set; }
-        public string? Specification { get; set; }
-        public string? Description { get; set; }
-        public string? HSNCode { get; set; }
-        public decimal? Length { get; set; }
-        public decimal? Width { get; set; }
-        public decimal? Height { get; set; }
+        [Required(ErrorMessage = "Model name is required")]
+        public string ModelName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Roller type is required")]
+        public string RollerType { get; set; } = string.Empty;
+
+        // Dimensions
         public decimal? Diameter { get; set; }
+        public decimal? Length { get; set; }
         public decimal? Weight { get; set; }
-        public string? UOM { get; set; }
-        public Guid? DrawingId { get; set; }
-        public string? DrawingNumber { get; set; }
-        public Guid? BOMId { get; set; }
-        public Guid? ProcessRouteId { get; set; }
+
+        // Material & Finish
+        public string? MaterialGrade { get; set; }
+        public string? SurfaceFinish { get; set; }
+        public string? Hardness { get; set; }
+
+        // Drawing Reference
+        public string? DrawingNo { get; set; }
+        public string? RevisionNo { get; set; }
+        public int? DrawingId { get; set; }
+
+        // Templates
+        public int? ProcessTemplateId { get; set; }
+        public int? ProductTemplateId { get; set; }
+
+        // Pricing & Costing
         public decimal? StandardCost { get; set; }
         public decimal? SellingPrice { get; set; }
-        public string? MaterialGrade { get; set; }
-        public string? MaterialSpecification { get; set; }
-        public int? StandardBatchSize { get; set; }
+
+        // Production Planning
+        public int? StandardLeadTimeDays { get; set; }
         public int? MinOrderQuantity { get; set; }
-        public int? LeadTimeDays { get; set; }
-        public bool IsActive { get; set; }
-        public string? Status { get; set; }
+
+        // Classification
+        public string? Category { get; set; }
+        public string? ProductType { get; set; }
+
+        // Additional Info
+        public string? Description { get; set; }
+        public string? HSNCode { get; set; }
+        public string? UOM { get; set; }
         public string? Remarks { get; set; }
+
+        public bool IsActive { get; set; }
         public string? UpdatedBy { get; set; }
     }
 }

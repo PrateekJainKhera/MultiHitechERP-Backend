@@ -4,7 +4,7 @@ namespace MultiHitechERP.API.DTOs.Response
 {
     public class ProcessResponse
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string ProcessCode { get; set; } = string.Empty;
         public string ProcessName { get; set; } = string.Empty;
 
@@ -19,7 +19,7 @@ namespace MultiHitechERP.API.DTOs.Response
 
         // Machine Requirements
         public string? MachineType { get; set; }
-        public Guid? DefaultMachineId { get; set; }
+        public int? DefaultMachineId { get; set; }
         public string? DefaultMachineName { get; set; }
 
         // Time Standards

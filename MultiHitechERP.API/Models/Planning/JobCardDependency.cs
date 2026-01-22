@@ -7,14 +7,14 @@ namespace MultiHitechERP.API.Models.Planning
     /// </summary>
     public class JobCardDependency
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         // Dependent Job Card (the one that's waiting)
-        public Guid DependentJobCardId { get; set; }
+        public int DependentJobCardId { get; set; }
         public string? DependentJobCardNo { get; set; }
 
         // Prerequisite Job Card (the one that must complete first)
-        public Guid PrerequisiteJobCardId { get; set; }
+        public int PrerequisiteJobCardId { get; set; }
         public string? PrerequisiteJobCardNo { get; set; }
 
         // Dependency Type

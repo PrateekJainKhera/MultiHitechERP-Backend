@@ -6,7 +6,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateDrawingRequest
     {
         [Required]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         [Required(ErrorMessage = "Drawing number is required")]
         public string DrawingNumber { get; set; } = string.Empty;
@@ -15,7 +15,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public string DrawingTitle { get; set; } = string.Empty;
 
         // Product Reference
-        public Guid? ProductId { get; set; }
+        public int? ProductId { get; set; }
         public string? ProductCode { get; set; }
         public string? ProductName { get; set; }
 
@@ -58,7 +58,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public bool IsLatestRevision { get; set; }
 
         // Version History
-        public Guid? PreviousRevisionId { get; set; }
+        public int? PreviousRevisionId { get; set; }
         public int VersionNumber { get; set; }
 
         public string? Remarks { get; set; }

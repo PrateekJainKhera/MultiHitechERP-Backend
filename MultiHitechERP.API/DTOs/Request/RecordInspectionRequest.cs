@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class RecordInspectionRequest
     {
         [Required]
-        public Guid JobCardId { get; set; }
+        public int JobCardId { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity inspected must be greater than zero")]

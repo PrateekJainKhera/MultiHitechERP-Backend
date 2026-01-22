@@ -21,7 +21,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<Supplier?> GetByIdAsync(Guid id)
+        public async Task<Supplier?> GetByIdAsync(int id)
         {
             const string query = @"
                 SELECT * FROM Masters_Suppliers
@@ -81,7 +81,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return suppliers;
         }
 
-        public async Task<Guid> InsertAsync(Supplier supplier)
+        public async Task<int> InsertAsync(Supplier supplier)
         {
             const string query = @"
                 INSERT INTO Masters_Suppliers (
@@ -116,7 +116,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            var id = Guid.NewGuid();
+            var id = 0;
             command.Parameters.AddWithValue("@Id", id);
             command.Parameters.AddWithValue("@SupplierCode", supplier.SupplierCode);
             command.Parameters.AddWithValue("@SupplierName", supplier.SupplierName);
@@ -265,7 +265,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Masters_Suppliers WHERE Id = @Id";
 
@@ -450,7 +450,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return suppliers;
         }
 
-        public async Task<bool> UpdatePerformanceMetricsAsync(Guid id, decimal onTimeDeliveryRate, decimal qualityRating, int totalOrders, int rejectedOrders)
+        public async Task<bool> UpdatePerformanceMetricsAsync(int id, decimal onTimeDeliveryRate, decimal qualityRating, int totalOrders, int rejectedOrders)
         {
             const string query = @"
                 UPDATE Masters_Suppliers
@@ -528,7 +528,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return suppliers;
         }
 
-        public async Task<bool> UpdateStatusAsync(Guid id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status)
         {
             const string query = @"
                 UPDATE Masters_Suppliers
@@ -548,7 +548,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> ApproveSupplierAsync(Guid id, string approvedBy)
+        public async Task<bool> ApproveSupplierAsync(int id, string approvedBy)
         {
             const string query = @"
                 UPDATE Masters_Suppliers
@@ -570,7 +570,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> RejectSupplierAsync(Guid id, string reason)
+        public async Task<bool> RejectSupplierAsync(int id, string reason)
         {
             const string query = @"
                 UPDATE Masters_Suppliers
@@ -596,7 +596,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new Supplier
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 SupplierCode = reader.GetString(reader.GetOrdinal("SupplierCode")),
                 SupplierName = reader.GetString(reader.GetOrdinal("SupplierName")),
                 SupplierType = reader.IsDBNull(reader.GetOrdinal("SupplierType")) ? null : reader.GetString(reader.GetOrdinal("SupplierType")),

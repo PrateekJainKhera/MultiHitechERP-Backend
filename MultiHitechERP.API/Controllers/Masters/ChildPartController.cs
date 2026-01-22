@@ -41,7 +41,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get child part by ID
         /// </summary>
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<ChildPartResponse>>> GetById(Guid id)
+        public async Task<ActionResult<ApiResponse<ChildPartResponse>>> GetById(int id)
         {
             var response = await _service.GetByIdAsync(id);
             if (!response.Success)
@@ -69,7 +69,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get child parts by product ID
         /// </summary>
         [HttpGet("by-product/{productId:guid}")]
-        public async Task<ActionResult<ApiResponse<ChildPartResponse[]>>> GetByProductId(Guid productId)
+        public async Task<ActionResult<ApiResponse<ChildPartResponse[]>>> GetByProductId(int productId)
         {
             var response = await _service.GetByProductIdAsync(productId);
             if (!response.Success)
@@ -97,7 +97,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get child parts by material ID
         /// </summary>
         [HttpGet("by-material/{materialId:guid}")]
-        public async Task<ActionResult<ApiResponse<ChildPartResponse[]>>> GetByMaterialId(Guid materialId)
+        public async Task<ActionResult<ApiResponse<ChildPartResponse[]>>> GetByMaterialId(int materialId)
         {
             var response = await _service.GetByMaterialIdAsync(materialId);
             if (!response.Success)
@@ -181,7 +181,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get child parts by drawing ID
         /// </summary>
         [HttpGet("by-drawing/{drawingId:guid}")]
-        public async Task<ActionResult<ApiResponse<ChildPartResponse[]>>> GetByDrawingId(Guid drawingId)
+        public async Task<ActionResult<ApiResponse<ChildPartResponse[]>>> GetByDrawingId(int drawingId)
         {
             var response = await _service.GetByDrawingIdAsync(drawingId);
             if (!response.Success)
@@ -195,7 +195,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get child parts by process template ID
         /// </summary>
         [HttpGet("by-process-template/{processTemplateId:guid}")]
-        public async Task<ActionResult<ApiResponse<ChildPartResponse[]>>> GetByProcessTemplateId(Guid processTemplateId)
+        public async Task<ActionResult<ApiResponse<ChildPartResponse[]>>> GetByProcessTemplateId(int processTemplateId)
         {
             var response = await _service.GetByProcessTemplateIdAsync(processTemplateId);
             if (!response.Success)
@@ -251,7 +251,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Update an existing child part
         /// </summary>
         [HttpPut("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Update(Guid id, [FromBody] UpdateChildPartRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> Update(int id, [FromBody] UpdateChildPartRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -299,7 +299,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Delete a child part
         /// </summary>
         [HttpDelete("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             var response = await _service.DeleteChildPartAsync(id);
             if (!response.Success)
@@ -312,7 +312,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Update child part status
         /// </summary>
         [HttpPatch("{id:guid}/status")]
-        public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(int id, [FromBody] UpdateStatusRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));

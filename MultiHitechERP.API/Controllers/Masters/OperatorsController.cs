@@ -25,7 +25,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(int id)
         {
             var result = await _operatorService.GetByIdAsync(id);
             return result.Success ? Ok(result) : NotFound(result);
@@ -74,7 +74,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpGet("by-machine/{machineId}")]
-        public async Task<IActionResult> GetByMachineExpertise(Guid machineId)
+        public async Task<IActionResult> GetByMachineExpertise(int machineId)
         {
             var result = await _operatorService.GetByMachineExpertiseAsync(machineId);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -91,7 +91,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateOperatorRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateOperatorRequest request)
         {
             if (id != request.Id)
                 return BadRequest("ID mismatch");
@@ -104,35 +104,35 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(int id)
         {
             var result = await _operatorService.DeleteOperatorAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request)
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusRequest request)
         {
             var result = await _operatorService.UpdateStatusAsync(id, request.Status);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/availability")]
-        public async Task<IActionResult> UpdateAvailability(Guid id, [FromBody] UpdateAvailabilityRequest request)
+        public async Task<IActionResult> UpdateAvailability(int id, [FromBody] UpdateAvailabilityRequest request)
         {
             var result = await _operatorService.UpdateAvailabilityAsync(id, request.IsAvailable);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/assign")]
-        public async Task<IActionResult> AssignToJobCard(Guid id, [FromBody] AssignOperatorRequest request)
+        public async Task<IActionResult> AssignToJobCard(int id, [FromBody] AssignOperatorRequest request)
         {
             var result = await _operatorService.AssignToJobCardAsync(id, request.JobCardId, request.JobCardNo, request.MachineId);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/release")]
-        public async Task<IActionResult> ReleaseFromJobCard(Guid id)
+        public async Task<IActionResult> ReleaseFromJobCard(int id)
         {
             var result = await _operatorService.ReleaseFromJobCardAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -152,8 +152,8 @@ namespace MultiHitechERP.API.Controllers.Masters
 
     public class AssignOperatorRequest
     {
-        public Guid JobCardId { get; set; }
+        public int JobCardId { get; set; }
         public string JobCardNo { get; set; } = string.Empty;
-        public Guid? MachineId { get; set; }
+        public int? MachineId { get; set; }
     }
 }

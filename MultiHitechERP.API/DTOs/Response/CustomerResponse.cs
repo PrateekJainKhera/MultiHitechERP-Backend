@@ -4,7 +4,7 @@ namespace MultiHitechERP.API.DTOs.Response
 {
     public class CustomerResponse
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string CustomerCode { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
         public string CustomerType { get; set; } = string.Empty; // 'Direct', 'Agent', 'Dealer'

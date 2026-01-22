@@ -25,7 +25,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _materialRepository = materialRepository;
         }
 
-        public async Task<ApiResponse<Inventory>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<Inventory>> GetByIdAsync(int id)
         {
             var inventory = await _inventoryRepository.GetByIdAsync(id);
             if (inventory == null)
@@ -34,7 +34,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<Inventory>.SuccessResponse(inventory);
         }
 
-        public async Task<ApiResponse<Inventory>> GetByMaterialIdAsync(Guid materialId)
+        public async Task<ApiResponse<Inventory>> GetByMaterialIdAsync(int materialId)
         {
             var inventory = await _inventoryRepository.GetByMaterialIdAsync(materialId);
             if (inventory == null)
@@ -49,17 +49,17 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<Inventory>>.SuccessResponse(inventories);
         }
 
-        public async Task<ApiResponse<Guid>> CreateInventoryAsync(Inventory inventory)
+        public async Task<ApiResponse<int>> CreateInventoryAsync(Inventory inventory)
         {
             // Validate material exists
             var material = await _materialRepository.GetByIdAsync(inventory.MaterialId);
             if (material == null)
-                return ApiResponse<Guid>.ErrorResponse("Material not found");
+                return ApiResponse<int>.ErrorResponse("Material not found");
 
             // Check if inventory already exists for this material
             var existing = await _inventoryRepository.GetByMaterialIdAsync(inventory.MaterialId);
             if (existing != null)
-                return ApiResponse<Guid>.ErrorResponse("Inventory record already exists for this material");
+                return ApiResponse<int>.ErrorResponse("Inventory record already exists for this material");
 
             // Set material details
             inventory.MaterialCode = material.MaterialCode;
@@ -72,7 +72,7 @@ namespace MultiHitechERP.API.Services.Implementations
             inventory.IsLowStock = inventory.MinimumStock.HasValue && inventory.AvailableQuantity <= inventory.MinimumStock.Value;
 
             var id = await _inventoryRepository.InsertAsync(inventory);
-            return ApiResponse<Guid>.SuccessResponse(id, "Inventory record created successfully");
+            return ApiResponse<int>.SuccessResponse(id, "Inventory record created successfully");
         }
 
         public async Task<ApiResponse<bool>> UpdateInventoryAsync(Inventory inventory)
@@ -88,7 +88,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Inventory record updated successfully");
         }
 
-        public async Task<ApiResponse<bool>> DeleteInventoryAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteInventoryAsync(int id)
         {
             var existing = await _inventoryRepository.GetByIdAsync(id);
             if (existing == null)
@@ -137,21 +137,21 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<Inventory>>.SuccessResponse(inventories);
         }
 
-        public async Task<ApiResponse<Guid>> RecordStockInAsync(
-            Guid materialId,
+        public async Task<ApiResponse<int>> RecordStockInAsync(
+            int materialId,
             decimal quantity,
             string grnNo,
-            Guid? supplierId,
+            int? supplierId,
             decimal? unitCost,
             string performedBy,
             string remarks)
         {
             if (quantity <= 0)
-                return ApiResponse<Guid>.ErrorResponse("Quantity must be greater than zero");
+                return ApiResponse<int>.ErrorResponse("Quantity must be greater than zero");
 
             var material = await _materialRepository.GetByIdAsync(materialId);
             if (material == null)
-                return ApiResponse<Guid>.ErrorResponse("Material not found");
+                return ApiResponse<int>.ErrorResponse("Material not found");
 
             var inventory = await _inventoryRepository.GetByMaterialIdAsync(materialId);
             if (inventory == null)
@@ -229,26 +229,26 @@ namespace MultiHitechERP.API.Services.Implementations
             // Check and update stock status
             await CheckAndUpdateStockStatusAsync(materialId);
 
-            return ApiResponse<Guid>.SuccessResponse(transactionId, $"Stock in recorded: {quantity} {inventory.UOM}");
+            return ApiResponse<int>.SuccessResponse(transactionId, $"Stock in recorded: {quantity} {inventory.UOM}");
         }
 
-        public async Task<ApiResponse<Guid>> RecordStockOutAsync(
-            Guid materialId,
+        public async Task<ApiResponse<int>> RecordStockOutAsync(
+            int materialId,
             decimal quantity,
-            Guid? jobCardId,
-            Guid? requisitionId,
+            int? jobCardId,
+            int? requisitionId,
             string performedBy,
             string remarks)
         {
             if (quantity <= 0)
-                return ApiResponse<Guid>.ErrorResponse("Quantity must be greater than zero");
+                return ApiResponse<int>.ErrorResponse("Quantity must be greater than zero");
 
             var inventory = await _inventoryRepository.GetByMaterialIdAsync(materialId);
             if (inventory == null)
-                return ApiResponse<Guid>.ErrorResponse("Inventory record not found for this material");
+                return ApiResponse<int>.ErrorResponse("Inventory record not found for this material");
 
             if (inventory.AvailableQuantity < quantity)
-                return ApiResponse<Guid>.ErrorResponse($"Insufficient stock. Available: {inventory.AvailableQuantity} {inventory.UOM}");
+                return ApiResponse<int>.ErrorResponse($"Insufficient stock. Available: {inventory.AvailableQuantity} {inventory.UOM}");
 
             // Update inventory
             var newTotal = inventory.TotalQuantity - quantity;
@@ -286,25 +286,25 @@ namespace MultiHitechERP.API.Services.Implementations
             // Check and update stock status
             await CheckAndUpdateStockStatusAsync(materialId);
 
-            return ApiResponse<Guid>.SuccessResponse(transactionId, $"Stock out recorded: {quantity} {inventory.UOM}");
+            return ApiResponse<int>.SuccessResponse(transactionId, $"Stock out recorded: {quantity} {inventory.UOM}");
         }
 
-        public async Task<ApiResponse<Guid>> RecordStockAdjustmentAsync(
-            Guid materialId,
+        public async Task<ApiResponse<int>> RecordStockAdjustmentAsync(
+            int materialId,
             decimal quantity,
             string remarks,
             string performedBy)
         {
             var inventory = await _inventoryRepository.GetByMaterialIdAsync(materialId);
             if (inventory == null)
-                return ApiResponse<Guid>.ErrorResponse("Inventory record not found for this material");
+                return ApiResponse<int>.ErrorResponse("Inventory record not found for this material");
 
             // Update inventory
             var newTotal = inventory.TotalQuantity + quantity;
             var newAvailable = inventory.AvailableQuantity + quantity;
 
             if (newTotal < 0 || newAvailable < 0)
-                return ApiResponse<Guid>.ErrorResponse("Adjustment would result in negative stock");
+                return ApiResponse<int>.ErrorResponse("Adjustment would result in negative stock");
 
             await _inventoryRepository.UpdateStockLevelsAsync(
                 materialId,
@@ -335,11 +335,11 @@ namespace MultiHitechERP.API.Services.Implementations
             // Check and update stock status
             await CheckAndUpdateStockStatusAsync(materialId);
 
-            return ApiResponse<Guid>.SuccessResponse(transactionId, $"Stock adjusted by {quantity} {inventory.UOM}");
+            return ApiResponse<int>.SuccessResponse(transactionId, $"Stock adjusted by {quantity} {inventory.UOM}");
         }
 
         public async Task<ApiResponse<bool>> ReconcileStockAsync(
-            Guid materialId,
+            int materialId,
             decimal actualQuantity,
             string performedBy,
             string remarks)
@@ -357,7 +357,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Stock reconciled successfully");
         }
 
-        public async Task<ApiResponse<IEnumerable<InventoryTransaction>>> GetTransactionsByMaterialIdAsync(Guid materialId)
+        public async Task<ApiResponse<IEnumerable<InventoryTransaction>>> GetTransactionsByMaterialIdAsync(int materialId)
         {
             var transactions = await _inventoryRepository.GetTransactionsByMaterialIdAsync(materialId);
             return ApiResponse<IEnumerable<InventoryTransaction>>.SuccessResponse(transactions);
@@ -391,7 +391,7 @@ namespace MultiHitechERP.API.Services.Implementations
         }
 
         public async Task<ApiResponse<bool>> UpdateStockLevelsAsync(
-            Guid materialId,
+            int materialId,
             decimal? minStock,
             decimal? maxStock,
             decimal? reorderLevel,
@@ -424,7 +424,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Stock levels updated successfully");
         }
 
-        public async Task<ApiResponse<bool>> CheckAndUpdateStockStatusAsync(Guid materialId)
+        public async Task<ApiResponse<bool>> CheckAndUpdateStockStatusAsync(int materialId)
         {
             var inventory = await _inventoryRepository.GetByMaterialIdAsync(materialId);
             if (inventory == null)

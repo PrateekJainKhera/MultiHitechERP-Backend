@@ -11,19 +11,19 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface ICustomerRepository
     {
         // Basic CRUD Operations
-        Task<Customer?> GetByIdAsync(Guid id);
+        Task<Customer?> GetByIdAsync(int id);
         Task<Customer?> GetByCustomerCodeAsync(string customerCode);
         Task<IEnumerable<Customer>> GetAllAsync();
         Task<IEnumerable<Customer>> GetActiveCustomersAsync();
 
         // Create, Update, Delete
-        Task<Guid> InsertAsync(Customer customer);
+        Task<int> InsertAsync(Customer customer);
         Task<bool> UpdateAsync(Customer customer);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Status Operations
-        Task<bool> ActivateAsync(Guid id);
-        Task<bool> DeactivateAsync(Guid id);
+        Task<bool> ActivateAsync(int id);
+        Task<bool> DeactivateAsync(int id);
 
         // Queries
         Task<IEnumerable<Customer>> SearchByNameAsync(string name);

@@ -41,7 +41,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Get production execution by ID
         /// </summary>
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse>>> GetById(Guid id)
+        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse>>> GetById(int id)
         {
             var response = await _service.GetByIdAsync(id);
             if (!response.Success)
@@ -55,7 +55,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Get executions by job card ID
         /// </summary>
         [HttpGet("by-job-card/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse[]>>> GetByJobCardId(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse[]>>> GetByJobCardId(int jobCardId)
         {
             var response = await _service.GetByJobCardIdAsync(jobCardId);
             if (!response.Success)
@@ -69,7 +69,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Get executions by machine ID
         /// </summary>
         [HttpGet("by-machine/{machineId:guid}")]
-        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse[]>>> GetByMachineId(Guid machineId)
+        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse[]>>> GetByMachineId(int machineId)
         {
             var response = await _service.GetByMachineIdAsync(machineId);
             if (!response.Success)
@@ -83,7 +83,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Get executions by operator ID
         /// </summary>
         [HttpGet("by-operator/{operatorId:guid}")]
-        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse[]>>> GetByOperatorId(Guid operatorId)
+        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse[]>>> GetByOperatorId(int operatorId)
         {
             var response = await _service.GetByOperatorIdAsync(operatorId);
             if (!response.Success)
@@ -141,7 +141,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Get current active execution for a job card
         /// </summary>
         [HttpGet("current/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse>>> GetCurrentExecution(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse>>> GetCurrentExecution(int jobCardId)
         {
             var response = await _service.GetCurrentExecutionForJobCardAsync(jobCardId);
             if (!response.Success)
@@ -155,7 +155,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Get execution history for a job card
         /// </summary>
         [HttpGet("history/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse[]>>> GetExecutionHistory(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<JobCardExecutionResponse[]>>> GetExecutionHistory(int jobCardId)
         {
             var response = await _service.GetExecutionHistoryForJobCardAsync(jobCardId);
             if (!response.Success)
@@ -190,7 +190,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Pause production execution
         /// </summary>
         [HttpPost("{id:guid}/pause")]
-        public async Task<ActionResult<ApiResponse<bool>>> PauseProduction(Guid id)
+        public async Task<ActionResult<ApiResponse<bool>>> PauseProduction(int id)
         {
             var response = await _service.PauseProductionAsync(id);
             if (!response.Success)
@@ -203,7 +203,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Resume paused production execution
         /// </summary>
         [HttpPost("{id:guid}/resume")]
-        public async Task<ActionResult<ApiResponse<bool>>> ResumeProduction(Guid id)
+        public async Task<ActionResult<ApiResponse<bool>>> ResumeProduction(int id)
         {
             var response = await _service.ResumeProductionAsync(id);
             if (!response.Success)
@@ -216,7 +216,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Complete production execution
         /// </summary>
         [HttpPost("{id:guid}/complete")]
-        public async Task<ActionResult<ApiResponse<bool>>> CompleteProduction(Guid id, [FromBody] CompleteProductionRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> CompleteProduction(int id, [FromBody] CompleteProductionRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -236,7 +236,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Update production quantities during execution
         /// </summary>
         [HttpPatch("{id:guid}/quantities")]
-        public async Task<ActionResult<ApiResponse<bool>>> UpdateQuantities(Guid id, [FromBody] UpdateQuantitiesRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateQuantities(int id, [FromBody] UpdateQuantitiesRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -257,7 +257,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Get total execution time for a job card (in minutes)
         /// </summary>
         [HttpGet("total-time/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<int>>> GetTotalExecutionTime(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<int>>> GetTotalExecutionTime(int jobCardId)
         {
             var response = await _service.GetTotalExecutionTimeForJobCardAsync(jobCardId);
             if (!response.Success)
@@ -270,7 +270,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Get total completed quantity for a job card
         /// </summary>
         [HttpGet("total-completed/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<int>>> GetTotalCompletedQuantity(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<int>>> GetTotalCompletedQuantity(int jobCardId)
         {
             var response = await _service.GetTotalCompletedQuantityForJobCardAsync(jobCardId);
             if (!response.Success)
@@ -283,7 +283,7 @@ namespace MultiHitechERP.API.Controllers.Production
         /// Delete a production execution record
         /// </summary>
         [HttpDelete("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             var response = await _service.DeleteExecutionAsync(id);
             if (!response.Success)

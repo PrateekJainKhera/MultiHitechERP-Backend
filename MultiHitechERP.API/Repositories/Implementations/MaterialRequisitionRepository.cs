@@ -21,7 +21,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<MaterialRequisition?> GetByIdAsync(Guid id)
+        public async Task<MaterialRequisition?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Stores_MaterialRequisitions WHERE Id = @Id";
 
@@ -68,7 +68,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return requisitions;
         }
 
-        public async Task<IEnumerable<MaterialRequisition>> GetByJobCardIdAsync(Guid jobCardId)
+        public async Task<IEnumerable<MaterialRequisition>> GetByJobCardIdAsync(int jobCardId)
         {
             const string query = @"
                 SELECT * FROM Stores_MaterialRequisitions
@@ -91,7 +91,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return requisitions;
         }
 
-        public async Task<IEnumerable<MaterialRequisition>> GetByOrderIdAsync(Guid orderId)
+        public async Task<IEnumerable<MaterialRequisition>> GetByOrderIdAsync(int orderId)
         {
             const string query = @"
                 SELECT * FROM Stores_MaterialRequisitions
@@ -228,7 +228,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return requisitions;
         }
 
-        public async Task<Guid> InsertAsync(MaterialRequisition requisition)
+        public async Task<int> InsertAsync(MaterialRequisition requisition)
         {
             const string query = @"
                 INSERT INTO Stores_MaterialRequisitions
@@ -238,7 +238,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 (@Id, @RequisitionNo, @RequisitionDate, @JobCardId, @JobCardNo, @OrderId, @OrderNo, @CustomerName,
                  @Status, @Priority, @DueDate, @RequestedBy, @ApprovedBy, @ApprovalDate, @Remarks, @CreatedAt, @CreatedBy)";
 
-            var requisitionId = Guid.NewGuid();
+            var requisitionId = 0;
             requisition.Id = requisitionId;
             requisition.CreatedAt = DateTime.UtcNow;
 
@@ -284,7 +284,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Stores_MaterialRequisitions WHERE Id = @Id";
 
@@ -298,7 +298,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateStatusAsync(Guid id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status)
         {
             const string query = @"
                 UPDATE Stores_MaterialRequisitions
@@ -316,7 +316,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> ApproveRequisitionAsync(Guid id, string approvedBy)
+        public async Task<bool> ApproveRequisitionAsync(int id, string approvedBy)
         {
             const string query = @"
                 UPDATE Stores_MaterialRequisitions
@@ -337,7 +337,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> RejectRequisitionAsync(Guid id, string rejectedBy, string? reason)
+        public async Task<bool> RejectRequisitionAsync(int id, string rejectedBy, string? reason)
         {
             const string query = @"
                 UPDATE Stores_MaterialRequisitions
@@ -365,12 +365,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new MaterialRequisition
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 RequisitionNo = reader.GetString(reader.GetOrdinal("RequisitionNo")),
                 RequisitionDate = reader.GetDateTime(reader.GetOrdinal("RequisitionDate")),
-                JobCardId = reader.IsDBNull(reader.GetOrdinal("JobCardId")) ? null : reader.GetGuid(reader.GetOrdinal("JobCardId")),
+                JobCardId = reader.IsDBNull(reader.GetOrdinal("JobCardId")) ? null : reader.GetInt32(reader.GetOrdinal("JobCardId")),
                 JobCardNo = reader.IsDBNull(reader.GetOrdinal("JobCardNo")) ? null : reader.GetString(reader.GetOrdinal("JobCardNo")),
-                OrderId = reader.IsDBNull(reader.GetOrdinal("OrderId")) ? null : reader.GetGuid(reader.GetOrdinal("OrderId")),
+                OrderId = reader.IsDBNull(reader.GetOrdinal("OrderId")) ? null : reader.GetInt32(reader.GetOrdinal("OrderId")),
                 OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo")) ? null : reader.GetString(reader.GetOrdinal("OrderNo")),
                 CustomerName = reader.IsDBNull(reader.GetOrdinal("CustomerName")) ? null : reader.GetString(reader.GetOrdinal("CustomerName")),
                 Status = reader.GetString(reader.GetOrdinal("Status")),

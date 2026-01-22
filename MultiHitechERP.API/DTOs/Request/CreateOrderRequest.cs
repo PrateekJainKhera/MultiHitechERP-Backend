@@ -15,10 +15,10 @@ namespace MultiHitechERP.API.DTOs.Request
         public DateTime DueDate { get; set; }
 
         [Required(ErrorMessage = "Customer ID is required")]
-        public Guid CustomerId { get; set; }
+        public int CustomerId { get; set; }
 
         [Required(ErrorMessage = "Product ID is required")]
-        public Guid ProductId { get; set; }
+        public int ProductId { get; set; }
 
         [Required(ErrorMessage = "Quantity is required")]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be greater than 0")]

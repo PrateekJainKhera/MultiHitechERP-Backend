@@ -8,8 +8,8 @@ namespace MultiHitechERP.API.Models.Inventory
     /// </summary>
     public class Inventory
     {
-        public Guid Id { get; set; }
-        public Guid MaterialId { get; set; }
+        public int Id { get; set; }
+        public int MaterialId { get; set; }
 
         // Material Reference (denormalized for quick access)
         public string? MaterialCode { get; set; }

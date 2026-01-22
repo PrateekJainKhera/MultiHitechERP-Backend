@@ -34,7 +34,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get customer by ID
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(int id)
         {
             var result = await _customerService.GetByIdAsync(id);
             return result.Success ? Ok(result) : NotFound(result);
@@ -119,7 +119,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Update existing customer
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCustomerRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateCustomerRequest request)
         {
             if (id != request.Id)
             {
@@ -139,7 +139,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Delete customer
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(int id)
         {
             var result = await _customerService.DeleteCustomerAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -149,7 +149,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Activate customer
         /// </summary>
         [HttpPost("{id}/activate")]
-        public async Task<IActionResult> Activate(Guid id)
+        public async Task<IActionResult> Activate(int id)
         {
             var result = await _customerService.ActivateCustomerAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -159,7 +159,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Deactivate customer
         /// </summary>
         [HttpPost("{id}/deactivate")]
-        public async Task<IActionResult> Deactivate(Guid id)
+        public async Task<IActionResult> Deactivate(int id)
         {
             var result = await _customerService.DeactivateCustomerAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);

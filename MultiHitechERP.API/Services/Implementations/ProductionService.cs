@@ -32,7 +32,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _operatorRepository = operatorRepository;
         }
 
-        public async Task<ApiResponse<JobCardExecution>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<JobCardExecution>> GetByIdAsync(int id)
         {
             var execution = await _executionRepository.GetByIdAsync(id);
             if (execution == null)
@@ -47,28 +47,28 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
         }
 
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByJobCardIdAsync(Guid jobCardId)
+        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByJobCardIdAsync(int jobCardId)
         {
             var executions = await _executionRepository.GetByJobCardIdAsync(jobCardId);
             return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
         }
 
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByMachineIdAsync(Guid machineId)
+        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByMachineIdAsync(int machineId)
         {
             var executions = await _executionRepository.GetByMachineIdAsync(machineId);
             return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
         }
 
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByOperatorIdAsync(Guid operatorId)
+        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByOperatorIdAsync(int operatorId)
         {
             var executions = await _executionRepository.GetByOperatorIdAsync(operatorId);
             return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
         }
 
-        public async Task<ApiResponse<Guid>> CreateExecutionAsync(JobCardExecution execution)
+        public async Task<ApiResponse<int>> CreateExecutionAsync(JobCardExecution execution)
         {
             var id = await _executionRepository.InsertAsync(execution);
-            return ApiResponse<Guid>.SuccessResponse(id, "Execution record created successfully");
+            return ApiResponse<int>.SuccessResponse(id, "Execution record created successfully");
         }
 
         public async Task<ApiResponse<bool>> UpdateExecutionAsync(JobCardExecution execution)
@@ -84,7 +84,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Execution record updated successfully");
         }
 
-        public async Task<ApiResponse<bool>> DeleteExecutionAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteExecutionAsync(int id)
         {
             var existing = await _executionRepository.GetByIdAsync(id);
             if (existing == null)
@@ -97,36 +97,36 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Execution record deleted successfully");
         }
 
-        public async Task<ApiResponse<Guid>> StartProductionAsync(Guid jobCardId, Guid machineId, Guid operatorId, int quantityStarted)
+        public async Task<ApiResponse<int>> StartProductionAsync(int jobCardId, int machineId, int operatorId, int quantityStarted)
         {
             // Validate job card exists and is ready
             var jobCard = await _jobCardRepository.GetByIdAsync(jobCardId);
             if (jobCard == null)
-                return ApiResponse<Guid>.ErrorResponse("Job card not found");
+                return ApiResponse<int>.ErrorResponse("Job card not found");
 
             if (jobCard.Status != "Ready" && jobCard.Status != "In Progress")
-                return ApiResponse<Guid>.ErrorResponse($"Cannot start production - job card status is '{jobCard.Status}'");
+                return ApiResponse<int>.ErrorResponse($"Cannot start production - job card status is '{jobCard.Status}'");
 
             // Check if job card already has active execution
             var currentExecution = await _executionRepository.GetCurrentExecutionForJobCardAsync(jobCardId);
             if (currentExecution != null)
-                return ApiResponse<Guid>.ErrorResponse("Job card already has an active execution");
+                return ApiResponse<int>.ErrorResponse("Job card already has an active execution");
 
             // Validate machine availability
             var machine = await _machineRepository.GetByIdAsync(machineId);
             if (machine == null)
-                return ApiResponse<Guid>.ErrorResponse("Machine not found");
+                return ApiResponse<int>.ErrorResponse("Machine not found");
 
             if (!machine.IsAvailable)
-                return ApiResponse<Guid>.ErrorResponse($"Machine '{machine.MachineName}' is not available");
+                return ApiResponse<int>.ErrorResponse($"Machine '{machine.MachineName}' is not available");
 
             // Validate operator availability
             var operatorEntity = await _operatorRepository.GetByIdAsync(operatorId);
             if (operatorEntity == null)
-                return ApiResponse<Guid>.ErrorResponse("Operator not found");
+                return ApiResponse<int>.ErrorResponse("Operator not found");
 
             if (!operatorEntity.IsAvailable)
-                return ApiResponse<Guid>.ErrorResponse($"Operator '{operatorEntity.OperatorName}' is not available");
+                return ApiResponse<int>.ErrorResponse($"Operator '{operatorEntity.OperatorName}' is not available");
 
             // Create execution record
             var execution = new JobCardExecution
@@ -152,10 +152,10 @@ namespace MultiHitechERP.API.Services.Implementations
             await _machineRepository.AssignToJobCardAsync(machineId, jobCard.JobCardNo);
             await _operatorRepository.AssignToJobCardAsync(operatorId, jobCardId, jobCard.JobCardNo, machineId);
 
-            return ApiResponse<Guid>.SuccessResponse(executionId, "Production started successfully");
+            return ApiResponse<int>.SuccessResponse(executionId, "Production started successfully");
         }
 
-        public async Task<ApiResponse<bool>> PauseProductionAsync(Guid executionId)
+        public async Task<ApiResponse<bool>> PauseProductionAsync(int executionId)
         {
             var execution = await _executionRepository.GetByIdAsync(executionId);
             if (execution == null)
@@ -171,7 +171,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Production paused successfully");
         }
 
-        public async Task<ApiResponse<bool>> ResumeProductionAsync(Guid executionId)
+        public async Task<ApiResponse<bool>> ResumeProductionAsync(int executionId)
         {
             var execution = await _executionRepository.GetByIdAsync(executionId);
             if (execution == null)
@@ -187,7 +187,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Production resumed successfully");
         }
 
-        public async Task<ApiResponse<bool>> CompleteProductionAsync(Guid executionId, int quantityCompleted, int? quantityRejected)
+        public async Task<ApiResponse<bool>> CompleteProductionAsync(int executionId, int quantityCompleted, int? quantityRejected)
         {
             var execution = await _executionRepository.GetByIdAsync(executionId);
             if (execution == null)
@@ -233,7 +233,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Production completed successfully");
         }
 
-        public async Task<ApiResponse<bool>> UpdateQuantitiesAsync(Guid executionId, int? completed, int? rejected, int? inProgress)
+        public async Task<ApiResponse<bool>> UpdateQuantitiesAsync(int executionId, int? completed, int? rejected, int? inProgress)
         {
             var execution = await _executionRepository.GetByIdAsync(executionId);
             if (execution == null)
@@ -270,7 +270,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
         }
 
-        public async Task<ApiResponse<JobCardExecution>> GetCurrentExecutionForJobCardAsync(Guid jobCardId)
+        public async Task<ApiResponse<JobCardExecution>> GetCurrentExecutionForJobCardAsync(int jobCardId)
         {
             var execution = await _executionRepository.GetCurrentExecutionForJobCardAsync(jobCardId);
             if (execution == null)
@@ -279,19 +279,19 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<JobCardExecution>.SuccessResponse(execution);
         }
 
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetExecutionHistoryForJobCardAsync(Guid jobCardId)
+        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetExecutionHistoryForJobCardAsync(int jobCardId)
         {
             var executions = await _executionRepository.GetExecutionHistoryForJobCardAsync(jobCardId);
             return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
         }
 
-        public async Task<ApiResponse<int>> GetTotalExecutionTimeForJobCardAsync(Guid jobCardId)
+        public async Task<ApiResponse<int>> GetTotalExecutionTimeForJobCardAsync(int jobCardId)
         {
             var totalTime = await _executionRepository.GetTotalExecutionTimeForJobCardAsync(jobCardId);
             return ApiResponse<int>.SuccessResponse(totalTime);
         }
 
-        public async Task<ApiResponse<int>> GetTotalCompletedQuantityForJobCardAsync(Guid jobCardId)
+        public async Task<ApiResponse<int>> GetTotalCompletedQuantityForJobCardAsync(int jobCardId)
         {
             var totalCompleted = await _executionRepository.GetTotalCompletedQuantityForJobCardAsync(jobCardId);
             return ApiResponse<int>.SuccessResponse(totalCompleted);

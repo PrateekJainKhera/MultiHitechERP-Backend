@@ -3,60 +3,58 @@ using System;
 namespace MultiHitechERP.API.Models.Masters
 {
     /// <summary>
-    /// Represents a product master record (finished goods)
+    /// Represents a product master record (rollers for flexo printing)
     /// </summary>
     public class Product
     {
-        public Guid Id { get; set; }
-        public string ProductCode { get; set; } = string.Empty;
-        public string ProductName { get; set; } = string.Empty;
-
-        // Classification
-        public string? Category { get; set; }
-        public string? SubCategory { get; set; }
-        public string? ProductType { get; set; }
-
-        // Specifications
-        public string? Specification { get; set; }
-        public string? Description { get; set; }
-        public string? HSNCode { get; set; }
+        public int Id { get; set; }
+        public string PartCode { get; set; } = string.Empty;
+        public int? CustomerId { get; set; }
+        public string? CustomerName { get; set; }
+        public string ModelName { get; set; } = string.Empty;
+        public string RollerType { get; set; } = string.Empty; // 'Anilox', 'Impression', 'Plate'
 
         // Dimensions
-        public decimal? Length { get; set; }
-        public decimal? Width { get; set; }
-        public decimal? Height { get; set; }
         public decimal? Diameter { get; set; }
+        public decimal? Length { get; set; }
         public decimal? Weight { get; set; }
-        public string? UOM { get; set; } = "PCS";
+
+        // Material & Finish
+        public string? MaterialGrade { get; set; }
+        public string? SurfaceFinish { get; set; }
+        public string? Hardness { get; set; }
 
         // Drawing Reference
-        public Guid? DrawingId { get; set; }
-        public string? DrawingNumber { get; set; }
+        public string? DrawingNo { get; set; }
+        public string? RevisionNo { get; set; }
+        public int? DrawingId { get; set; }
 
-        // BOM Reference
-        public Guid? BOMId { get; set; }
+        // Templates
+        public int? ProcessTemplateId { get; set; }
+        public int? ProductTemplateId { get; set; }
 
-        // Process Route Reference
-        public Guid? ProcessRouteId { get; set; }
-
-        // Pricing
+        // Pricing & Costing
         public decimal? StandardCost { get; set; }
         public decimal? SellingPrice { get; set; }
 
-        // Material
-        public string? MaterialGrade { get; set; }
-        public string? MaterialSpecification { get; set; }
-
-        // Production
-        public int? StandardBatchSize { get; set; }
+        // Production Planning
+        public int? StandardLeadTimeDays { get; set; }
         public int? MinOrderQuantity { get; set; }
-        public int? LeadTimeDays { get; set; }
+
+        // Classification
+        public string? Category { get; set; }
+        public string? ProductType { get; set; }
+
+        // Additional Info
+        public string? Description { get; set; }
+        public string? HSNCode { get; set; }
+        public string? UOM { get; set; } = "PCS";
+        public string? Remarks { get; set; }
 
         // Status
         public bool IsActive { get; set; } = true;
-        public string? Status { get; set; } = "Active";
 
-        public string? Remarks { get; set; }
+        // Audit
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
         public DateTime? UpdatedAt { get; set; }

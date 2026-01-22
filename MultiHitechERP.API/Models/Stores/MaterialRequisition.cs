@@ -7,14 +7,14 @@ namespace MultiHitechERP.API.Models.Stores
     /// </summary>
     public class MaterialRequisition
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string RequisitionNo { get; set; } = string.Empty;
         public DateTime RequisitionDate { get; set; }
 
         // Reference
-        public Guid? JobCardId { get; set; }
+        public int? JobCardId { get; set; }
         public string? JobCardNo { get; set; }
-        public Guid? OrderId { get; set; }
+        public int? OrderId { get; set; }
         public string? OrderNo { get; set; }
         public string? CustomerName { get; set; }
 

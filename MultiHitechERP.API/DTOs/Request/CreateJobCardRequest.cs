@@ -12,26 +12,26 @@ namespace MultiHitechERP.API.DTOs.Request
 
         // Order Reference
         [Required(ErrorMessage = "Order ID is required")]
-        public Guid OrderId { get; set; }
+        public int OrderId { get; set; }
         public string? OrderNo { get; set; }
 
         // Drawing (REQUIRED for manufacturing)
-        public Guid? DrawingId { get; set; }
+        public int? DrawingId { get; set; }
         public string? DrawingNumber { get; set; }
         public string? DrawingRevision { get; set; }
         public string DrawingSelectionType { get; set; } = "auto";
 
         // Child Part (optional - for assemblies)
-        public Guid? ChildPartId { get; set; }
+        public int? ChildPartId { get; set; }
         public string? ChildPartName { get; set; }
-        public Guid? ChildPartTemplateId { get; set; }
+        public int? ChildPartTemplateId { get; set; }
 
         // Process
         [Required(ErrorMessage = "Process ID is required")]
-        public Guid ProcessId { get; set; }
+        public int ProcessId { get; set; }
         public string? ProcessName { get; set; }
         public int? StepNo { get; set; }
-        public Guid? ProcessTemplateId { get; set; }
+        public int? ProcessTemplateId { get; set; }
 
         // Quantity
         [Required(ErrorMessage = "Quantity is required")]
@@ -39,9 +39,9 @@ namespace MultiHitechERP.API.DTOs.Request
         public int Quantity { get; set; }
 
         // Optional Assignments
-        public Guid? AssignedMachineId { get; set; }
+        public int? AssignedMachineId { get; set; }
         public string? AssignedMachineName { get; set; }
-        public Guid? AssignedOperatorId { get; set; }
+        public int? AssignedOperatorId { get; set; }
         public string? AssignedOperatorName { get; set; }
 
         // Time Estimates
@@ -65,12 +65,12 @@ namespace MultiHitechERP.API.DTOs.Request
 
         // Rework
         public bool IsRework { get; set; }
-        public Guid? ReworkOrderId { get; set; }
-        public Guid? ParentJobCardId { get; set; }
+        public int? ReworkOrderId { get; set; }
+        public int? ParentJobCardId { get; set; }
 
         public string? CreatedBy { get; set; }
 
         // Dependencies (list of prerequisite job card IDs)
-        public List<Guid>? PrerequisiteJobCardIds { get; set; }
+        public List<int>? PrerequisiteJobCardIds { get; set; }
     }
 }

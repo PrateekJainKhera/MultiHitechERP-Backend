@@ -8,15 +8,15 @@ namespace MultiHitechERP.API.Models.Orders
     public class Order
     {
         // Identification
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string OrderNo { get; set; } = string.Empty;
         public DateTime OrderDate { get; set; }
         public DateTime DueDate { get; set; }
         public DateTime? AdjustedDueDate { get; set; }
 
         // Customer & Product
-        public Guid CustomerId { get; set; }
-        public Guid ProductId { get; set; }
+        public int CustomerId { get; set; }
+        public int ProductId { get; set; }
 
         // Quantities
         public int Quantity { get; set; }

@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateStockLevelsRequest
     {
         [Required]
-        public Guid MaterialId { get; set; }
+        public int MaterialId { get; set; }
 
         [Range(0, double.MaxValue)]
         public decimal? MinimumStock { get; set; }

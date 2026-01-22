@@ -42,7 +42,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Get material requisition by ID
         /// </summary>
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<MaterialRequisitionResponse>>> GetById(Guid id)
+        public async Task<ActionResult<ApiResponse<MaterialRequisitionResponse>>> GetById(int id)
         {
             var response = await _service.GetByIdAsync(id);
             if (!response.Success)
@@ -70,7 +70,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Get material requisitions by job card ID
         /// </summary>
         [HttpGet("by-job-card/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<MaterialRequisitionResponse[]>>> GetByJobCardId(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<MaterialRequisitionResponse[]>>> GetByJobCardId(int jobCardId)
         {
             var response = await _service.GetByJobCardIdAsync(jobCardId);
             if (!response.Success)
@@ -84,7 +84,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Get material requisitions by order ID
         /// </summary>
         [HttpGet("by-order/{orderId:guid}")]
-        public async Task<ActionResult<ApiResponse<MaterialRequisitionResponse[]>>> GetByOrderId(Guid orderId)
+        public async Task<ActionResult<ApiResponse<MaterialRequisitionResponse[]>>> GetByOrderId(int orderId)
         {
             var response = await _service.GetByOrderIdAsync(orderId);
             if (!response.Success)
@@ -200,7 +200,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Update an existing material requisition
         /// </summary>
         [HttpPut("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Update(Guid id, [FromBody] UpdateMaterialRequisitionRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> Update(int id, [FromBody] UpdateMaterialRequisitionRequest request)
         {
             if (id != request.Id)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("ID mismatch"));
@@ -238,7 +238,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Delete a material requisition
         /// </summary>
         [HttpDelete("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             var response = await _service.DeleteRequisitionAsync(id);
             if (!response.Success)
@@ -251,7 +251,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Approve a material requisition
         /// </summary>
         [HttpPost("{id:guid}/approve")]
-        public async Task<ActionResult<ApiResponse<bool>>> Approve(Guid id, [FromBody] ApproveRequisitionRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> Approve(int id, [FromBody] ApproveRequisitionRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -267,7 +267,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Reject a material requisition
         /// </summary>
         [HttpPost("{id:guid}/reject")]
-        public async Task<ActionResult<ApiResponse<bool>>> Reject(Guid id, [FromBody] RejectRequisitionRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> Reject(int id, [FromBody] RejectRequisitionRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -283,7 +283,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Update requisition status
         /// </summary>
         [HttpPatch("{id:guid}/status")]
-        public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(int id, [FromBody] UpdateStatusRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -299,7 +299,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Allocate materials to requisition using FIFO
         /// </summary>
         [HttpPost("{id:guid}/allocate")]
-        public async Task<ActionResult<ApiResponse<bool>>> AllocateMaterials(Guid id, [FromBody] AllocateMaterialRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> AllocateMaterials(int id, [FromBody] AllocateMaterialRequest request)
         {
             if (id != request.RequisitionId)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("ID mismatch"));
@@ -322,7 +322,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Deallocate materials from requisition
         /// </summary>
         [HttpPost("{id:guid}/deallocate")]
-        public async Task<ActionResult<ApiResponse<bool>>> DeallocateMaterials(Guid id)
+        public async Task<ActionResult<ApiResponse<bool>>> DeallocateMaterials(int id)
         {
             var response = await _service.DeallocateMaterialsAsync(id);
             if (!response.Success)
@@ -335,7 +335,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Issue allocated materials to production
         /// </summary>
         [HttpPost("{id:guid}/issue")]
-        public async Task<ActionResult<ApiResponse<Guid>>> IssueMaterials(Guid id, [FromBody] IssueMaterialRequest request)
+        public async Task<ActionResult<ApiResponse<Guid>>> IssueMaterials(int id, [FromBody] IssueMaterialRequest request)
         {
             if (id != request.RequisitionId)
                 return BadRequest(ApiResponse<Guid>.ErrorResponse("ID mismatch"));
@@ -359,7 +359,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Get allocated material pieces for requisition
         /// </summary>
         [HttpGet("{id:guid}/allocated-pieces")]
-        public async Task<ActionResult<ApiResponse<MaterialPieceResponse[]>>> GetAllocatedPieces(Guid id)
+        public async Task<ActionResult<ApiResponse<MaterialPieceResponse[]>>> GetAllocatedPieces(int id)
         {
             var response = await _service.GetAllocatedPiecesAsync(id);
             if (!response.Success)
@@ -373,7 +373,7 @@ namespace MultiHitechERP.API.Controllers.Stores
         /// Get issuance history for requisition
         /// </summary>
         [HttpGet("{id:guid}/issuance-history")]
-        public async Task<ActionResult<ApiResponse<MaterialIssueResponse[]>>> GetIssuanceHistory(Guid id)
+        public async Task<ActionResult<ApiResponse<MaterialIssueResponse[]>>> GetIssuanceHistory(int id)
         {
             var response = await _service.GetIssuanceHistoryAsync(id);
             if (!response.Success)

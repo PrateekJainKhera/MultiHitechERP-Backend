@@ -12,23 +12,23 @@ namespace MultiHitechERP.API.Services.Interfaces
     public interface IOrderService
     {
         // CRUD Operations
-        Task<ApiResponse<OrderResponse>> GetByIdAsync(Guid id);
+        Task<ApiResponse<OrderResponse>> GetByIdAsync(int id);
         Task<ApiResponse<OrderResponse>> GetByOrderNoAsync(string orderNo);
         Task<ApiResponse<IEnumerable<OrderResponse>>> GetAllAsync();
-        Task<ApiResponse<IEnumerable<OrderResponse>>> GetByCustomerIdAsync(Guid customerId);
+        Task<ApiResponse<IEnumerable<OrderResponse>>> GetByCustomerIdAsync(int customerId);
         Task<ApiResponse<IEnumerable<OrderResponse>>> GetByStatusAsync(string status);
 
-        Task<ApiResponse<Guid>> CreateOrderAsync(CreateOrderRequest request);
+        Task<ApiResponse<int>> CreateOrderAsync(CreateOrderRequest request);
         Task<ApiResponse<bool>> UpdateOrderAsync(UpdateOrderRequest request);
-        Task<ApiResponse<bool>> DeleteOrderAsync(Guid id);
+        Task<ApiResponse<bool>> DeleteOrderAsync(int id);
 
         // Business Operations
         Task<ApiResponse<bool>> UpdateDrawingReviewStatusAsync(UpdateDrawingReviewRequest request);
-        Task<ApiResponse<bool>> ApproveDrawingReviewAsync(Guid orderId, string reviewedBy, string? notes);
-        Task<ApiResponse<bool>> RejectDrawingReviewAsync(Guid orderId, string reviewedBy, string reason);
+        Task<ApiResponse<bool>> ApproveDrawingReviewAsync(int orderId, string reviewedBy, string? notes);
+        Task<ApiResponse<bool>> RejectDrawingReviewAsync(int orderId, string reviewedBy, string reason);
 
-        Task<ApiResponse<bool>> UpdateOrderStatusAsync(Guid orderId, string status);
-        Task<ApiResponse<bool>> UpdatePlanningStatusAsync(Guid orderId, string status);
+        Task<ApiResponse<bool>> UpdateOrderStatusAsync(int orderId, string status);
+        Task<ApiResponse<bool>> UpdatePlanningStatusAsync(int orderId, string status);
 
         // Queries
         Task<ApiResponse<IEnumerable<OrderResponse>>> GetPendingDrawingReviewAsync();
@@ -37,7 +37,7 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<IEnumerable<OrderResponse>>> GetDelayedOrdersAsync();
 
         // Validation
-        Task<ApiResponse<bool>> CanGenerateJobCardsAsync(Guid orderId);
+        Task<ApiResponse<bool>> CanGenerateJobCardsAsync(int orderId);
         Task<ApiResponse<string>> GenerateOrderNoAsync();
     }
 }

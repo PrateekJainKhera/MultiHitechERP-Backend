@@ -19,7 +19,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _drawingRepository = drawingRepository;
         }
 
-        public async Task<ApiResponse<DrawingResponse>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<DrawingResponse>> GetByIdAsync(int id)
         {
             try
             {
@@ -109,7 +109,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<DrawingResponse>>> GetByProductIdAsync(Guid productId)
+        public async Task<ApiResponse<IEnumerable<DrawingResponse>>> GetByProductIdAsync(int productId)
         {
             try
             {
@@ -151,21 +151,21 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<Guid>> CreateDrawingAsync(CreateDrawingRequest request)
+        public async Task<ApiResponse<int>> CreateDrawingAsync(CreateDrawingRequest request)
         {
             try
             {
                 // Validation
                 if (string.IsNullOrWhiteSpace(request.DrawingNumber))
-                    return ApiResponse<Guid>.ErrorResponse("Drawing number is required");
+                    return ApiResponse<int>.ErrorResponse("Drawing number is required");
 
                 if (string.IsNullOrWhiteSpace(request.DrawingTitle))
-                    return ApiResponse<Guid>.ErrorResponse("Drawing title is required");
+                    return ApiResponse<int>.ErrorResponse("Drawing title is required");
 
                 var revisionNumber = request.RevisionNumber ?? "A";
                 var exists = await _drawingRepository.ExistsAsync(request.DrawingNumber, revisionNumber);
                 if (exists)
-                    return ApiResponse<Guid>.ErrorResponse($"Drawing {request.DrawingNumber} revision {revisionNumber} already exists");
+                    return ApiResponse<int>.ErrorResponse($"Drawing {request.DrawingNumber} revision {revisionNumber} already exists");
 
                 // Map to entity
                 var drawing = new Drawing
@@ -206,11 +206,11 @@ namespace MultiHitechERP.API.Services.Implementations
                 };
 
                 var drawingId = await _drawingRepository.InsertAsync(drawing);
-                return ApiResponse<Guid>.SuccessResponse(drawingId, $"Drawing '{request.DrawingNumber}' created successfully");
+                return ApiResponse<int>.SuccessResponse(drawingId, $"Drawing '{request.DrawingNumber}' created successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse<Guid>.ErrorResponse($"Error creating drawing: {ex.Message}");
+                return ApiResponse<int>.ErrorResponse($"Error creating drawing: {ex.Message}");
             }
         }
 
@@ -270,7 +270,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeleteDrawingAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteDrawingAsync(int id)
         {
             try
             {
@@ -290,7 +290,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> MarkAsLatestRevisionAsync(Guid id)
+        public async Task<ApiResponse<bool>> MarkAsLatestRevisionAsync(int id)
         {
             try
             {

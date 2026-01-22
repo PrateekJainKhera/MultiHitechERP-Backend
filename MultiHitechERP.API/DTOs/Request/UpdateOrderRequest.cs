@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateOrderRequest
     {
         [Required(ErrorMessage = "Order ID is required")]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         [Required(ErrorMessage = "Order date is required")]
         public DateTime OrderDate { get; set; }
@@ -20,10 +20,10 @@ namespace MultiHitechERP.API.DTOs.Request
         public DateTime? AdjustedDueDate { get; set; }
 
         [Required(ErrorMessage = "Customer ID is required")]
-        public Guid CustomerId { get; set; }
+        public int CustomerId { get; set; }
 
         [Required(ErrorMessage = "Product ID is required")]
-        public Guid ProductId { get; set; }
+        public int ProductId { get; set; }
 
         [Required(ErrorMessage = "Quantity is required")]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be greater than 0")]

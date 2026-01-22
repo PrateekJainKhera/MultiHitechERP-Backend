@@ -23,7 +23,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _dependencyRepository = dependencyRepository;
         }
 
-        public async Task<JobCard?> GetByIdAsync(Guid id)
+        public async Task<JobCard?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Planning_JobCards WHERE Id = @Id";
 
@@ -70,7 +70,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return jobCards;
         }
 
-        public async Task<IEnumerable<JobCard>> GetByOrderIdAsync(Guid orderId)
+        public async Task<IEnumerable<JobCard>> GetByOrderIdAsync(int orderId)
         {
             const string query = @"
                 SELECT * FROM Planning_JobCards
@@ -93,7 +93,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return jobCards;
         }
 
-        public async Task<IEnumerable<JobCard>> GetByProcessIdAsync(Guid processId)
+        public async Task<IEnumerable<JobCard>> GetByProcessIdAsync(int processId)
         {
             const string query = @"
                 SELECT * FROM Planning_JobCards
@@ -235,7 +235,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return jobCards;
         }
 
-        public async Task<IEnumerable<JobCard>> GetByMachineIdAsync(Guid machineId)
+        public async Task<IEnumerable<JobCard>> GetByMachineIdAsync(int machineId)
         {
             const string query = @"
                 SELECT * FROM Planning_JobCards
@@ -258,7 +258,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return jobCards;
         }
 
-        public async Task<IEnumerable<JobCard>> GetByOperatorIdAsync(Guid operatorId)
+        public async Task<IEnumerable<JobCard>> GetByOperatorIdAsync(int operatorId)
         {
             const string query = @"
                 SELECT * FROM Planning_JobCards
@@ -281,7 +281,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return jobCards;
         }
 
-        public async Task<Guid> InsertAsync(JobCard jobCard)
+        public async Task<int> InsertAsync(JobCard jobCard)
         {
             const string query = @"
                 INSERT INTO Planning_JobCards
@@ -303,7 +303,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                  @ScheduleStatus, @ScheduledStartDate, @ScheduledEndDate, @IsRework, @ReworkOrderId, @ParentJobCardId,
                  @CreatedAt, @CreatedBy, @UpdatedAt, @UpdatedBy, @Version)";
 
-            var jobCardId = Guid.NewGuid();
+            var jobCardId = 0;
             jobCard.Id = jobCardId;
             jobCard.CreatedAt = DateTime.UtcNow;
 
@@ -418,7 +418,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Planning_JobCards WHERE Id = @Id";
 
@@ -432,7 +432,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateStatusAsync(Guid id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status)
         {
             const string query = @"
                 UPDATE Planning_JobCards
@@ -451,7 +451,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateMaterialStatusAsync(Guid id, string materialStatus)
+        public async Task<bool> UpdateMaterialStatusAsync(int id, string materialStatus)
         {
             const string query = @"
                 UPDATE Planning_JobCards
@@ -471,7 +471,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateScheduleStatusAsync(Guid id, string scheduleStatus, DateTime? startDate, DateTime? endDate)
+        public async Task<bool> UpdateScheduleStatusAsync(int id, string scheduleStatus, DateTime? startDate, DateTime? endDate)
         {
             const string query = @"
                 UPDATE Planning_JobCards
@@ -495,7 +495,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> AssignMachineAsync(Guid id, Guid machineId, string machineName)
+        public async Task<bool> AssignMachineAsync(int id, int machineId, string machineName)
         {
             const string query = @"
                 UPDATE Planning_JobCards
@@ -515,7 +515,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> AssignOperatorAsync(Guid id, Guid operatorId, string operatorName)
+        public async Task<bool> AssignOperatorAsync(int id, int operatorId, string operatorName)
         {
             const string query = @"
                 UPDATE Planning_JobCards
@@ -535,7 +535,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> StartExecutionAsync(Guid id, DateTime startTime)
+        public async Task<bool> StartExecutionAsync(int id, DateTime startTime)
         {
             const string query = @"
                 UPDATE Planning_JobCards
@@ -554,7 +554,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> CompleteExecutionAsync(Guid id, DateTime endTime, int actualTimeMin)
+        public async Task<bool> CompleteExecutionAsync(int id, DateTime endTime, int actualTimeMin)
         {
             const string query = @"
                 UPDATE Planning_JobCards
@@ -577,7 +577,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateQuantitiesAsync(Guid id, int completedQty, int rejectedQty, int reworkQty, int inProgressQty)
+        public async Task<bool> UpdateQuantitiesAsync(int id, int completedQty, int rejectedQty, int reworkQty, int inProgressQty)
         {
             const string query = @"
                 UPDATE Planning_JobCards
@@ -603,7 +603,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<IEnumerable<JobCard>> GetDependentJobCardsAsync(Guid jobCardId)
+        public async Task<IEnumerable<JobCard>> GetDependentJobCardsAsync(int jobCardId)
         {
             const string query = @"
                 SELECT jc.* FROM Planning_JobCards jc
@@ -627,7 +627,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return jobCards;
         }
 
-        public async Task<IEnumerable<JobCard>> GetPrerequisiteJobCardsAsync(Guid jobCardId)
+        public async Task<IEnumerable<JobCard>> GetPrerequisiteJobCardsAsync(int jobCardId)
         {
             const string query = @"
                 SELECT jc.* FROM Planning_JobCards jc
@@ -651,12 +651,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return jobCards;
         }
 
-        public async Task<bool> HasUnresolvedDependenciesAsync(Guid jobCardId)
+        public async Task<bool> HasUnresolvedDependenciesAsync(int jobCardId)
         {
             return await _dependencyRepository.HasUnresolvedDependenciesAsync(jobCardId);
         }
 
-        public async Task<int> GetVersionAsync(Guid id)
+        public async Task<int> GetVersionAsync(int id)
         {
             const string query = "SELECT Version FROM Planning_JobCards WHERE Id = @Id";
 
@@ -675,31 +675,31 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new JobCard
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 JobCardNo = reader.GetString(reader.GetOrdinal("JobCardNo")),
                 CreationType = reader.GetString(reader.GetOrdinal("CreationType")),
-                OrderId = reader.GetGuid(reader.GetOrdinal("OrderId")),
+                OrderId = reader.GetInt32(reader.GetOrdinal("OrderId")),
                 OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo")) ? null : reader.GetString(reader.GetOrdinal("OrderNo")),
-                DrawingId = reader.IsDBNull(reader.GetOrdinal("DrawingId")) ? null : reader.GetGuid(reader.GetOrdinal("DrawingId")),
+                DrawingId = reader.IsDBNull(reader.GetOrdinal("DrawingId")) ? null : reader.GetInt32(reader.GetOrdinal("DrawingId")),
                 DrawingNumber = reader.IsDBNull(reader.GetOrdinal("DrawingNumber")) ? null : reader.GetString(reader.GetOrdinal("DrawingNumber")),
                 DrawingRevision = reader.IsDBNull(reader.GetOrdinal("DrawingRevision")) ? null : reader.GetString(reader.GetOrdinal("DrawingRevision")),
                 DrawingSelectionType = reader.GetString(reader.GetOrdinal("DrawingSelectionType")),
-                ChildPartId = reader.IsDBNull(reader.GetOrdinal("ChildPartId")) ? null : reader.GetGuid(reader.GetOrdinal("ChildPartId")),
+                ChildPartId = reader.IsDBNull(reader.GetOrdinal("ChildPartId")) ? null : reader.GetInt32(reader.GetOrdinal("ChildPartId")),
                 ChildPartName = reader.IsDBNull(reader.GetOrdinal("ChildPartName")) ? null : reader.GetString(reader.GetOrdinal("ChildPartName")),
-                ChildPartTemplateId = reader.IsDBNull(reader.GetOrdinal("ChildPartTemplateId")) ? null : reader.GetGuid(reader.GetOrdinal("ChildPartTemplateId")),
-                ProcessId = reader.GetGuid(reader.GetOrdinal("ProcessId")),
+                ChildPartTemplateId = reader.IsDBNull(reader.GetOrdinal("ChildPartTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ChildPartTemplateId")),
+                ProcessId = reader.GetInt32(reader.GetOrdinal("ProcessId")),
                 ProcessName = reader.IsDBNull(reader.GetOrdinal("ProcessName")) ? null : reader.GetString(reader.GetOrdinal("ProcessName")),
                 StepNo = reader.IsDBNull(reader.GetOrdinal("StepNo")) ? null : reader.GetInt32(reader.GetOrdinal("StepNo")),
-                ProcessTemplateId = reader.IsDBNull(reader.GetOrdinal("ProcessTemplateId")) ? null : reader.GetGuid(reader.GetOrdinal("ProcessTemplateId")),
+                ProcessTemplateId = reader.IsDBNull(reader.GetOrdinal("ProcessTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ProcessTemplateId")),
                 Quantity = reader.GetInt32(reader.GetOrdinal("Quantity")),
                 CompletedQty = reader.GetInt32(reader.GetOrdinal("CompletedQty")),
                 RejectedQty = reader.GetInt32(reader.GetOrdinal("RejectedQty")),
                 ReworkQty = reader.GetInt32(reader.GetOrdinal("ReworkQty")),
                 InProgressQty = reader.GetInt32(reader.GetOrdinal("InProgressQty")),
                 Status = reader.GetString(reader.GetOrdinal("Status")),
-                AssignedMachineId = reader.IsDBNull(reader.GetOrdinal("AssignedMachineId")) ? null : reader.GetGuid(reader.GetOrdinal("AssignedMachineId")),
+                AssignedMachineId = reader.IsDBNull(reader.GetOrdinal("AssignedMachineId")) ? null : reader.GetInt32(reader.GetOrdinal("AssignedMachineId")),
                 AssignedMachineName = reader.IsDBNull(reader.GetOrdinal("AssignedMachineName")) ? null : reader.GetString(reader.GetOrdinal("AssignedMachineName")),
-                AssignedOperatorId = reader.IsDBNull(reader.GetOrdinal("AssignedOperatorId")) ? null : reader.GetGuid(reader.GetOrdinal("AssignedOperatorId")),
+                AssignedOperatorId = reader.IsDBNull(reader.GetOrdinal("AssignedOperatorId")) ? null : reader.GetInt32(reader.GetOrdinal("AssignedOperatorId")),
                 AssignedOperatorName = reader.IsDBNull(reader.GetOrdinal("AssignedOperatorName")) ? null : reader.GetString(reader.GetOrdinal("AssignedOperatorName")),
                 EstimatedSetupTimeMin = reader.IsDBNull(reader.GetOrdinal("EstimatedSetupTimeMin")) ? null : reader.GetInt32(reader.GetOrdinal("EstimatedSetupTimeMin")),
                 EstimatedCycleTimeMin = reader.IsDBNull(reader.GetOrdinal("EstimatedCycleTimeMin")) ? null : reader.GetInt32(reader.GetOrdinal("EstimatedCycleTimeMin")),
@@ -715,8 +715,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 ScheduledStartDate = reader.IsDBNull(reader.GetOrdinal("ScheduledStartDate")) ? null : reader.GetDateTime(reader.GetOrdinal("ScheduledStartDate")),
                 ScheduledEndDate = reader.IsDBNull(reader.GetOrdinal("ScheduledEndDate")) ? null : reader.GetDateTime(reader.GetOrdinal("ScheduledEndDate")),
                 IsRework = reader.GetBoolean(reader.GetOrdinal("IsRework")),
-                ReworkOrderId = reader.IsDBNull(reader.GetOrdinal("ReworkOrderId")) ? null : reader.GetGuid(reader.GetOrdinal("ReworkOrderId")),
-                ParentJobCardId = reader.IsDBNull(reader.GetOrdinal("ParentJobCardId")) ? null : reader.GetGuid(reader.GetOrdinal("ParentJobCardId")),
+                ReworkOrderId = reader.IsDBNull(reader.GetOrdinal("ReworkOrderId")) ? null : reader.GetInt32(reader.GetOrdinal("ReworkOrderId")),
+                ParentJobCardId = reader.IsDBNull(reader.GetOrdinal("ParentJobCardId")) ? null : reader.GetInt32(reader.GetOrdinal("ParentJobCardId")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
                 UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),

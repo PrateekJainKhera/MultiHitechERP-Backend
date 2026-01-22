@@ -8,17 +8,17 @@ namespace MultiHitechERP.API.Services.Interfaces
 {
     public interface IProductService
     {
-        Task<ApiResponse<ProductResponse>> GetByIdAsync(Guid id);
-        Task<ApiResponse<ProductResponse>> GetByProductCodeAsync(string productCode);
+        Task<ApiResponse<ProductResponse>> GetByIdAsync(int id);
+        Task<ApiResponse<ProductResponse>> GetByPartCodeAsync(string productCode);
         Task<ApiResponse<IEnumerable<ProductResponse>>> GetAllAsync();
         Task<ApiResponse<IEnumerable<ProductResponse>>> GetActiveProductsAsync();
 
-        Task<ApiResponse<Guid>> CreateProductAsync(CreateProductRequest request);
+        Task<ApiResponse<int>> CreateProductAsync(CreateProductRequest request);
         Task<ApiResponse<bool>> UpdateProductAsync(UpdateProductRequest request);
-        Task<ApiResponse<bool>> DeleteProductAsync(Guid id);
+        Task<ApiResponse<bool>> DeleteProductAsync(int id);
 
-        Task<ApiResponse<bool>> ActivateProductAsync(Guid id);
-        Task<ApiResponse<bool>> DeactivateProductAsync(Guid id);
+        Task<ApiResponse<bool>> ActivateProductAsync(int id);
+        Task<ApiResponse<bool>> DeactivateProductAsync(int id);
 
         Task<ApiResponse<IEnumerable<ProductResponse>>> SearchByNameAsync(string searchTerm);
         Task<ApiResponse<IEnumerable<ProductResponse>>> GetByCategoryAsync(string category);

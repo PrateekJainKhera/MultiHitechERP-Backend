@@ -5,7 +5,7 @@ namespace MultiHitechERP.API.DTOs.Request
 {
     public class UpdateSupplierRequest
     {
-        [Required] public Guid Id { get; set; }
+        [Required] public int Id { get; set; }
         [Required] [StringLength(50)] public string SupplierCode { get; set; } = string.Empty;
         [Required] [StringLength(200)] public string SupplierName { get; set; } = string.Empty;
         [StringLength(50)] public string? SupplierType { get; set; }

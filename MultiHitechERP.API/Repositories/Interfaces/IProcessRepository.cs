@@ -11,19 +11,19 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface IProcessRepository
     {
         // Basic CRUD Operations
-        Task<Process?> GetByIdAsync(Guid id);
+        Task<Process?> GetByIdAsync(int id);
         Task<Process?> GetByProcessCodeAsync(string processCode);
         Task<IEnumerable<Process>> GetAllAsync();
         Task<IEnumerable<Process>> GetActiveProcessesAsync();
 
         // Create, Update, Delete
-        Task<Guid> InsertAsync(Process process);
+        Task<int> InsertAsync(Process process);
         Task<bool> UpdateAsync(Process process);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Status Operations
-        Task<bool> ActivateAsync(Guid id);
-        Task<bool> DeactivateAsync(Guid id);
+        Task<bool> ActivateAsync(int id);
+        Task<bool> DeactivateAsync(int id);
 
         // Queries
         Task<IEnumerable<Process>> GetByProcessTypeAsync(string processType);

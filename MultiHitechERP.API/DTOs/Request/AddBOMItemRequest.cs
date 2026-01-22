@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class AddBOMItemRequest
     {
         [Required]
-        public Guid BOMId { get; set; }
+        public int BOMId { get; set; }
 
         [Required]
         [Range(1, int.MaxValue)]
@@ -20,10 +20,10 @@ namespace MultiHitechERP.API.DTOs.Request
         public string ItemType { get; set; } = "Material";
 
         // For Material items
-        public Guid? MaterialId { get; set; }
+        public int? MaterialId { get; set; }
 
         // For Child Part items
-        public Guid? ChildPartId { get; set; }
+        public int? ChildPartId { get; set; }
 
         [Required]
         [Range(0.01, double.MaxValue)]

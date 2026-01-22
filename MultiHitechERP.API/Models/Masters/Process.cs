@@ -7,7 +7,7 @@ namespace MultiHitechERP.API.Models.Masters
     /// </summary>
     public class Process
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string ProcessCode { get; set; } = string.Empty;
         public string ProcessName { get; set; } = string.Empty;
 
@@ -22,7 +22,7 @@ namespace MultiHitechERP.API.Models.Masters
 
         // Machine Requirements
         public string? MachineType { get; set; }
-        public Guid? DefaultMachineId { get; set; }
+        public int? DefaultMachineId { get; set; }
         public string? DefaultMachineName { get; set; }
 
         // Time Standards

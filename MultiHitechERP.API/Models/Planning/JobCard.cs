@@ -8,30 +8,30 @@ namespace MultiHitechERP.API.Models.Planning
     public class JobCard
     {
         // Identity
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string JobCardNo { get; set; } = string.Empty;
         public string CreationType { get; set; } = "Auto-Generated";
 
         // Order Reference
-        public Guid OrderId { get; set; }
+        public int OrderId { get; set; }
         public string? OrderNo { get; set; }
 
         // Drawing (REQUIRED)
-        public Guid? DrawingId { get; set; }
+        public int? DrawingId { get; set; }
         public string? DrawingNumber { get; set; }
         public string? DrawingRevision { get; set; }
         public string DrawingSelectionType { get; set; } = "auto";
 
         // Child Part
-        public Guid? ChildPartId { get; set; }
+        public int? ChildPartId { get; set; }
         public string? ChildPartName { get; set; }
-        public Guid? ChildPartTemplateId { get; set; }
+        public int? ChildPartTemplateId { get; set; }
 
         // Process
-        public Guid ProcessId { get; set; }
+        public int ProcessId { get; set; }
         public string? ProcessName { get; set; }
         public int? StepNo { get; set; }
-        public Guid? ProcessTemplateId { get; set; }
+        public int? ProcessTemplateId { get; set; }
 
         // Quantities
         public int Quantity { get; set; }
@@ -44,9 +44,9 @@ namespace MultiHitechERP.API.Models.Planning
         public string Status { get; set; } = "Pending";
 
         // Machine & Operator Assignment
-        public Guid? AssignedMachineId { get; set; }
+        public int? AssignedMachineId { get; set; }
         public string? AssignedMachineName { get; set; }
-        public Guid? AssignedOperatorId { get; set; }
+        public int? AssignedOperatorId { get; set; }
         public string? AssignedOperatorName { get; set; }
 
         // Time Tracking
@@ -74,8 +74,8 @@ namespace MultiHitechERP.API.Models.Planning
 
         // Rework
         public bool IsRework { get; set; }
-        public Guid? ReworkOrderId { get; set; }
-        public Guid? ParentJobCardId { get; set; }
+        public int? ReworkOrderId { get; set; }
+        public int? ParentJobCardId { get; set; }
 
         // Audit
         public DateTime CreatedAt { get; set; }

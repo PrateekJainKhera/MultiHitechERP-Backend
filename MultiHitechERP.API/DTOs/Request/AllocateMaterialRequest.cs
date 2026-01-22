@@ -9,10 +9,10 @@ namespace MultiHitechERP.API.DTOs.Request
     public class AllocateMaterialRequest
     {
         [Required]
-        public Guid RequisitionId { get; set; }
+        public int RequisitionId { get; set; }
 
         [Required]
-        public Guid MaterialId { get; set; }
+        public int MaterialId { get; set; }
 
         [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Required quantity must be greater than 0")]

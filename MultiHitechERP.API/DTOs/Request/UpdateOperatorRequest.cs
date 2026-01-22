@@ -6,7 +6,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateOperatorRequest
     {
         [Required]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         [Required(ErrorMessage = "Operator code is required")]
         public string OperatorCode { get; set; } = string.Empty;
@@ -60,9 +60,9 @@ namespace MultiHitechERP.API.DTOs.Request
         public bool IsAvailable { get; set; }
 
         // Current Assignment (usually set via separate methods)
-        public Guid? CurrentJobCardId { get; set; }
+        public int? CurrentJobCardId { get; set; }
         public string? CurrentJobCardNo { get; set; }
-        public Guid? CurrentMachineId { get; set; }
+        public int? CurrentMachineId { get; set; }
 
         public string? Remarks { get; set; }
         public string? UpdatedBy { get; set; }

@@ -7,7 +7,7 @@ namespace MultiHitechERP.API.Models.Masters
     /// </summary>
     public class Machine
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string MachineCode { get; set; } = string.Empty;
         public string MachineName { get; set; } = string.Empty;
 

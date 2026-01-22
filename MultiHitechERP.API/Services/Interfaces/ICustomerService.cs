@@ -12,18 +12,18 @@ namespace MultiHitechERP.API.Services.Interfaces
     public interface ICustomerService
     {
         // CRUD Operations
-        Task<ApiResponse<CustomerResponse>> GetByIdAsync(Guid id);
+        Task<ApiResponse<CustomerResponse>> GetByIdAsync(int id);
         Task<ApiResponse<CustomerResponse>> GetByCustomerCodeAsync(string customerCode);
         Task<ApiResponse<IEnumerable<CustomerResponse>>> GetAllAsync();
         Task<ApiResponse<IEnumerable<CustomerResponse>>> GetActiveCustomersAsync();
 
-        Task<ApiResponse<Guid>> CreateCustomerAsync(CreateCustomerRequest request);
+        Task<ApiResponse<int>> CreateCustomerAsync(CreateCustomerRequest request);
         Task<ApiResponse<bool>> UpdateCustomerAsync(UpdateCustomerRequest request);
-        Task<ApiResponse<bool>> DeleteCustomerAsync(Guid id);
+        Task<ApiResponse<bool>> DeleteCustomerAsync(int id);
 
         // Status Operations
-        Task<ApiResponse<bool>> ActivateCustomerAsync(Guid id);
-        Task<ApiResponse<bool>> DeactivateCustomerAsync(Guid id);
+        Task<ApiResponse<bool>> ActivateCustomerAsync(int id);
+        Task<ApiResponse<bool>> DeactivateCustomerAsync(int id);
 
         // Business Queries
         Task<ApiResponse<IEnumerable<CustomerResponse>>> SearchByNameAsync(string searchTerm);

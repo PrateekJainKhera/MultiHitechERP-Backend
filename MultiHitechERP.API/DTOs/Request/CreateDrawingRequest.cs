@@ -12,7 +12,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public string DrawingTitle { get; set; } = string.Empty;
 
         // Product Reference
-        public Guid? ProductId { get; set; }
+        public int? ProductId { get; set; }
         public string? ProductCode { get; set; }
         public string? ProductName { get; set; }
 
@@ -50,7 +50,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public decimal? Weight { get; set; }
 
         // Version History
-        public Guid? PreviousRevisionId { get; set; }
+        public int? PreviousRevisionId { get; set; }
         public int VersionNumber { get; set; } = 1;
 
         public string? Remarks { get; set; }

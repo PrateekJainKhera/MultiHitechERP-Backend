@@ -51,7 +51,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public int? LeadTimeDays { get; set; }
 
         // Supplier
-        public Guid? PreferredSupplierId { get; set; }
+        public int? PreferredSupplierId { get; set; }
         public string? PreferredSupplierName { get; set; }
 
         // Storage

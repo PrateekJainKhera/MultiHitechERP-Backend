@@ -7,17 +7,17 @@ namespace MultiHitechERP.API.Models.Masters
     /// </summary>
     public class ProcessTemplateStep
     {
-        public Guid Id { get; set; }
-        public Guid TemplateId { get; set; }
+        public int Id { get; set; }
+        public int TemplateId { get; set; }
         public int StepNo { get; set; }
 
         // Process Reference
-        public Guid ProcessId { get; set; }
+        public int ProcessId { get; set; }
         public string? ProcessCode { get; set; }
         public string? ProcessName { get; set; }
 
         // Machine Requirement
-        public Guid? DefaultMachineId { get; set; }
+        public int? DefaultMachineId { get; set; }
         public string? DefaultMachineName { get; set; }
         public string? MachineType { get; set; }
 

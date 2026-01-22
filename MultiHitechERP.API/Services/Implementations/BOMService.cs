@@ -24,7 +24,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _productRepository = productRepository;
         }
 
-        public async Task<ApiResponse<BOM>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<BOM>> GetByIdAsync(int id)
         {
             var bom = await _bomRepository.GetByIdAsync(id);
             if (bom == null)
@@ -51,24 +51,24 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<BOM>>.SuccessResponse(boms);
         }
 
-        public async Task<ApiResponse<Guid>> CreateBOMAsync(BOM bom)
+        public async Task<ApiResponse<int>> CreateBOMAsync(BOM bom)
         {
             // Validate product exists
             var product = await _productRepository.GetByIdAsync(bom.ProductId);
             if (product == null)
-                return ApiResponse<Guid>.ErrorResponse("Product not found");
+                return ApiResponse<int>.ErrorResponse("Product not found");
 
             // Generate BOM number if not provided
             if (string.IsNullOrWhiteSpace(bom.BOMNo))
             {
                 var revisionNumber = await _bomRepository.GetNextRevisionNumberAsync(bom.ProductId);
-                bom.BOMNo = $"BOM-{product.ProductCode}-R{revisionNumber:D2}";
+                bom.BOMNo = $"BOM-{product.PartCode}-R{revisionNumber:D2}";
                 bom.RevisionNumber = revisionNumber.ToString();
             }
 
             // Set product details
-            bom.ProductCode = product.ProductCode;
-            bom.ProductName = product.ProductName;
+            bom.ProductCode = product.PartCode;
+            bom.ProductName = product.ModelName;
 
             // Mark all previous revisions as non-latest
             var existingBOMs = await _bomRepository.GetByProductIdAsync(bom.ProductId);
@@ -85,7 +85,7 @@ namespace MultiHitechERP.API.Services.Implementations
             bom.RevisionDate = DateTime.UtcNow;
 
             var id = await _bomRepository.InsertAsync(bom);
-            return ApiResponse<Guid>.SuccessResponse(id, $"BOM {bom.BOMNo} created successfully");
+            return ApiResponse<int>.SuccessResponse(id, $"BOM {bom.BOMNo} created successfully");
         }
 
         public async Task<ApiResponse<bool>> UpdateBOMAsync(BOM bom)
@@ -101,7 +101,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "BOM updated successfully");
         }
 
-        public async Task<ApiResponse<bool>> DeleteBOMAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteBOMAsync(int id)
         {
             var existing = await _bomRepository.GetByIdAsync(id);
             if (existing == null)
@@ -117,13 +117,13 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "BOM deleted successfully");
         }
 
-        public async Task<ApiResponse<IEnumerable<BOM>>> GetByProductIdAsync(Guid productId)
+        public async Task<ApiResponse<IEnumerable<BOM>>> GetByProductIdAsync(int productId)
         {
             var boms = await _bomRepository.GetByProductIdAsync(productId);
             return ApiResponse<IEnumerable<BOM>>.SuccessResponse(boms);
         }
 
-        public async Task<ApiResponse<BOM>> GetLatestRevisionAsync(Guid productId)
+        public async Task<ApiResponse<BOM>> GetLatestRevisionAsync(int productId)
         {
             var bom = await _bomRepository.GetLatestRevisionAsync(productId);
             if (bom == null)
@@ -166,33 +166,33 @@ namespace MultiHitechERP.API.Services.Implementations
         }
 
         // BOM Item Operations
-        public async Task<ApiResponse<IEnumerable<BOMItem>>> GetBOMItemsAsync(Guid bomId)
+        public async Task<ApiResponse<IEnumerable<BOMItem>>> GetBOMItemsAsync(int bomId)
         {
             var items = await _bomRepository.GetBOMItemsAsync(bomId);
             return ApiResponse<IEnumerable<BOMItem>>.SuccessResponse(items);
         }
 
-        public async Task<ApiResponse<Guid>> AddBOMItemAsync(BOMItem item)
+        public async Task<ApiResponse<int>> AddBOMItemAsync(BOMItem item)
         {
             // Validate BOM exists
             var bom = await _bomRepository.GetByIdAsync(item.BOMId);
             if (bom == null)
-                return ApiResponse<Guid>.ErrorResponse("BOM not found");
+                return ApiResponse<int>.ErrorResponse("BOM not found");
 
             // Validate item type
             if (string.IsNullOrWhiteSpace(item.ItemType))
-                return ApiResponse<Guid>.ErrorResponse("Item type is required");
+                return ApiResponse<int>.ErrorResponse("Item type is required");
 
             // Validate material or child part is provided
             if (item.ItemType == "Material" && !item.MaterialId.HasValue)
-                return ApiResponse<Guid>.ErrorResponse("Material ID is required for Material items");
+                return ApiResponse<int>.ErrorResponse("Material ID is required for Material items");
 
             if (item.ItemType == "Child Part" && !item.ChildPartId.HasValue)
-                return ApiResponse<Guid>.ErrorResponse("Child Part ID is required for Child Part items");
+                return ApiResponse<int>.ErrorResponse("Child Part ID is required for Child Part items");
 
             // Validate quantity
             if (item.QuantityRequired <= 0)
-                return ApiResponse<Guid>.ErrorResponse("Quantity required must be greater than zero");
+                return ApiResponse<int>.ErrorResponse("Quantity required must be greater than zero");
 
             // Calculate net quantity if scrap/wastage is provided
             if (item.ScrapPercentage.HasValue || item.WastagePercentage.HasValue)
@@ -207,7 +207,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
 
             var id = await _bomRepository.InsertBOMItemAsync(item);
-            return ApiResponse<Guid>.SuccessResponse(id, "BOM item added successfully");
+            return ApiResponse<int>.SuccessResponse(id, "BOM item added successfully");
         }
 
         public async Task<ApiResponse<bool>> UpdateBOMItemAsync(BOMItem item)
@@ -235,7 +235,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "BOM item updated successfully");
         }
 
-        public async Task<ApiResponse<bool>> DeleteBOMItemAsync(Guid itemId)
+        public async Task<ApiResponse<bool>> DeleteBOMItemAsync(int itemId)
         {
             var success = await _bomRepository.DeleteBOMItemAsync(itemId);
             if (!success)
@@ -244,25 +244,25 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "BOM item deleted successfully");
         }
 
-        public async Task<ApiResponse<bool>> DeleteAllBOMItemsAsync(Guid bomId)
+        public async Task<ApiResponse<bool>> DeleteAllBOMItemsAsync(int bomId)
         {
             var success = await _bomRepository.DeleteAllBOMItemsAsync(bomId);
             return ApiResponse<bool>.SuccessResponse(success, "All BOM items deleted");
         }
 
-        public async Task<ApiResponse<IEnumerable<BOMItem>>> GetMaterialItemsAsync(Guid bomId)
+        public async Task<ApiResponse<IEnumerable<BOMItem>>> GetMaterialItemsAsync(int bomId)
         {
             var items = await _bomRepository.GetMaterialItemsAsync(bomId);
             return ApiResponse<IEnumerable<BOMItem>>.SuccessResponse(items);
         }
 
-        public async Task<ApiResponse<IEnumerable<BOMItem>>> GetChildPartItemsAsync(Guid bomId)
+        public async Task<ApiResponse<IEnumerable<BOMItem>>> GetChildPartItemsAsync(int bomId)
         {
             var items = await _bomRepository.GetChildPartItemsAsync(bomId);
             return ApiResponse<IEnumerable<BOMItem>>.SuccessResponse(items);
         }
 
-        public async Task<ApiResponse<IEnumerable<BOMItem>>> GetItemsByTypeAsync(Guid bomId, string itemType)
+        public async Task<ApiResponse<IEnumerable<BOMItem>>> GetItemsByTypeAsync(int bomId, string itemType)
         {
             if (string.IsNullOrWhiteSpace(itemType))
                 return ApiResponse<IEnumerable<BOMItem>>.ErrorResponse("Item type is required");
@@ -271,7 +271,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<BOMItem>>.SuccessResponse(items);
         }
 
-        public async Task<ApiResponse<bool>> ApproveBOMAsync(Guid id, string approvedBy)
+        public async Task<ApiResponse<bool>> ApproveBOMAsync(int id, string approvedBy)
         {
             var bom = await _bomRepository.GetByIdAsync(id);
             if (bom == null)
@@ -292,7 +292,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "BOM approved successfully");
         }
 
-        public async Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, string status)
+        public async Task<ApiResponse<bool>> UpdateStatusAsync(int id, string status)
         {
             var bom = await _bomRepository.GetByIdAsync(id);
             if (bom == null)
@@ -308,11 +308,11 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "BOM status updated successfully");
         }
 
-        public async Task<ApiResponse<Guid>> CreateRevisionAsync(Guid bomId, string revisionNumber, string createdBy)
+        public async Task<ApiResponse<int>> CreateRevisionAsync(int bomId, string revisionNumber, string createdBy)
         {
             var existing = await _bomRepository.GetByIdAsync(bomId);
             if (existing == null)
-                return ApiResponse<Guid>.ErrorResponse("BOM not found");
+                return ApiResponse<int>.ErrorResponse("BOM not found");
 
             // Mark old revision as non-latest
             await _bomRepository.MarkAsNonLatestAsync(bomId);
@@ -367,7 +367,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 await _bomRepository.InsertBOMItemAsync(newItem);
             }
 
-            return ApiResponse<Guid>.SuccessResponse(newBOMId, $"Revision {revisionNumber} created successfully");
+            return ApiResponse<int>.SuccessResponse(newBOMId, $"Revision {revisionNumber} created successfully");
         }
     }
 }

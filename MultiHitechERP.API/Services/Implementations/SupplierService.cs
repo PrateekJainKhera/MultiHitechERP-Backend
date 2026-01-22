@@ -20,7 +20,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _supplierRepository = supplierRepository;
         }
 
-        public async Task<ApiResponse<Supplier>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<Supplier>> GetByIdAsync(int id)
         {
             var supplier = await _supplierRepository.GetByIdAsync(id);
             if (supplier == null)
@@ -47,22 +47,22 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<Supplier>>.SuccessResponse(suppliers);
         }
 
-        public async Task<ApiResponse<Guid>> CreateSupplierAsync(Supplier supplier)
+        public async Task<ApiResponse<int>> CreateSupplierAsync(Supplier supplier)
         {
             // Validate required fields
             if (string.IsNullOrWhiteSpace(supplier.SupplierCode))
-                return ApiResponse<Guid>.ErrorResponse("Supplier code is required");
+                return ApiResponse<int>.ErrorResponse("Supplier code is required");
 
             if (string.IsNullOrWhiteSpace(supplier.SupplierName))
-                return ApiResponse<Guid>.ErrorResponse("Supplier name is required");
+                return ApiResponse<int>.ErrorResponse("Supplier name is required");
 
             // Check for duplicate code
             var existing = await _supplierRepository.GetByCodeAsync(supplier.SupplierCode);
             if (existing != null)
-                return ApiResponse<Guid>.ErrorResponse($"Supplier with code '{supplier.SupplierCode}' already exists");
+                return ApiResponse<int>.ErrorResponse($"Supplier with code '{supplier.SupplierCode}' already exists");
 
             var id = await _supplierRepository.InsertAsync(supplier);
-            return ApiResponse<Guid>.SuccessResponse(id, "Supplier created successfully");
+            return ApiResponse<int>.SuccessResponse(id, "Supplier created successfully");
         }
 
         public async Task<ApiResponse<bool>> UpdateSupplierAsync(Supplier supplier)
@@ -93,7 +93,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Supplier updated successfully");
         }
 
-        public async Task<ApiResponse<bool>> DeleteSupplierAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteSupplierAsync(int id)
         {
             var existing = await _supplierRepository.GetByIdAsync(id);
             if (existing == null)
@@ -164,7 +164,7 @@ namespace MultiHitechERP.API.Services.Implementations
         }
 
         public async Task<ApiResponse<bool>> UpdatePerformanceMetricsAsync(
-            Guid id,
+            int id,
             decimal onTimeDeliveryRate,
             decimal qualityRating,
             int totalOrders,
@@ -214,7 +214,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<Supplier>>.SuccessResponse(suppliers);
         }
 
-        public async Task<ApiResponse<bool>> ApproveSupplierAsync(Guid id, string approvedBy)
+        public async Task<ApiResponse<bool>> ApproveSupplierAsync(int id, string approvedBy)
         {
             var supplier = await _supplierRepository.GetByIdAsync(id);
             if (supplier == null)
@@ -233,7 +233,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Supplier approved successfully");
         }
 
-        public async Task<ApiResponse<bool>> RejectSupplierAsync(Guid id, string reason)
+        public async Task<ApiResponse<bool>> RejectSupplierAsync(int id, string reason)
         {
             var supplier = await _supplierRepository.GetByIdAsync(id);
             if (supplier == null)
@@ -249,7 +249,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Supplier rejected successfully");
         }
 
-        public async Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, string status)
+        public async Task<ApiResponse<bool>> UpdateStatusAsync(int id, string status)
         {
             var supplier = await _supplierRepository.GetByIdAsync(id);
             if (supplier == null)

@@ -9,10 +9,10 @@ namespace MultiHitechERP.API.DTOs.Request
     public class IssueMaterialRequest
     {
         [Required]
-        public Guid RequisitionId { get; set; }
+        public int RequisitionId { get; set; }
 
         [Required]
-        public Guid JobCardId { get; set; }
+        public int JobCardId { get; set; }
 
         [Required]
         [StringLength(100)]

@@ -7,7 +7,7 @@ namespace MultiHitechERP.API.Models.Masters
     /// </summary>
     public class Material
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string MaterialCode { get; set; } = string.Empty;
         public string MaterialName { get; set; } = string.Empty;
 
@@ -51,7 +51,7 @@ namespace MultiHitechERP.API.Models.Masters
         public int? LeadTimeDays { get; set; }
 
         // Supplier
-        public Guid? PreferredSupplierId { get; set; }
+        public int? PreferredSupplierId { get; set; }
         public string? PreferredSupplierName { get; set; }
 
         // Storage

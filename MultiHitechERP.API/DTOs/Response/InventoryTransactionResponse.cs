@@ -7,8 +7,8 @@ namespace MultiHitechERP.API.DTOs.Response
     /// </summary>
     public class InventoryTransactionResponse
     {
-        public Guid Id { get; set; }
-        public Guid MaterialId { get; set; }
+        public int Id { get; set; }
+        public int MaterialId { get; set; }
 
         // Transaction Details
         public string TransactionType { get; set; } = string.Empty;
@@ -21,7 +21,7 @@ namespace MultiHitechERP.API.DTOs.Response
 
         // Reference
         public string? ReferenceType { get; set; }
-        public Guid? ReferenceId { get; set; }
+        public int? ReferenceId { get; set; }
         public string? ReferenceNo { get; set; }
 
         // Location
@@ -40,9 +40,9 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? PerformedBy { get; set; }
 
         // References
-        public Guid? JobCardId { get; set; }
-        public Guid? RequisitionId { get; set; }
-        public Guid? SupplierId { get; set; }
+        public int? JobCardId { get; set; }
+        public int? RequisitionId { get; set; }
+        public int? SupplierId { get; set; }
         public string? GRNNo { get; set; }
 
         // Audit

@@ -22,7 +22,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<MaterialIssue?> GetByIdAsync(Guid id)
+        public async Task<MaterialIssue?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Stores_MaterialIssues WHERE Id = @Id";
 
@@ -69,7 +69,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return issues;
         }
 
-        public async Task<IEnumerable<MaterialIssue>> GetByRequisitionIdAsync(Guid requisitionId)
+        public async Task<IEnumerable<MaterialIssue>> GetByRequisitionIdAsync(int requisitionId)
         {
             const string query = @"
                 SELECT * FROM Stores_MaterialIssues
@@ -138,7 +138,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return issues;
         }
 
-        public async Task<Guid> InsertAsync(MaterialIssue issue)
+        public async Task<int> InsertAsync(MaterialIssue issue)
         {
             const string query = @"
                 INSERT INTO Stores_MaterialIssues
@@ -150,7 +150,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                  @TotalPieces, @TotalIssuedLengthMM, @TotalIssuedWeightKG, @Status,
                  @IssuedById, @IssuedByName, @ReceivedById, @ReceivedByName)";
 
-            var issueId = Guid.NewGuid();
+            var issueId = 0;
             issue.Id = issueId;
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -196,7 +196,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Stores_MaterialIssues WHERE Id = @Id";
 
@@ -303,7 +303,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return issues;
         }
 
-        public async Task<decimal> GetTotalIssuedQuantityAsync(Guid requisitionId)
+        public async Task<decimal> GetTotalIssuedQuantityAsync(int requisitionId)
         {
             const string query = @"
                 SELECT ISNULL(SUM(TotalIssuedLengthMM), 0) AS TotalIssued
@@ -325,10 +325,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new MaterialIssue
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 IssueNo = reader.GetString(reader.GetOrdinal("IssueNo")),
                 IssueDate = reader.GetDateTime(reader.GetOrdinal("IssueDate")),
-                RequisitionId = reader.GetGuid(reader.GetOrdinal("RequisitionId")),
+                RequisitionId = reader.GetInt32(reader.GetOrdinal("RequisitionId")),
                 JobCardNo = reader.IsDBNull(reader.GetOrdinal("JobCardNo"))
                     ? null : reader.GetString(reader.GetOrdinal("JobCardNo")),
                 OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo"))

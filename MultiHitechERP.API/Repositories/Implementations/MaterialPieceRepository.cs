@@ -22,7 +22,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<MaterialPiece?> GetByIdAsync(Guid id)
+        public async Task<MaterialPiece?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Stores_MaterialPieces WHERE Id = @Id";
 
@@ -69,7 +69,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return pieces;
         }
 
-        public async Task<IEnumerable<MaterialPiece>> GetByMaterialIdAsync(Guid materialId)
+        public async Task<IEnumerable<MaterialPiece>> GetByMaterialIdAsync(int materialId)
         {
             const string query = @"
                 SELECT * FROM Stores_MaterialPieces
@@ -115,7 +115,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return pieces;
         }
 
-        public async Task<Guid> InsertAsync(MaterialPiece piece)
+        public async Task<int> InsertAsync(MaterialPiece piece)
         {
             const string query = @"
                 INSERT INTO Stores_MaterialPieces
@@ -127,7 +127,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                  @Status, @AllocatedToRequisitionId, @IssuedToJobCardId, @StorageLocation, @BinNumber, @RackNumber,
                  @GRNNo, @ReceivedDate, @SupplierBatchNo, @SupplierId, @UnitCost, @CreatedAt, @UpdatedAt)";
 
-            var pieceId = Guid.NewGuid();
+            var pieceId = 0;
             piece.Id = pieceId;
             piece.CreatedAt = DateTime.UtcNow;
 
@@ -179,7 +179,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Stores_MaterialPieces WHERE Id = @Id";
 
@@ -193,7 +193,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> AllocatePieceAsync(Guid id, Guid requisitionId)
+        public async Task<bool> AllocatePieceAsync(int id, int requisitionId)
         {
             const string query = @"
                 UPDATE Stores_MaterialPieces
@@ -214,7 +214,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> IssuePieceAsync(Guid id, Guid jobCardId, DateTime issuedDate, string issuedBy)
+        public async Task<bool> IssuePieceAsync(int id, int jobCardId, DateTime issuedDate, string issuedBy)
         {
             const string query = @"
                 UPDATE Stores_MaterialPieces
@@ -235,7 +235,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> ConsumePieceAsync(Guid id, decimal consumedLengthMM, decimal consumedWeightKG)
+        public async Task<bool> ConsumePieceAsync(int id, decimal consumedLengthMM, decimal consumedWeightKG)
         {
             const string query = @"
                 UPDATE Stores_MaterialPieces
@@ -263,7 +263,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> ReturnPieceAsync(Guid id)
+        public async Task<bool> ReturnPieceAsync(int id)
         {
             const string query = @"
                 UPDATE Stores_MaterialPieces
@@ -284,7 +284,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<IEnumerable<MaterialPiece>> GetAvailablePiecesAsync(Guid materialId)
+        public async Task<IEnumerable<MaterialPiece>> GetAvailablePiecesAsync(int materialId)
         {
             const string query = @"
                 SELECT * FROM Stores_MaterialPieces
@@ -309,7 +309,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return pieces;
         }
 
-        public async Task<IEnumerable<MaterialPiece>> GetAllocatedPiecesAsync(Guid requisitionId)
+        public async Task<IEnumerable<MaterialPiece>> GetAllocatedPiecesAsync(int requisitionId)
         {
             const string query = @"
                 SELECT * FROM Stores_MaterialPieces
@@ -332,7 +332,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return pieces;
         }
 
-        public async Task<IEnumerable<MaterialPiece>> GetIssuedPiecesAsync(Guid jobCardId)
+        public async Task<IEnumerable<MaterialPiece>> GetIssuedPiecesAsync(int jobCardId)
         {
             const string query = @"
                 SELECT * FROM Stores_MaterialPieces
@@ -378,7 +378,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return pieces;
         }
 
-        public async Task<IEnumerable<MaterialPiece>> GetAvailablePiecesByFIFOAsync(Guid materialId, decimal requiredLengthMM)
+        public async Task<IEnumerable<MaterialPiece>> GetAvailablePiecesByFIFOAsync(int materialId, decimal requiredLengthMM)
         {
             const string query = @"
                 SELECT * FROM Stores_MaterialPieces
@@ -404,7 +404,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return pieces;
         }
 
-        public async Task<decimal> GetAvailableQuantityAsync(Guid materialId)
+        public async Task<decimal> GetAvailableQuantityAsync(int materialId)
         {
             const string query = @"
                 SELECT ISNULL(SUM(CurrentLengthMM), 0) AS TotalLength
@@ -428,8 +428,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new MaterialPiece
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                MaterialId = reader.GetGuid(reader.GetOrdinal("MaterialId")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                MaterialId = reader.GetInt32(reader.GetOrdinal("MaterialId")),
                 PieceNo = reader.GetString(reader.GetOrdinal("PieceNo")),
                 OriginalLengthMM = reader.GetDecimal(reader.GetOrdinal("OriginalLengthMM")),
                 CurrentLengthMM = reader.GetDecimal(reader.GetOrdinal("CurrentLengthMM")),
@@ -437,9 +437,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 CurrentWeightKG = reader.GetDecimal(reader.GetOrdinal("CurrentWeightKG")),
                 Status = reader.GetString(reader.GetOrdinal("Status")),
                 AllocatedToRequisitionId = reader.IsDBNull(reader.GetOrdinal("AllocatedToRequisitionId"))
-                    ? null : reader.GetGuid(reader.GetOrdinal("AllocatedToRequisitionId")),
+                    ? null : reader.GetInt32(reader.GetOrdinal("AllocatedToRequisitionId")),
                 IssuedToJobCardId = reader.IsDBNull(reader.GetOrdinal("IssuedToJobCardId"))
-                    ? null : reader.GetGuid(reader.GetOrdinal("IssuedToJobCardId")),
+                    ? null : reader.GetInt32(reader.GetOrdinal("IssuedToJobCardId")),
                 StorageLocation = reader.IsDBNull(reader.GetOrdinal("StorageLocation"))
                     ? null : reader.GetString(reader.GetOrdinal("StorageLocation")),
                 BinNumber = reader.IsDBNull(reader.GetOrdinal("BinNumber"))
@@ -452,7 +452,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 SupplierBatchNo = reader.IsDBNull(reader.GetOrdinal("SupplierBatchNo"))
                     ? null : reader.GetString(reader.GetOrdinal("SupplierBatchNo")),
                 SupplierId = reader.IsDBNull(reader.GetOrdinal("SupplierId"))
-                    ? null : reader.GetGuid(reader.GetOrdinal("SupplierId")),
+                    ? null : reader.GetInt32(reader.GetOrdinal("SupplierId")),
                 UnitCost = reader.IsDBNull(reader.GetOrdinal("UnitCost"))
                     ? null : reader.GetDecimal(reader.GetOrdinal("UnitCost")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),

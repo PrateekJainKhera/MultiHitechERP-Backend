@@ -21,7 +21,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<JobCardDependency?> GetByIdAsync(Guid id)
+        public async Task<JobCardDependency?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Planning_JobCardDependencies WHERE Id = @Id";
 
@@ -54,7 +54,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return dependencies;
         }
 
-        public async Task<IEnumerable<JobCardDependency>> GetDependenciesForJobCardAsync(Guid jobCardId)
+        public async Task<IEnumerable<JobCardDependency>> GetDependenciesForJobCardAsync(int jobCardId)
         {
             const string query = @"
                 SELECT * FROM Planning_JobCardDependencies
@@ -77,7 +77,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return dependencies;
         }
 
-        public async Task<IEnumerable<JobCardDependency>> GetPrerequisitesForJobCardAsync(Guid jobCardId)
+        public async Task<IEnumerable<JobCardDependency>> GetPrerequisitesForJobCardAsync(int jobCardId)
         {
             const string query = @"
                 SELECT * FROM Planning_JobCardDependencies
@@ -100,7 +100,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return dependencies;
         }
 
-        public async Task<IEnumerable<JobCardDependency>> GetUnresolvedDependenciesAsync(Guid jobCardId)
+        public async Task<IEnumerable<JobCardDependency>> GetUnresolvedDependenciesAsync(int jobCardId)
         {
             const string query = @"
                 SELECT * FROM Planning_JobCardDependencies
@@ -123,7 +123,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return dependencies;
         }
 
-        public async Task<bool> HasUnresolvedDependenciesAsync(Guid jobCardId)
+        public async Task<bool> HasUnresolvedDependenciesAsync(int jobCardId)
         {
             const string query = @"
                 SELECT COUNT(1) FROM Planning_JobCardDependencies
@@ -139,7 +139,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return Convert.ToInt32(result) > 0;
         }
 
-        public async Task<Guid> InsertAsync(JobCardDependency dependency)
+        public async Task<int> InsertAsync(JobCardDependency dependency)
         {
             const string query = @"
                 INSERT INTO Planning_JobCardDependencies
@@ -149,7 +149,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 (@Id, @DependentJobCardId, @DependentJobCardNo, @PrerequisiteJobCardId, @PrerequisiteJobCardNo,
                  @DependencyType, @IsResolved, @ResolvedAt, @LagTimeMinutes, @CreatedAt)";
 
-            var dependencyId = Guid.NewGuid();
+            var dependencyId = 0;
             dependency.Id = dependencyId;
             dependency.CreatedAt = DateTime.UtcNow;
 
@@ -164,7 +164,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return dependencyId;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Planning_JobCardDependencies WHERE Id = @Id";
 
@@ -178,7 +178,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> MarkAsResolvedAsync(Guid dependencyId)
+        public async Task<bool> MarkAsResolvedAsync(int dependencyId)
         {
             const string query = @"
                 UPDATE Planning_JobCardDependencies
@@ -196,7 +196,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> MarkAllResolvedForPrerequisiteAsync(Guid prerequisiteJobCardId)
+        public async Task<bool> MarkAllResolvedForPrerequisiteAsync(int prerequisiteJobCardId)
         {
             const string query = @"
                 UPDATE Planning_JobCardDependencies
@@ -214,7 +214,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> WouldCreateCircularDependencyAsync(Guid dependentJobCardId, Guid prerequisiteJobCardId)
+        public async Task<bool> WouldCreateCircularDependencyAsync(int dependentJobCardId, int prerequisiteJobCardId)
         {
             // Use recursive CTE to check if prerequisiteJobCardId depends on dependentJobCardId
             const string query = @"
@@ -252,10 +252,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new JobCardDependency
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                DependentJobCardId = reader.GetGuid(reader.GetOrdinal("DependentJobCardId")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                DependentJobCardId = reader.GetInt32(reader.GetOrdinal("DependentJobCardId")),
                 DependentJobCardNo = reader.IsDBNull(reader.GetOrdinal("DependentJobCardNo")) ? null : reader.GetString(reader.GetOrdinal("DependentJobCardNo")),
-                PrerequisiteJobCardId = reader.GetGuid(reader.GetOrdinal("PrerequisiteJobCardId")),
+                PrerequisiteJobCardId = reader.GetInt32(reader.GetOrdinal("PrerequisiteJobCardId")),
                 PrerequisiteJobCardNo = reader.IsDBNull(reader.GetOrdinal("PrerequisiteJobCardNo")) ? null : reader.GetString(reader.GetOrdinal("PrerequisiteJobCardNo")),
                 DependencyType = reader.GetString(reader.GetOrdinal("DependencyType")),
                 IsResolved = reader.GetBoolean(reader.GetOrdinal("IsResolved")),

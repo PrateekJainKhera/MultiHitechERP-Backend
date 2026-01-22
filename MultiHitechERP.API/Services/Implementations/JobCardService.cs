@@ -21,7 +21,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _dependencyRepository = dependencyRepository;
         }
 
-        public async Task<ApiResponse<JobCardResponse>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<JobCardResponse>> GetByIdAsync(int id)
         {
             try
             {
@@ -67,7 +67,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByOrderIdAsync(Guid orderId)
+        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByOrderIdAsync(int orderId)
         {
             try
             {
@@ -81,7 +81,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByProcessIdAsync(Guid processId)
+        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByProcessIdAsync(int processId)
         {
             try
             {
@@ -165,7 +165,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByMachineIdAsync(Guid machineId)
+        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByMachineIdAsync(int machineId)
         {
             try
             {
@@ -179,7 +179,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByOperatorIdAsync(Guid operatorId)
+        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByOperatorIdAsync(int operatorId)
         {
             try
             {
@@ -193,21 +193,21 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<Guid>> CreateJobCardAsync(CreateJobCardRequest request)
+        public async Task<ApiResponse<int>> CreateJobCardAsync(CreateJobCardRequest request)
         {
             try
             {
                 // Validation
                 if (string.IsNullOrWhiteSpace(request.JobCardNo))
-                    return ApiResponse<Guid>.ErrorResponse("Job card number is required");
+                    return ApiResponse<int>.ErrorResponse("Job card number is required");
 
                 if (request.Quantity < 1)
-                    return ApiResponse<Guid>.ErrorResponse("Quantity must be at least 1");
+                    return ApiResponse<int>.ErrorResponse("Quantity must be at least 1");
 
                 // Check for duplicate job card number
                 var existing = await _jobCardRepository.GetByJobCardNoAsync(request.JobCardNo);
                 if (existing != null)
-                    return ApiResponse<Guid>.ErrorResponse($"Job card {request.JobCardNo} already exists");
+                    return ApiResponse<int>.ErrorResponse($"Job card {request.JobCardNo} already exists");
 
                 // Map to entity
                 var jobCard = new JobCard
@@ -265,14 +265,14 @@ namespace MultiHitechERP.API.Services.Implementations
                         if (wouldCreateCircular)
                         {
                             await _jobCardRepository.DeleteAsync(jobCardId);
-                            return ApiResponse<Guid>.ErrorResponse($"Cannot create dependency - would create circular dependency with job card {prerequisiteId}");
+                            return ApiResponse<int>.ErrorResponse($"Cannot create dependency - would create circular dependency with job card {prerequisiteId}");
                         }
 
                         var prerequisite = await _jobCardRepository.GetByIdAsync(prerequisiteId);
                         if (prerequisite == null)
                         {
                             await _jobCardRepository.DeleteAsync(jobCardId);
-                            return ApiResponse<Guid>.ErrorResponse($"Prerequisite job card {prerequisiteId} not found");
+                            return ApiResponse<int>.ErrorResponse($"Prerequisite job card {prerequisiteId} not found");
                         }
 
                         var dependency = new JobCardDependency
@@ -289,11 +289,11 @@ namespace MultiHitechERP.API.Services.Implementations
                     }
                 }
 
-                return ApiResponse<Guid>.SuccessResponse(jobCardId, $"Job card '{request.JobCardNo}' created successfully");
+                return ApiResponse<int>.SuccessResponse(jobCardId, $"Job card '{request.JobCardNo}' created successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse<Guid>.ErrorResponse($"Error creating job card: {ex.Message}");
+                return ApiResponse<int>.ErrorResponse($"Error creating job card: {ex.Message}");
             }
         }
 
@@ -365,7 +365,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeleteJobCardAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteJobCardAsync(int id)
         {
             try
             {
@@ -394,7 +394,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, string status)
+        public async Task<ApiResponse<bool>> UpdateStatusAsync(int id, string status)
         {
             try
             {
@@ -414,7 +414,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> UpdateMaterialStatusAsync(Guid id, string materialStatus)
+        public async Task<ApiResponse<bool>> UpdateMaterialStatusAsync(int id, string materialStatus)
         {
             try
             {
@@ -434,7 +434,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> UpdateScheduleStatusAsync(Guid id, string scheduleStatus, DateTime? startDate, DateTime? endDate)
+        public async Task<ApiResponse<bool>> UpdateScheduleStatusAsync(int id, string scheduleStatus, DateTime? startDate, DateTime? endDate)
         {
             try
             {
@@ -454,7 +454,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> AssignMachineAsync(Guid id, Guid machineId, string machineName)
+        public async Task<ApiResponse<bool>> AssignMachineAsync(int id, int machineId, string machineName)
         {
             try
             {
@@ -474,7 +474,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> AssignOperatorAsync(Guid id, Guid operatorId, string operatorName)
+        public async Task<ApiResponse<bool>> AssignOperatorAsync(int id, int operatorId, string operatorName)
         {
             try
             {
@@ -494,7 +494,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> StartExecutionAsync(Guid id)
+        public async Task<ApiResponse<bool>> StartExecutionAsync(int id)
         {
             try
             {
@@ -529,7 +529,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> CompleteExecutionAsync(Guid id)
+        public async Task<ApiResponse<bool>> CompleteExecutionAsync(int id)
         {
             try
             {
@@ -558,7 +558,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> UpdateQuantitiesAsync(Guid id, int completedQty, int rejectedQty, int reworkQty, int inProgressQty)
+        public async Task<ApiResponse<bool>> UpdateQuantitiesAsync(int id, int completedQty, int rejectedQty, int reworkQty, int inProgressQty)
         {
             try
             {
@@ -582,7 +582,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetDependentJobCardsAsync(Guid jobCardId)
+        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetDependentJobCardsAsync(int jobCardId)
         {
             try
             {
@@ -596,7 +596,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetPrerequisiteJobCardsAsync(Guid jobCardId)
+        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetPrerequisiteJobCardsAsync(int jobCardId)
         {
             try
             {
@@ -610,7 +610,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> AddDependencyAsync(Guid dependentJobCardId, Guid prerequisiteJobCardId)
+        public async Task<ApiResponse<bool>> AddDependencyAsync(int dependentJobCardId, int prerequisiteJobCardId)
         {
             try
             {
@@ -647,7 +647,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> RemoveDependencyAsync(Guid dependencyId)
+        public async Task<ApiResponse<bool>> RemoveDependencyAsync(int dependencyId)
         {
             try
             {

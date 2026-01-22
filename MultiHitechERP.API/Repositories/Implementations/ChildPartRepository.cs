@@ -21,7 +21,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<ChildPart?> GetByIdAsync(Guid id)
+        public async Task<ChildPart?> GetByIdAsync(int id)
         {
             const string query = @"
                 SELECT * FROM Masters_ChildParts
@@ -81,7 +81,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return childParts;
         }
 
-        public async Task<Guid> InsertAsync(ChildPart childPart)
+        public async Task<int> InsertAsync(ChildPart childPart)
         {
             const string query = @"
                 INSERT INTO Masters_ChildParts (
@@ -110,7 +110,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            var id = Guid.NewGuid();
+            var id = 0;
             command.Parameters.AddWithValue("@Id", id);
             command.Parameters.AddWithValue("@ChildPartCode", childPart.ChildPartCode);
             command.Parameters.AddWithValue("@ChildPartName", childPart.ChildPartName);
@@ -217,7 +217,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Masters_ChildParts WHERE Id = @Id";
 
@@ -231,7 +231,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<IEnumerable<ChildPart>> GetByProductIdAsync(Guid productId)
+        public async Task<IEnumerable<ChildPart>> GetByProductIdAsync(int productId)
         {
             const string query = @"
                 SELECT * FROM Masters_ChildParts
@@ -279,7 +279,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return childParts;
         }
 
-        public async Task<IEnumerable<ChildPart>> GetByMaterialIdAsync(Guid materialId)
+        public async Task<IEnumerable<ChildPart>> GetByMaterialIdAsync(int materialId)
         {
             const string query = @"
                 SELECT * FROM Masters_ChildParts
@@ -422,7 +422,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return childParts;
         }
 
-        public async Task<IEnumerable<ChildPart>> GetByDrawingIdAsync(Guid drawingId)
+        public async Task<IEnumerable<ChildPart>> GetByDrawingIdAsync(int drawingId)
         {
             const string query = @"
                 SELECT * FROM Masters_ChildParts
@@ -446,7 +446,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return childParts;
         }
 
-        public async Task<IEnumerable<ChildPart>> GetByProcessTemplateIdAsync(Guid processTemplateId)
+        public async Task<IEnumerable<ChildPart>> GetByProcessTemplateIdAsync(int processTemplateId)
         {
             const string query = @"
                 SELECT * FROM Masters_ChildParts
@@ -470,7 +470,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return childParts;
         }
 
-        public async Task<bool> UpdateStatusAsync(Guid id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status)
         {
             const string query = @"
                 UPDATE Masters_ChildParts
@@ -493,20 +493,20 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new ChildPart
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 ChildPartCode = reader.GetString(reader.GetOrdinal("ChildPartCode")),
                 ChildPartName = reader.GetString(reader.GetOrdinal("ChildPartName")),
-                ProductId = reader.IsDBNull(reader.GetOrdinal("ProductId")) ? null : reader.GetGuid(reader.GetOrdinal("ProductId")),
+                ProductId = reader.IsDBNull(reader.GetOrdinal("ProductId")) ? null : reader.GetInt32(reader.GetOrdinal("ProductId")),
                 ProductCode = reader.IsDBNull(reader.GetOrdinal("ProductCode")) ? null : reader.GetString(reader.GetOrdinal("ProductCode")),
                 ProductName = reader.IsDBNull(reader.GetOrdinal("ProductName")) ? null : reader.GetString(reader.GetOrdinal("ProductName")),
                 PartType = reader.IsDBNull(reader.GetOrdinal("PartType")) ? null : reader.GetString(reader.GetOrdinal("PartType")),
                 Category = reader.IsDBNull(reader.GetOrdinal("Category")) ? null : reader.GetString(reader.GetOrdinal("Category")),
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                 Specification = reader.IsDBNull(reader.GetOrdinal("Specification")) ? null : reader.GetString(reader.GetOrdinal("Specification")),
-                DrawingId = reader.IsDBNull(reader.GetOrdinal("DrawingId")) ? null : reader.GetGuid(reader.GetOrdinal("DrawingId")),
+                DrawingId = reader.IsDBNull(reader.GetOrdinal("DrawingId")) ? null : reader.GetInt32(reader.GetOrdinal("DrawingId")),
                 DrawingNumber = reader.IsDBNull(reader.GetOrdinal("DrawingNumber")) ? null : reader.GetString(reader.GetOrdinal("DrawingNumber")),
-                ProcessTemplateId = reader.IsDBNull(reader.GetOrdinal("ProcessTemplateId")) ? null : reader.GetGuid(reader.GetOrdinal("ProcessTemplateId")),
-                MaterialId = reader.IsDBNull(reader.GetOrdinal("MaterialId")) ? null : reader.GetGuid(reader.GetOrdinal("MaterialId")),
+                ProcessTemplateId = reader.IsDBNull(reader.GetOrdinal("ProcessTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ProcessTemplateId")),
+                MaterialId = reader.IsDBNull(reader.GetOrdinal("MaterialId")) ? null : reader.GetInt32(reader.GetOrdinal("MaterialId")),
                 MaterialCode = reader.IsDBNull(reader.GetOrdinal("MaterialCode")) ? null : reader.GetString(reader.GetOrdinal("MaterialCode")),
                 MaterialGrade = reader.IsDBNull(reader.GetOrdinal("MaterialGrade")) ? null : reader.GetString(reader.GetOrdinal("MaterialGrade")),
                 Length = reader.IsDBNull(reader.GetOrdinal("Length")) ? null : reader.GetDecimal(reader.GetOrdinal("Length")),
@@ -515,7 +515,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 UOM = reader.IsDBNull(reader.GetOrdinal("UOM")) ? null : reader.GetString(reader.GetOrdinal("UOM")),
                 QuantityPerProduct = reader.IsDBNull(reader.GetOrdinal("QuantityPerProduct")) ? null : reader.GetInt32(reader.GetOrdinal("QuantityPerProduct")),
                 MakeOrBuy = reader.IsDBNull(reader.GetOrdinal("MakeOrBuy")) ? null : reader.GetString(reader.GetOrdinal("MakeOrBuy")),
-                PreferredSupplierId = reader.IsDBNull(reader.GetOrdinal("PreferredSupplierId")) ? null : reader.GetGuid(reader.GetOrdinal("PreferredSupplierId")),
+                PreferredSupplierId = reader.IsDBNull(reader.GetOrdinal("PreferredSupplierId")) ? null : reader.GetInt32(reader.GetOrdinal("PreferredSupplierId")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? null : reader.GetString(reader.GetOrdinal("Status")),
                 Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),

@@ -7,18 +7,18 @@ namespace MultiHitechERP.API.Models.Dispatch
     /// </summary>
     public class DeliveryChallan
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string ChallanNo { get; set; } = string.Empty;
         public DateTime ChallanDate { get; set; }
 
         // Order Reference
-        public Guid OrderId { get; set; }
+        public int OrderId { get; set; }
         public string? OrderNo { get; set; }
 
         // Customer & Product
-        public Guid CustomerId { get; set; }
+        public int CustomerId { get; set; }
         public string? CustomerName { get; set; }
-        public Guid ProductId { get; set; }
+        public int ProductId { get; set; }
         public string? ProductName { get; set; }
 
         // Quantity

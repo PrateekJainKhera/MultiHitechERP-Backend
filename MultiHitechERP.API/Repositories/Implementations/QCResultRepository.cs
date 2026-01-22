@@ -22,7 +22,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<QCResult?> GetByIdAsync(Guid id)
+        public async Task<QCResult?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Quality_QCResults WHERE Id = @Id";
 
@@ -60,7 +60,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return results;
         }
 
-        public async Task<Guid> InsertAsync(QCResult qcResult)
+        public async Task<int> InsertAsync(QCResult qcResult)
         {
             const string query = @"
                 INSERT INTO Quality_QCResults (
@@ -81,7 +81,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            var id = Guid.NewGuid();
+            var id = 0;
 
             command.Parameters.AddWithValue("@Id", id);
             command.Parameters.AddWithValue("@JobCardId", qcResult.JobCardId);
@@ -170,7 +170,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Quality_QCResults WHERE Id = @Id";
 
@@ -183,7 +183,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<IEnumerable<QCResult>> GetByJobCardIdAsync(Guid jobCardId)
+        public async Task<IEnumerable<QCResult>> GetByJobCardIdAsync(int jobCardId)
         {
             const string query = "SELECT * FROM Quality_QCResults WHERE JobCardId = @JobCardId ORDER BY InspectionDate DESC";
 
@@ -202,7 +202,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return results;
         }
 
-        public async Task<IEnumerable<QCResult>> GetByOrderIdAsync(Guid orderId)
+        public async Task<IEnumerable<QCResult>> GetByOrderIdAsync(int orderId)
         {
             const string query = "SELECT * FROM Quality_QCResults WHERE OrderId = @OrderId ORDER BY InspectionDate DESC";
 
@@ -355,7 +355,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return results;
         }
 
-        public async Task<bool> UpdateQCStatusAsync(Guid id, string qcStatus)
+        public async Task<bool> UpdateQCStatusAsync(int id, string qcStatus)
         {
             const string query = "UPDATE Quality_QCResults SET QCStatus = @QCStatus WHERE Id = @Id";
 
@@ -369,7 +369,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> ApproveQCResultAsync(Guid id, string approvedBy, DateTime approvedAt)
+        public async Task<bool> ApproveQCResultAsync(int id, string approvedBy, DateTime approvedAt)
         {
             const string query = @"
                 UPDATE Quality_QCResults
@@ -446,7 +446,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return results;
         }
 
-        public async Task<int> GetTotalInspectedQuantityForJobCardAsync(Guid jobCardId)
+        public async Task<int> GetTotalInspectedQuantityForJobCardAsync(int jobCardId)
         {
             const string query = "SELECT ISNULL(SUM(QuantityInspected), 0) FROM Quality_QCResults WHERE JobCardId = @JobCardId";
 
@@ -459,7 +459,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return Convert.ToInt32(result);
         }
 
-        public async Task<int> GetTotalPassedQuantityForJobCardAsync(Guid jobCardId)
+        public async Task<int> GetTotalPassedQuantityForJobCardAsync(int jobCardId)
         {
             const string query = "SELECT ISNULL(SUM(QuantityPassed), 0) FROM Quality_QCResults WHERE JobCardId = @JobCardId";
 
@@ -472,7 +472,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return Convert.ToInt32(result);
         }
 
-        public async Task<int> GetTotalRejectedQuantityForJobCardAsync(Guid jobCardId)
+        public async Task<int> GetTotalRejectedQuantityForJobCardAsync(int jobCardId)
         {
             const string query = "SELECT ISNULL(SUM(QuantityRejected), 0) FROM Quality_QCResults WHERE JobCardId = @JobCardId";
 
@@ -485,7 +485,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return Convert.ToInt32(result);
         }
 
-        public async Task<decimal> GetPassRateForJobCardAsync(Guid jobCardId)
+        public async Task<decimal> GetPassRateForJobCardAsync(int jobCardId)
         {
             const string query = @"
                 SELECT
@@ -533,7 +533,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return result == DBNull.Value ? 0 : Convert.ToDecimal(result);
         }
 
-        public async Task<QCResult?> GetLatestResultForJobCardAsync(Guid jobCardId)
+        public async Task<QCResult?> GetLatestResultForJobCardAsync(int jobCardId)
         {
             const string query = "SELECT TOP 1 * FROM Quality_QCResults WHERE JobCardId = @JobCardId ORDER BY InspectionDate DESC";
 
@@ -555,10 +555,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new QCResult
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                JobCardId = reader.GetGuid(reader.GetOrdinal("JobCardId")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                JobCardId = reader.GetInt32(reader.GetOrdinal("JobCardId")),
                 JobCardNo = reader.IsDBNull(reader.GetOrdinal("JobCardNo")) ? null : reader.GetString(reader.GetOrdinal("JobCardNo")),
-                OrderId = reader.IsDBNull(reader.GetOrdinal("OrderId")) ? null : reader.GetGuid(reader.GetOrdinal("OrderId")),
+                OrderId = reader.IsDBNull(reader.GetOrdinal("OrderId")) ? null : reader.GetInt32(reader.GetOrdinal("OrderId")),
                 OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo")) ? null : reader.GetString(reader.GetOrdinal("OrderNo")),
                 InspectionType = reader.GetString(reader.GetOrdinal("InspectionType")),
                 InspectionDate = reader.GetDateTime(reader.GetOrdinal("InspectionDate")),

@@ -19,7 +19,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _machineRepository = machineRepository;
         }
 
-        public async Task<ApiResponse<MachineResponse>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<MachineResponse>> GetByIdAsync(int id)
         {
             try
             {
@@ -79,16 +79,16 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<Guid>> CreateMachineAsync(CreateMachineRequest request)
+        public async Task<ApiResponse<int>> CreateMachineAsync(CreateMachineRequest request)
         {
             try
             {
                 var exists = await _machineRepository.ExistsAsync(request.MachineCode);
                 if (exists)
-                    return ApiResponse<Guid>.ErrorResponse($"Machine code '{request.MachineCode}' already exists");
+                    return ApiResponse<int>.ErrorResponse($"Machine code '{request.MachineCode}' already exists");
 
                 if (string.IsNullOrWhiteSpace(request.MachineName))
-                    return ApiResponse<Guid>.ErrorResponse("Machine name is required");
+                    return ApiResponse<int>.ErrorResponse("Machine name is required");
 
                 var machine = new Machine
                 {
@@ -122,11 +122,11 @@ namespace MultiHitechERP.API.Services.Implementations
                 };
 
                 var machineId = await _machineRepository.InsertAsync(machine);
-                return ApiResponse<Guid>.SuccessResponse(machineId, $"Machine '{request.MachineCode}' created successfully");
+                return ApiResponse<int>.SuccessResponse(machineId, $"Machine '{request.MachineCode}' created successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse<Guid>.ErrorResponse($"Error creating machine: {ex.Message}");
+                return ApiResponse<int>.ErrorResponse($"Error creating machine: {ex.Message}");
             }
         }
 
@@ -187,7 +187,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeleteMachineAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteMachineAsync(int id)
         {
             try
             {
@@ -207,7 +207,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> ActivateMachineAsync(Guid id)
+        public async Task<ApiResponse<bool>> ActivateMachineAsync(int id)
         {
             try
             {
@@ -229,7 +229,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeactivateMachineAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeactivateMachineAsync(int id)
         {
             try
             {
@@ -251,7 +251,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> AssignToJobCardAsync(Guid id, string jobCardNo)
+        public async Task<ApiResponse<bool>> AssignToJobCardAsync(int id, string jobCardNo)
         {
             try
             {
@@ -273,7 +273,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> ReleaseFromJobCardAsync(Guid id)
+        public async Task<ApiResponse<bool>> ReleaseFromJobCardAsync(int id)
         {
             try
             {

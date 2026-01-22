@@ -9,13 +9,13 @@ namespace MultiHitechERP.API.DTOs.Request
     public class StartProductionRequest
     {
         [Required]
-        public Guid JobCardId { get; set; }
+        public int JobCardId { get; set; }
 
         [Required]
-        public Guid MachineId { get; set; }
+        public int MachineId { get; set; }
 
         [Required]
-        public Guid OperatorId { get; set; }
+        public int OperatorId { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity started must be at least 1")]

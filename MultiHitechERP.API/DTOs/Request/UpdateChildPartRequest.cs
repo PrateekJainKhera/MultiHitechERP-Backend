@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateChildPartRequest
     {
         [Required]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         [Required]
         [StringLength(50)]
@@ -20,7 +20,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public string ChildPartName { get; set; } = string.Empty;
 
         // Parent Product Reference
-        public Guid? ProductId { get; set; }
+        public int? ProductId { get; set; }
 
         // Classification
         [StringLength(50)]
@@ -37,16 +37,16 @@ namespace MultiHitechERP.API.DTOs.Request
         public string? Specification { get; set; }
 
         // Drawing Reference
-        public Guid? DrawingId { get; set; }
+        public int? DrawingId { get; set; }
 
         [StringLength(50)]
         public string? DrawingNumber { get; set; }
 
         // Process Template
-        public Guid? ProcessTemplateId { get; set; }
+        public int? ProcessTemplateId { get; set; }
 
         // Material
-        public Guid? MaterialId { get; set; }
+        public int? MaterialId { get; set; }
 
         [StringLength(50)]
         public string? MaterialCode { get; set; }
@@ -69,7 +69,7 @@ namespace MultiHitechERP.API.DTOs.Request
         [StringLength(20)]
         public string? MakeOrBuy { get; set; }
 
-        public Guid? PreferredSupplierId { get; set; }
+        public int? PreferredSupplierId { get; set; }
 
         // Status
         public bool? IsActive { get; set; }

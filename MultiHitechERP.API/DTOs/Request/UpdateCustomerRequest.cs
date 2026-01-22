@@ -6,7 +6,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateCustomerRequest
     {
         [Required]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         [Required(ErrorMessage = "Customer code is required")]
         public string CustomerCode { get; set; } = string.Empty;

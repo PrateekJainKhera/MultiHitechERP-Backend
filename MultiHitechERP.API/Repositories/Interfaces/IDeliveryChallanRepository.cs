@@ -11,22 +11,22 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface IDeliveryChallanRepository
     {
         // Basic CRUD Operations
-        Task<DeliveryChallan?> GetByIdAsync(Guid id);
+        Task<DeliveryChallan?> GetByIdAsync(int id);
         Task<DeliveryChallan?> GetByChallanNoAsync(string challanNo);
         Task<IEnumerable<DeliveryChallan>> GetAllAsync();
-        Task<IEnumerable<DeliveryChallan>> GetByOrderIdAsync(Guid orderId);
-        Task<IEnumerable<DeliveryChallan>> GetByCustomerIdAsync(Guid customerId);
+        Task<IEnumerable<DeliveryChallan>> GetByOrderIdAsync(int orderId);
+        Task<IEnumerable<DeliveryChallan>> GetByCustomerIdAsync(int customerId);
         Task<IEnumerable<DeliveryChallan>> GetByStatusAsync(string status);
 
         // Create, Update, Delete
-        Task<Guid> InsertAsync(DeliveryChallan challan);
+        Task<int> InsertAsync(DeliveryChallan challan);
         Task<bool> UpdateAsync(DeliveryChallan challan);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Status Operations
-        Task<bool> UpdateStatusAsync(Guid id, string status);
-        Task<bool> DispatchChallanAsync(Guid id, DateTime dispatchedAt);
-        Task<bool> DeliverChallanAsync(Guid id, DateTime deliveredAt, string receivedBy);
+        Task<bool> UpdateStatusAsync(int id, string status);
+        Task<bool> DispatchChallanAsync(int id, DateTime dispatchedAt);
+        Task<bool> DeliverChallanAsync(int id, DateTime deliveredAt, string receivedBy);
 
         // Queries
         Task<IEnumerable<DeliveryChallan>> GetPendingChallansAsync();

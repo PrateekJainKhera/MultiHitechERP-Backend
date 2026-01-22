@@ -21,7 +21,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<Order?> GetByIdAsync(Guid id)
+        public async Task<Order?> GetByIdAsync(int id)
         {
             const string query = @"
                 SELECT * FROM Orders
@@ -87,7 +87,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return orders;
         }
 
-        public async Task<IEnumerable<Order>> GetByCustomerIdAsync(Guid customerId)
+        public async Task<IEnumerable<Order>> GetByCustomerIdAsync(int customerId)
         {
             const string query = @"
                 SELECT * FROM Orders
@@ -112,7 +112,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return orders;
         }
 
-        public async Task<IEnumerable<Order>> GetByProductIdAsync(Guid productId)
+        public async Task<IEnumerable<Order>> GetByProductIdAsync(int productId)
         {
             const string query = @"
                 SELECT * FROM Orders
@@ -162,7 +162,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return orders;
         }
 
-        public async Task<Guid> InsertAsync(Order order)
+        public async Task<int> InsertAsync(Order order)
         {
             const string query = @"
                 INSERT INTO Orders (
@@ -194,7 +194,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            order.Id = Guid.NewGuid();
+            order.Id = 0;
             order.CreatedAt = DateTime.UtcNow;
 
             AddOrderParameters(command, order);
@@ -258,7 +258,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Orders WHERE Id = @Id";
 
@@ -273,7 +273,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateDrawingReviewStatusAsync(Guid id, string status, string reviewedBy, string? notes)
+        public async Task<bool> UpdateDrawingReviewStatusAsync(int id, string status, string reviewedBy, string? notes)
         {
             const string query = @"
                 UPDATE Orders SET
@@ -300,7 +300,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdatePlanningStatusAsync(Guid id, string status)
+        public async Task<bool> UpdatePlanningStatusAsync(int id, string status)
         {
             const string query = @"
                 UPDATE Orders SET
@@ -321,7 +321,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateQuantitiesAsync(Guid id, int qtyCompleted, int qtyRejected, int qtyInProgress)
+        public async Task<bool> UpdateQuantitiesAsync(int id, int qtyCompleted, int qtyRejected, int qtyInProgress)
         {
             const string query = @"
                 UPDATE Orders SET
@@ -346,7 +346,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateStatusAsync(Guid id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status)
         {
             const string query = @"
                 UPDATE Orders SET
@@ -500,7 +500,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return false;
         }
 
-        public async Task<int> GetVersionAsync(Guid id)
+        public async Task<int> GetVersionAsync(int id)
         {
             const string query = "SELECT Version FROM Orders WHERE Id = @Id";
 
@@ -521,15 +521,15 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new Order
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 OrderNo = reader.GetString(reader.GetOrdinal("OrderNo")),
                 OrderDate = reader.GetDateTime(reader.GetOrdinal("OrderDate")),
                 DueDate = reader.GetDateTime(reader.GetOrdinal("DueDate")),
                 AdjustedDueDate = reader.IsDBNull(reader.GetOrdinal("AdjustedDueDate"))
                     ? null : reader.GetDateTime(reader.GetOrdinal("AdjustedDueDate")),
 
-                CustomerId = reader.GetGuid(reader.GetOrdinal("CustomerId")),
-                ProductId = reader.GetGuid(reader.GetOrdinal("ProductId")),
+                CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                ProductId = reader.GetInt32(reader.GetOrdinal("ProductId")),
 
                 Quantity = reader.GetInt32(reader.GetOrdinal("Quantity")),
                 OriginalQuantity = reader.GetInt32(reader.GetOrdinal("OriginalQuantity")),

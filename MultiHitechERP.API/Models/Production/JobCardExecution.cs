@@ -7,15 +7,15 @@ namespace MultiHitechERP.API.Models.Production
     /// </summary>
     public class JobCardExecution
     {
-        public Guid Id { get; set; }
-        public Guid JobCardId { get; set; }
+        public int Id { get; set; }
+        public int JobCardId { get; set; }
         public string? JobCardNo { get; set; }
         public string? OrderNo { get; set; }
 
         // Machine & Operator
-        public Guid? MachineId { get; set; }
+        public int? MachineId { get; set; }
         public string? MachineName { get; set; }
-        public Guid? OperatorId { get; set; }
+        public int? OperatorId { get; set; }
         public string? OperatorName { get; set; }
 
         // Time Tracking

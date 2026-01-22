@@ -4,7 +4,7 @@ namespace MultiHitechERP.API.DTOs.Response
 {
     public class OperatorResponse
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string OperatorCode { get; set; } = string.Empty;
         public string OperatorName { get; set; } = string.Empty;
 
@@ -47,9 +47,9 @@ namespace MultiHitechERP.API.DTOs.Response
         public bool IsAvailable { get; set; }
 
         // Current Assignment
-        public Guid? CurrentJobCardId { get; set; }
+        public int? CurrentJobCardId { get; set; }
         public string? CurrentJobCardNo { get; set; }
-        public Guid? CurrentMachineId { get; set; }
+        public int? CurrentMachineId { get; set; }
 
         public string? Remarks { get; set; }
         public DateTime CreatedAt { get; set; }

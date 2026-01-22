@@ -19,7 +19,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _productRepository = productRepository;
         }
 
-        public async Task<ApiResponse<ProductResponse>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<ProductResponse>> GetByIdAsync(int id)
         {
             try
             {
@@ -35,11 +35,11 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<ProductResponse>> GetByProductCodeAsync(string productCode)
+        public async Task<ApiResponse<ProductResponse>> GetByPartCodeAsync(string productCode)
         {
             try
             {
-                var product = await _productRepository.GetByProductCodeAsync(productCode);
+                var product = await _productRepository.GetByPartCodeAsync(productCode);
                 if (product == null)
                     return ApiResponse<ProductResponse>.ErrorResponse($"Product {productCode} not found");
 
@@ -79,59 +79,63 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<Guid>> CreateProductAsync(CreateProductRequest request)
+        public async Task<ApiResponse<int>> CreateProductAsync(CreateProductRequest request)
         {
             try
             {
-                var exists = await _productRepository.ExistsAsync(request.ProductCode);
+                var exists = await _productRepository.ExistsAsync(request.PartCode);
                 if (exists)
-                    return ApiResponse<Guid>.ErrorResponse($"Product code '{request.ProductCode}' already exists");
+                    return ApiResponse<int>.ErrorResponse($"Product code '{request.PartCode}' already exists");
 
-                if (string.IsNullOrWhiteSpace(request.ProductName))
-                    return ApiResponse<Guid>.ErrorResponse("Product name is required");
+                if (string.IsNullOrWhiteSpace(request.ModelName))
+                    return ApiResponse<int>.ErrorResponse("Product name is required");
+
+                // Validate RollerType - Only Printing Roller or Magnetic Roller allowed
+                var validRollerTypes = new[] { "Printing Roller", "Magnetic Roller" };
+                if (!validRollerTypes.Contains(request.RollerType))
+                    return ApiResponse<int>.ErrorResponse("Roller type must be either 'Printing Roller' or 'Magnetic Roller'");
 
                 if (!string.IsNullOrWhiteSpace(request.HSNCode) && (request.HSNCode.Length < 4 || request.HSNCode.Length > 8))
-                    return ApiResponse<Guid>.ErrorResponse("HSN Code must be between 4 and 8 digits");
+                    return ApiResponse<int>.ErrorResponse("HSN Code must be between 4 and 8 digits");
 
                 var product = new Product
                 {
-                    ProductCode = request.ProductCode.Trim().ToUpper(),
-                    ProductName = request.ProductName.Trim(),
-                    Category = request.Category?.Trim(),
-                    SubCategory = request.SubCategory?.Trim(),
-                    ProductType = request.ProductType?.Trim(),
-                    Specification = request.Specification?.Trim(),
-                    Description = request.Description?.Trim(),
-                    HSNCode = request.HSNCode?.Trim(),
-                    Length = request.Length,
-                    Width = request.Width,
-                    Height = request.Height,
+                    PartCode = request.PartCode.Trim().ToUpper(),
+                    CustomerId = request.CustomerId,
+                    CustomerName = request.CustomerName?.Trim(),
+                    ModelName = request.ModelName.Trim(),
+                    RollerType = request.RollerType.Trim(),
                     Diameter = request.Diameter,
+                    Length = request.Length,
                     Weight = request.Weight,
-                    UOM = request.UOM?.Trim() ?? "PCS",
+                    MaterialGrade = request.MaterialGrade?.Trim(),
+                    SurfaceFinish = request.SurfaceFinish?.Trim(),
+                    Hardness = request.Hardness?.Trim(),
+                    DrawingNo = request.DrawingNo?.Trim(),
+                    RevisionNo = request.RevisionNo?.Trim(),
                     DrawingId = request.DrawingId,
-                    DrawingNumber = request.DrawingNumber?.Trim(),
-                    BOMId = request.BOMId,
-                    ProcessRouteId = request.ProcessRouteId,
+                    ProcessTemplateId = request.ProcessTemplateId,
+                    ProductTemplateId = request.ProductTemplateId,
                     StandardCost = request.StandardCost,
                     SellingPrice = request.SellingPrice,
-                    MaterialGrade = request.MaterialGrade?.Trim(),
-                    MaterialSpecification = request.MaterialSpecification?.Trim(),
-                    StandardBatchSize = request.StandardBatchSize ?? 1,
-                    MinOrderQuantity = request.MinOrderQuantity ?? 1,
-                    LeadTimeDays = request.LeadTimeDays ?? 30,
-                    IsActive = true,
-                    Status = "Active",
+                    StandardLeadTimeDays = request.StandardLeadTimeDays,
+                    MinOrderQuantity = request.MinOrderQuantity,
+                    Category = request.Category?.Trim(),
+                    ProductType = request.ProductType?.Trim(),
+                    Description = request.Description?.Trim(),
+                    HSNCode = request.HSNCode?.Trim(),
+                    UOM = request.UOM?.Trim() ?? "PCS",
                     Remarks = request.Remarks?.Trim(),
+                    IsActive = true,
                     CreatedBy = request.CreatedBy?.Trim() ?? "System"
                 };
 
                 var productId = await _productRepository.InsertAsync(product);
-                return ApiResponse<Guid>.SuccessResponse(productId, $"Product '{request.ProductCode}' created successfully");
+                return ApiResponse<int>.SuccessResponse(productId, $"Product '{request.PartCode}' created successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse<Guid>.ErrorResponse($"Error creating product: {ex.Message}");
+                return ApiResponse<int>.ErrorResponse($"Error creating product: {ex.Message}");
             }
         }
 
@@ -143,41 +147,45 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (existingProduct == null)
                     return ApiResponse<bool>.ErrorResponse("Product not found");
 
-                if (existingProduct.ProductCode != request.ProductCode)
+                // Validate RollerType - Only Printing Roller or Magnetic Roller allowed
+                var validRollerTypes = new[] { "Printing Roller", "Magnetic Roller" };
+                if (!validRollerTypes.Contains(request.RollerType))
+                    return ApiResponse<bool>.ErrorResponse("Roller type must be either 'Printing Roller' or 'Magnetic Roller'");
+
+                if (existingProduct.PartCode != request.PartCode)
                 {
-                    var exists = await _productRepository.ExistsAsync(request.ProductCode);
+                    var exists = await _productRepository.ExistsAsync(request.PartCode);
                     if (exists)
-                        return ApiResponse<bool>.ErrorResponse($"Product code '{request.ProductCode}' already exists");
+                        return ApiResponse<bool>.ErrorResponse($"Product code '{request.PartCode}' already exists");
                 }
 
-                existingProduct.ProductCode = request.ProductCode.Trim().ToUpper();
-                existingProduct.ProductName = request.ProductName.Trim();
-                existingProduct.Category = request.Category?.Trim();
-                existingProduct.SubCategory = request.SubCategory?.Trim();
-                existingProduct.ProductType = request.ProductType?.Trim();
-                existingProduct.Specification = request.Specification?.Trim();
-                existingProduct.Description = request.Description?.Trim();
-                existingProduct.HSNCode = request.HSNCode?.Trim();
-                existingProduct.Length = request.Length;
-                existingProduct.Width = request.Width;
-                existingProduct.Height = request.Height;
+                existingProduct.PartCode = request.PartCode.Trim().ToUpper();
+                existingProduct.CustomerId = request.CustomerId;
+                existingProduct.CustomerName = request.CustomerName?.Trim();
+                existingProduct.ModelName = request.ModelName.Trim();
+                existingProduct.RollerType = request.RollerType.Trim();
                 existingProduct.Diameter = request.Diameter;
+                existingProduct.Length = request.Length;
                 existingProduct.Weight = request.Weight;
-                existingProduct.UOM = request.UOM?.Trim();
+                existingProduct.MaterialGrade = request.MaterialGrade?.Trim();
+                existingProduct.SurfaceFinish = request.SurfaceFinish?.Trim();
+                existingProduct.Hardness = request.Hardness?.Trim();
+                existingProduct.DrawingNo = request.DrawingNo?.Trim();
+                existingProduct.RevisionNo = request.RevisionNo?.Trim();
                 existingProduct.DrawingId = request.DrawingId;
-                existingProduct.DrawingNumber = request.DrawingNumber?.Trim();
-                existingProduct.BOMId = request.BOMId;
-                existingProduct.ProcessRouteId = request.ProcessRouteId;
+                existingProduct.ProcessTemplateId = request.ProcessTemplateId;
+                existingProduct.ProductTemplateId = request.ProductTemplateId;
                 existingProduct.StandardCost = request.StandardCost;
                 existingProduct.SellingPrice = request.SellingPrice;
-                existingProduct.MaterialGrade = request.MaterialGrade?.Trim();
-                existingProduct.MaterialSpecification = request.MaterialSpecification?.Trim();
-                existingProduct.StandardBatchSize = request.StandardBatchSize;
+                existingProduct.StandardLeadTimeDays = request.StandardLeadTimeDays;
                 existingProduct.MinOrderQuantity = request.MinOrderQuantity;
-                existingProduct.LeadTimeDays = request.LeadTimeDays;
-                existingProduct.IsActive = request.IsActive;
-                existingProduct.Status = request.Status;
+                existingProduct.Category = request.Category?.Trim();
+                existingProduct.ProductType = request.ProductType?.Trim();
+                existingProduct.Description = request.Description?.Trim();
+                existingProduct.HSNCode = request.HSNCode?.Trim();
+                existingProduct.UOM = request.UOM?.Trim();
                 existingProduct.Remarks = request.Remarks?.Trim();
+                existingProduct.IsActive = request.IsActive;
                 existingProduct.UpdatedBy = request.UpdatedBy?.Trim() ?? "System";
                 existingProduct.UpdatedAt = DateTime.UtcNow;
 
@@ -193,7 +201,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeleteProductAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteProductAsync(int id)
         {
             try
             {
@@ -213,7 +221,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> ActivateProductAsync(Guid id)
+        public async Task<ApiResponse<bool>> ActivateProductAsync(int id)
         {
             try
             {
@@ -235,7 +243,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeactivateProductAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeactivateProductAsync(int id)
         {
             try
             {
@@ -307,34 +315,33 @@ namespace MultiHitechERP.API.Services.Implementations
             return new ProductResponse
             {
                 Id = product.Id,
-                ProductCode = product.ProductCode,
-                ProductName = product.ProductName,
-                Category = product.Category,
-                SubCategory = product.SubCategory,
-                ProductType = product.ProductType,
-                Specification = product.Specification,
-                Description = product.Description,
-                HSNCode = product.HSNCode,
-                Length = product.Length,
-                Width = product.Width,
-                Height = product.Height,
+                PartCode = product.PartCode,
+                CustomerId = product.CustomerId,
+                CustomerName = product.CustomerName,
+                ModelName = product.ModelName,
+                RollerType = product.RollerType,
                 Diameter = product.Diameter,
+                Length = product.Length,
                 Weight = product.Weight,
-                UOM = product.UOM,
+                MaterialGrade = product.MaterialGrade,
+                SurfaceFinish = product.SurfaceFinish,
+                Hardness = product.Hardness,
+                DrawingNo = product.DrawingNo,
+                RevisionNo = product.RevisionNo,
                 DrawingId = product.DrawingId,
-                DrawingNumber = product.DrawingNumber,
-                BOMId = product.BOMId,
-                ProcessRouteId = product.ProcessRouteId,
+                ProcessTemplateId = product.ProcessTemplateId,
+                ProductTemplateId = product.ProductTemplateId,
                 StandardCost = product.StandardCost,
                 SellingPrice = product.SellingPrice,
-                MaterialGrade = product.MaterialGrade,
-                MaterialSpecification = product.MaterialSpecification,
-                StandardBatchSize = product.StandardBatchSize,
+                StandardLeadTimeDays = product.StandardLeadTimeDays,
                 MinOrderQuantity = product.MinOrderQuantity,
-                LeadTimeDays = product.LeadTimeDays,
-                IsActive = product.IsActive,
-                Status = product.Status,
+                Category = product.Category,
+                ProductType = product.ProductType,
+                Description = product.Description,
+                HSNCode = product.HSNCode,
+                UOM = product.UOM,
                 Remarks = product.Remarks,
+                IsActive = product.IsActive,
                 CreatedAt = product.CreatedAt,
                 CreatedBy = product.CreatedBy,
                 UpdatedAt = product.UpdatedAt,

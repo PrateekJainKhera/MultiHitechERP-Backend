@@ -7,12 +7,12 @@ namespace MultiHitechERP.API.Models.Masters
     /// </summary>
     public class ChildPart
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string ChildPartCode { get; set; } = string.Empty;
         public string ChildPartName { get; set; } = string.Empty;
 
         // Parent Product Reference
-        public Guid? ProductId { get; set; }
+        public int? ProductId { get; set; }
         public string? ProductCode { get; set; }
         public string? ProductName { get; set; }
 
@@ -25,14 +25,14 @@ namespace MultiHitechERP.API.Models.Masters
         public string? Specification { get; set; }
 
         // Drawing Reference
-        public Guid? DrawingId { get; set; }
+        public int? DrawingId { get; set; }
         public string? DrawingNumber { get; set; }
 
         // Process Template
-        public Guid? ProcessTemplateId { get; set; }
+        public int? ProcessTemplateId { get; set; }
 
         // Material
-        public Guid? MaterialId { get; set; }
+        public int? MaterialId { get; set; }
         public string? MaterialCode { get; set; }
         public string? MaterialGrade { get; set; }
 
@@ -47,7 +47,7 @@ namespace MultiHitechERP.API.Models.Masters
 
         // Make or Buy
         public string? MakeOrBuy { get; set; } = "Make";
-        public Guid? PreferredSupplierId { get; set; }
+        public int? PreferredSupplierId { get; set; }
 
         // Status
         public bool IsActive { get; set; } = true;

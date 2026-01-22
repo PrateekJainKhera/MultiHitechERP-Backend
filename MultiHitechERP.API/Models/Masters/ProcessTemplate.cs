@@ -7,16 +7,16 @@ namespace MultiHitechERP.API.Models.Masters
     /// </summary>
     public class ProcessTemplate
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string TemplateName { get; set; } = string.Empty;
 
         // Product Reference
-        public Guid? ProductId { get; set; }
+        public int? ProductId { get; set; }
         public string? ProductCode { get; set; }
         public string? ProductName { get; set; }
 
         // Child Part Reference (if template is for a child part)
-        public Guid? ChildPartId { get; set; }
+        public int? ChildPartId { get; set; }
         public string? ChildPartName { get; set; }
 
         // Description

@@ -21,7 +21,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<Operator?> GetByIdAsync(Guid id)
+        public async Task<Operator?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Masters_Operators WHERE Id = @Id";
 
@@ -166,7 +166,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return operators;
         }
 
-        public async Task<IEnumerable<Operator>> GetByMachineExpertiseAsync(Guid machineId)
+        public async Task<IEnumerable<Operator>> GetByMachineExpertiseAsync(int machineId)
         {
             const string query = @"
                 SELECT * FROM Masters_Operators
@@ -190,7 +190,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return operators;
         }
 
-        public async Task<Guid> InsertAsync(Operator operatorEntity)
+        public async Task<int> InsertAsync(Operator operatorEntity)
         {
             const string query = @"
                 INSERT INTO Masters_Operators
@@ -206,7 +206,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                  @IsActive, @Status, @IsAvailable, @CurrentJobCardId, @CurrentJobCardNo, @CurrentMachineId,
                  @Remarks, @CreatedAt, @CreatedBy)";
 
-            var operatorId = Guid.NewGuid();
+            var operatorId = 0;
             operatorEntity.Id = operatorId;
             operatorEntity.CreatedAt = DateTime.UtcNow;
 
@@ -270,7 +270,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Masters_Operators WHERE Id = @Id";
 
@@ -284,7 +284,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateStatusAsync(Guid id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status)
         {
             const string query = @"
                 UPDATE Masters_Operators
@@ -305,7 +305,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateAvailabilityAsync(Guid id, bool isAvailable)
+        public async Task<bool> UpdateAvailabilityAsync(int id, bool isAvailable)
         {
             const string query = @"
                 UPDATE Masters_Operators
@@ -324,7 +324,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> AssignToJobCardAsync(Guid id, Guid jobCardId, string jobCardNo, Guid? machineId)
+        public async Task<bool> AssignToJobCardAsync(int id, int jobCardId, string jobCardNo, int? machineId)
         {
             const string query = @"
                 UPDATE Masters_Operators
@@ -349,7 +349,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> ReleaseFromJobCardAsync(Guid id)
+        public async Task<bool> ReleaseFromJobCardAsync(int id)
         {
             const string query = @"
                 UPDATE Masters_Operators
@@ -390,7 +390,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new Operator
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 OperatorCode = reader.GetString(reader.GetOrdinal("OperatorCode")),
                 OperatorName = reader.GetString(reader.GetOrdinal("OperatorName")),
                 Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
@@ -415,9 +415,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? null : reader.GetString(reader.GetOrdinal("Status")),
                 IsAvailable = reader.GetBoolean(reader.GetOrdinal("IsAvailable")),
-                CurrentJobCardId = reader.IsDBNull(reader.GetOrdinal("CurrentJobCardId")) ? null : reader.GetGuid(reader.GetOrdinal("CurrentJobCardId")),
+                CurrentJobCardId = reader.IsDBNull(reader.GetOrdinal("CurrentJobCardId")) ? null : reader.GetInt32(reader.GetOrdinal("CurrentJobCardId")),
                 CurrentJobCardNo = reader.IsDBNull(reader.GetOrdinal("CurrentJobCardNo")) ? null : reader.GetString(reader.GetOrdinal("CurrentJobCardNo")),
-                CurrentMachineId = reader.IsDBNull(reader.GetOrdinal("CurrentMachineId")) ? null : reader.GetGuid(reader.GetOrdinal("CurrentMachineId")),
+                CurrentMachineId = reader.IsDBNull(reader.GetOrdinal("CurrentMachineId")) ? null : reader.GetInt32(reader.GetOrdinal("CurrentMachineId")),
                 Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),

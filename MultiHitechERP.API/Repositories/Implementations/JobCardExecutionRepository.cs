@@ -22,7 +22,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<JobCardExecution?> GetByIdAsync(Guid id)
+        public async Task<JobCardExecution?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Production_JobCardExecutions WHERE Id = @Id";
 
@@ -55,7 +55,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return executions;
         }
 
-        public async Task<IEnumerable<JobCardExecution>> GetByJobCardIdAsync(Guid jobCardId)
+        public async Task<IEnumerable<JobCardExecution>> GetByJobCardIdAsync(int jobCardId)
         {
             const string query = @"
                 SELECT * FROM Production_JobCardExecutions
@@ -78,7 +78,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return executions;
         }
 
-        public async Task<IEnumerable<JobCardExecution>> GetByMachineIdAsync(Guid machineId)
+        public async Task<IEnumerable<JobCardExecution>> GetByMachineIdAsync(int machineId)
         {
             const string query = @"
                 SELECT * FROM Production_JobCardExecutions
@@ -101,7 +101,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return executions;
         }
 
-        public async Task<IEnumerable<JobCardExecution>> GetByOperatorIdAsync(Guid operatorId)
+        public async Task<IEnumerable<JobCardExecution>> GetByOperatorIdAsync(int operatorId)
         {
             const string query = @"
                 SELECT * FROM Production_JobCardExecutions
@@ -124,7 +124,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return executions;
         }
 
-        public async Task<Guid> InsertAsync(JobCardExecution execution)
+        public async Task<int> InsertAsync(JobCardExecution execution)
         {
             const string query = @"
                 INSERT INTO Production_JobCardExecutions
@@ -138,7 +138,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                  @QuantityStarted, @QuantityCompleted, @QuantityRejected, @QuantityInProgress,
                  @ExecutionStatus, @Notes, @IssuesEncountered, @CreatedAt, @CreatedBy)";
 
-            var executionId = Guid.NewGuid();
+            var executionId = 0;
             execution.Id = executionId;
             execution.CreatedAt = DateTime.UtcNow;
 
@@ -190,7 +190,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Production_JobCardExecutions WHERE Id = @Id";
 
@@ -204,7 +204,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> StartExecutionAsync(Guid id, DateTime startTime)
+        public async Task<bool> StartExecutionAsync(int id, DateTime startTime)
         {
             const string query = @"
                 UPDATE Production_JobCardExecutions
@@ -223,7 +223,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> PauseExecutionAsync(Guid id, DateTime pausedTime)
+        public async Task<bool> PauseExecutionAsync(int id, DateTime pausedTime)
         {
             const string query = @"
                 UPDATE Production_JobCardExecutions
@@ -242,7 +242,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> ResumeExecutionAsync(Guid id, DateTime resumedTime)
+        public async Task<bool> ResumeExecutionAsync(int id, DateTime resumedTime)
         {
             const string query = @"
                 UPDATE Production_JobCardExecutions
@@ -262,7 +262,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> CompleteExecutionAsync(Guid id, DateTime endTime, int totalTimeMin)
+        public async Task<bool> CompleteExecutionAsync(int id, DateTime endTime, int totalTimeMin)
         {
             const string query = @"
                 UPDATE Production_JobCardExecutions
@@ -283,7 +283,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateQuantitiesAsync(Guid id, int? completed, int? rejected, int? inProgress)
+        public async Task<bool> UpdateQuantitiesAsync(int id, int? completed, int? rejected, int? inProgress)
         {
             const string query = @"
                 UPDATE Production_JobCardExecutions
@@ -374,7 +374,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return executions;
         }
 
-        public async Task<JobCardExecution?> GetCurrentExecutionForJobCardAsync(Guid jobCardId)
+        public async Task<JobCardExecution?> GetCurrentExecutionForJobCardAsync(int jobCardId)
         {
             const string query = @"
                 SELECT TOP 1 * FROM Production_JobCardExecutions
@@ -392,7 +392,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await reader.ReadAsync() ? MapToExecution(reader) : null;
         }
 
-        public async Task<IEnumerable<JobCardExecution>> GetExecutionHistoryForJobCardAsync(Guid jobCardId)
+        public async Task<IEnumerable<JobCardExecution>> GetExecutionHistoryForJobCardAsync(int jobCardId)
         {
             const string query = @"
                 SELECT * FROM Production_JobCardExecutions
@@ -415,7 +415,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return executions;
         }
 
-        public async Task<int> GetTotalExecutionTimeForJobCardAsync(Guid jobCardId)
+        public async Task<int> GetTotalExecutionTimeForJobCardAsync(int jobCardId)
         {
             const string query = @"
                 SELECT ISNULL(SUM(TotalTimeMin), 0) AS TotalTime
@@ -432,7 +432,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return result != null ? Convert.ToInt32(result) : 0;
         }
 
-        public async Task<int> GetTotalCompletedQuantityForJobCardAsync(Guid jobCardId)
+        public async Task<int> GetTotalCompletedQuantityForJobCardAsync(int jobCardId)
         {
             const string query = @"
                 SELECT ISNULL(SUM(QuantityCompleted), 0) AS TotalCompleted
@@ -454,18 +454,18 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new JobCardExecution
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                JobCardId = reader.GetGuid(reader.GetOrdinal("JobCardId")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                JobCardId = reader.GetInt32(reader.GetOrdinal("JobCardId")),
                 JobCardNo = reader.IsDBNull(reader.GetOrdinal("JobCardNo"))
                     ? null : reader.GetString(reader.GetOrdinal("JobCardNo")),
                 OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo"))
                     ? null : reader.GetString(reader.GetOrdinal("OrderNo")),
                 MachineId = reader.IsDBNull(reader.GetOrdinal("MachineId"))
-                    ? null : reader.GetGuid(reader.GetOrdinal("MachineId")),
+                    ? null : reader.GetInt32(reader.GetOrdinal("MachineId")),
                 MachineName = reader.IsDBNull(reader.GetOrdinal("MachineName"))
                     ? null : reader.GetString(reader.GetOrdinal("MachineName")),
                 OperatorId = reader.IsDBNull(reader.GetOrdinal("OperatorId"))
-                    ? null : reader.GetGuid(reader.GetOrdinal("OperatorId")),
+                    ? null : reader.GetInt32(reader.GetOrdinal("OperatorId")),
                 OperatorName = reader.IsDBNull(reader.GetOrdinal("OperatorName"))
                     ? null : reader.GetString(reader.GetOrdinal("OperatorName")),
                 StartTime = reader.GetDateTime(reader.GetOrdinal("StartTime")),

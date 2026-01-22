@@ -11,12 +11,12 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface IInventoryRepository
     {
         // Basic CRUD
-        Task<Inventory?> GetByIdAsync(Guid id);
-        Task<Inventory?> GetByMaterialIdAsync(Guid materialId);
+        Task<Inventory?> GetByIdAsync(int id);
+        Task<Inventory?> GetByMaterialIdAsync(int materialId);
         Task<IEnumerable<Inventory>> GetAllAsync();
-        Task<Guid> InsertAsync(Inventory inventory);
+        Task<int> InsertAsync(Inventory inventory);
         Task<bool> UpdateAsync(Inventory inventory);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Stock Queries
         Task<IEnumerable<Inventory>> GetLowStockAsync();
@@ -26,19 +26,19 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<Inventory>> GetActiveAsync();
 
         // Stock Updates
-        Task<bool> UpdateStockLevelsAsync(Guid materialId, decimal totalQty, decimal availableQty, decimal allocatedQty, decimal issuedQty);
-        Task<bool> UpdateAverageCostAsync(Guid materialId, decimal avgCost, decimal totalValue);
-        Task<bool> UpdateStockStatusAsync(Guid materialId, bool isLowStock, bool isOutOfStock);
+        Task<bool> UpdateStockLevelsAsync(int materialId, decimal totalQty, decimal availableQty, decimal allocatedQty, decimal issuedQty);
+        Task<bool> UpdateAverageCostAsync(int materialId, decimal avgCost, decimal totalValue);
+        Task<bool> UpdateStockStatusAsync(int materialId, bool isLowStock, bool isOutOfStock);
 
         // Transactions
-        Task<Guid> InsertTransactionAsync(InventoryTransaction transaction);
-        Task<IEnumerable<InventoryTransaction>> GetTransactionsByMaterialIdAsync(Guid materialId);
+        Task<int> InsertTransactionAsync(InventoryTransaction transaction);
+        Task<IEnumerable<InventoryTransaction>> GetTransactionsByMaterialIdAsync(int materialId);
         Task<IEnumerable<InventoryTransaction>> GetTransactionsByTypeAsync(string transactionType);
         Task<IEnumerable<InventoryTransaction>> GetTransactionsByDateRangeAsync(DateTime startDate, DateTime endDate);
-        Task<IEnumerable<InventoryTransaction>> GetTransactionsByJobCardIdAsync(Guid jobCardId);
+        Task<IEnumerable<InventoryTransaction>> GetTransactionsByJobCardIdAsync(int jobCardId);
         Task<IEnumerable<InventoryTransaction>> GetRecentTransactionsAsync(int count);
 
         // Reconciliation
-        Task<bool> ReconcileStockAsync(Guid materialId, decimal actualQuantity, string performedBy, string remarks);
+        Task<bool> ReconcileStockAsync(int materialId, decimal actualQuantity, string performedBy, string remarks);
     }
 }

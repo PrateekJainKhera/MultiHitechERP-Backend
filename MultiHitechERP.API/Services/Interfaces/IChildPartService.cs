@@ -12,26 +12,26 @@ namespace MultiHitechERP.API.Services.Interfaces
     public interface IChildPartService
     {
         // Basic CRUD
-        Task<ApiResponse<ChildPart>> GetByIdAsync(Guid id);
+        Task<ApiResponse<ChildPart>> GetByIdAsync(int id);
         Task<ApiResponse<ChildPart>> GetByCodeAsync(string childPartCode);
         Task<ApiResponse<IEnumerable<ChildPart>>> GetAllAsync();
-        Task<ApiResponse<Guid>> CreateChildPartAsync(ChildPart childPart);
+        Task<ApiResponse<int>> CreateChildPartAsync(ChildPart childPart);
         Task<ApiResponse<bool>> UpdateChildPartAsync(ChildPart childPart);
-        Task<ApiResponse<bool>> DeleteChildPartAsync(Guid id);
+        Task<ApiResponse<bool>> DeleteChildPartAsync(int id);
 
         // Query Methods
-        Task<ApiResponse<IEnumerable<ChildPart>>> GetByProductIdAsync(Guid productId);
+        Task<ApiResponse<IEnumerable<ChildPart>>> GetByProductIdAsync(int productId);
         Task<ApiResponse<IEnumerable<ChildPart>>> GetByProductCodeAsync(string productCode);
-        Task<ApiResponse<IEnumerable<ChildPart>>> GetByMaterialIdAsync(Guid materialId);
+        Task<ApiResponse<IEnumerable<ChildPart>>> GetByMaterialIdAsync(int materialId);
         Task<ApiResponse<IEnumerable<ChildPart>>> GetByPartTypeAsync(string partType);
         Task<ApiResponse<IEnumerable<ChildPart>>> GetByCategoryAsync(string category);
         Task<ApiResponse<IEnumerable<ChildPart>>> GetActiveAsync();
         Task<ApiResponse<IEnumerable<ChildPart>>> GetByStatusAsync(string status);
         Task<ApiResponse<IEnumerable<ChildPart>>> GetByMakeOrBuyAsync(string makeOrBuy);
-        Task<ApiResponse<IEnumerable<ChildPart>>> GetByDrawingIdAsync(Guid drawingId);
-        Task<ApiResponse<IEnumerable<ChildPart>>> GetByProcessTemplateIdAsync(Guid processTemplateId);
+        Task<ApiResponse<IEnumerable<ChildPart>>> GetByDrawingIdAsync(int drawingId);
+        Task<ApiResponse<IEnumerable<ChildPart>>> GetByProcessTemplateIdAsync(int processTemplateId);
 
         // Status Update
-        Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, string status);
+        Task<ApiResponse<bool>> UpdateStatusAsync(int id, string status);
     }
 }

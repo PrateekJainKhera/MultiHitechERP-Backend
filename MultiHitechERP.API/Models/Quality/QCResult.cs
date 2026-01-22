@@ -7,10 +7,10 @@ namespace MultiHitechERP.API.Models.Quality
     /// </summary>
     public class QCResult
     {
-        public Guid Id { get; set; }
-        public Guid JobCardId { get; set; }
+        public int Id { get; set; }
+        public int JobCardId { get; set; }
         public string? JobCardNo { get; set; }
-        public Guid? OrderId { get; set; }
+        public int? OrderId { get; set; }
         public string? OrderNo { get; set; }
 
         // Inspection Details

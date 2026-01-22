@@ -7,11 +7,11 @@ namespace MultiHitechERP.API.DTOs.Response
     /// </summary>
     public class MaterialIssueResponse
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string IssueNo { get; set; } = string.Empty;
         public DateTime IssueDate { get; set; }
 
-        public Guid RequisitionId { get; set; }
+        public int RequisitionId { get; set; }
         public string? JobCardNo { get; set; }
         public string? OrderNo { get; set; }
 

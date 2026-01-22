@@ -21,7 +21,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<BOM?> GetByIdAsync(Guid id)
+        public async Task<BOM?> GetByIdAsync(int id)
         {
             const string query = @"
                 SELECT * FROM Masters_BOM
@@ -81,7 +81,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return boms;
         }
 
-        public async Task<Guid> InsertAsync(BOM bom)
+        public async Task<int> InsertAsync(BOM bom)
         {
             const string query = @"
                 INSERT INTO Masters_BOM (
@@ -102,7 +102,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            var id = Guid.NewGuid();
+            var id = 0;
             command.Parameters.AddWithValue("@Id", id);
             command.Parameters.AddWithValue("@BOMNo", bom.BOMNo);
             command.Parameters.AddWithValue("@ProductId", bom.ProductId);
@@ -179,7 +179,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Masters_BOM WHERE Id = @Id";
 
@@ -193,7 +193,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<IEnumerable<BOM>> GetByProductIdAsync(Guid productId)
+        public async Task<IEnumerable<BOM>> GetByProductIdAsync(int productId)
         {
             const string query = @"
                 SELECT * FROM Masters_BOM
@@ -217,7 +217,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return boms;
         }
 
-        public async Task<BOM?> GetLatestRevisionAsync(Guid productId)
+        public async Task<BOM?> GetLatestRevisionAsync(int productId)
         {
             const string query = @"
                 SELECT * FROM Masters_BOM
@@ -334,7 +334,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         }
 
         // BOM Item Operations
-        public async Task<IEnumerable<BOMItem>> GetBOMItemsAsync(Guid bomId)
+        public async Task<IEnumerable<BOMItem>> GetBOMItemsAsync(int bomId)
         {
             const string query = @"
                 SELECT * FROM Masters_BOMItems
@@ -358,7 +358,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return items;
         }
 
-        public async Task<Guid> InsertBOMItemAsync(BOMItem item)
+        public async Task<int> InsertBOMItemAsync(BOMItem item)
         {
             const string query = @"
                 INSERT INTO Masters_BOMItems (
@@ -383,7 +383,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            var id = Guid.NewGuid();
+            var id = 0;
             command.Parameters.AddWithValue("@Id", id);
             command.Parameters.AddWithValue("@BOMId", item.BOMId);
             command.Parameters.AddWithValue("@LineNo", item.LineNo);
@@ -462,7 +462,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteBOMItemAsync(Guid itemId)
+        public async Task<bool> DeleteBOMItemAsync(int itemId)
         {
             const string query = "DELETE FROM Masters_BOMItems WHERE Id = @Id";
 
@@ -476,7 +476,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAllBOMItemsAsync(Guid bomId)
+        public async Task<bool> DeleteAllBOMItemsAsync(int bomId)
         {
             const string query = "DELETE FROM Masters_BOMItems WHERE BOMId = @BOMId";
 
@@ -490,7 +490,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<IEnumerable<BOMItem>> GetMaterialItemsAsync(Guid bomId)
+        public async Task<IEnumerable<BOMItem>> GetMaterialItemsAsync(int bomId)
         {
             const string query = @"
                 SELECT * FROM Masters_BOMItems
@@ -515,7 +515,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return items;
         }
 
-        public async Task<IEnumerable<BOMItem>> GetChildPartItemsAsync(Guid bomId)
+        public async Task<IEnumerable<BOMItem>> GetChildPartItemsAsync(int bomId)
         {
             const string query = @"
                 SELECT * FROM Masters_BOMItems
@@ -540,7 +540,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return items;
         }
 
-        public async Task<IEnumerable<BOMItem>> GetItemsByTypeAsync(Guid bomId, string itemType)
+        public async Task<IEnumerable<BOMItem>> GetItemsByTypeAsync(int bomId, string itemType)
         {
             const string query = @"
                 SELECT * FROM Masters_BOMItems
@@ -566,7 +566,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return items;
         }
 
-        public async Task<bool> ApproveBOMAsync(Guid id, string approvedBy, DateTime approvalDate)
+        public async Task<bool> ApproveBOMAsync(int id, string approvedBy, DateTime approvalDate)
         {
             const string query = @"
                 UPDATE Masters_BOM
@@ -587,7 +587,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateStatusAsync(Guid id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status)
         {
             const string query = @"
                 UPDATE Masters_BOM
@@ -605,7 +605,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> MarkAsNonLatestAsync(Guid id)
+        public async Task<bool> MarkAsNonLatestAsync(int id)
         {
             const string query = @"
                 UPDATE Masters_BOM
@@ -622,7 +622,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<int> GetNextRevisionNumberAsync(Guid productId)
+        public async Task<int> GetNextRevisionNumberAsync(int productId)
         {
             const string query = @"
                 SELECT ISNULL(MAX(CAST(RevisionNumber AS INT)), 0) + 1
@@ -645,9 +645,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new BOM
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 BOMNo = reader.GetString(reader.GetOrdinal("BOMNo")),
-                ProductId = reader.GetGuid(reader.GetOrdinal("ProductId")),
+                ProductId = reader.GetInt32(reader.GetOrdinal("ProductId")),
                 ProductCode = reader.IsDBNull(reader.GetOrdinal("ProductCode")) ? null : reader.GetString(reader.GetOrdinal("ProductCode")),
                 ProductName = reader.IsDBNull(reader.GetOrdinal("ProductName")) ? null : reader.GetString(reader.GetOrdinal("ProductName")),
                 RevisionNumber = reader.IsDBNull(reader.GetOrdinal("RevisionNumber")) ? null : reader.GetString(reader.GetOrdinal("RevisionNumber")),
@@ -672,14 +672,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new BOMItem
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                BOMId = reader.GetGuid(reader.GetOrdinal("BOMId")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                BOMId = reader.GetInt32(reader.GetOrdinal("BOMId")),
                 LineNo = reader.GetInt32(reader.GetOrdinal("LineNo")),
                 ItemType = reader.GetString(reader.GetOrdinal("ItemType")),
-                MaterialId = reader.IsDBNull(reader.GetOrdinal("MaterialId")) ? null : reader.GetGuid(reader.GetOrdinal("MaterialId")),
+                MaterialId = reader.IsDBNull(reader.GetOrdinal("MaterialId")) ? null : reader.GetInt32(reader.GetOrdinal("MaterialId")),
                 MaterialCode = reader.IsDBNull(reader.GetOrdinal("MaterialCode")) ? null : reader.GetString(reader.GetOrdinal("MaterialCode")),
                 MaterialName = reader.IsDBNull(reader.GetOrdinal("MaterialName")) ? null : reader.GetString(reader.GetOrdinal("MaterialName")),
-                ChildPartId = reader.IsDBNull(reader.GetOrdinal("ChildPartId")) ? null : reader.GetGuid(reader.GetOrdinal("ChildPartId")),
+                ChildPartId = reader.IsDBNull(reader.GetOrdinal("ChildPartId")) ? null : reader.GetInt32(reader.GetOrdinal("ChildPartId")),
                 ChildPartCode = reader.IsDBNull(reader.GetOrdinal("ChildPartCode")) ? null : reader.GetString(reader.GetOrdinal("ChildPartCode")),
                 ChildPartName = reader.IsDBNull(reader.GetOrdinal("ChildPartName")) ? null : reader.GetString(reader.GetOrdinal("ChildPartName")),
                 QuantityRequired = reader.GetDecimal(reader.GetOrdinal("QuantityRequired")),

@@ -22,7 +22,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _customerRepository = customerRepository;
         }
 
-        public async Task<ApiResponse<CustomerResponse>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<CustomerResponse>> GetByIdAsync(int id)
         {
             try
             {
@@ -88,7 +88,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<Guid>> CreateCustomerAsync(CreateCustomerRequest request)
+        public async Task<ApiResponse<int>> CreateCustomerAsync(CreateCustomerRequest request)
         {
             try
             {
@@ -96,25 +96,25 @@ namespace MultiHitechERP.API.Services.Implementations
                 var exists = await _customerRepository.ExistsAsync(request.CustomerCode);
                 if (exists)
                 {
-                    return ApiResponse<Guid>.ErrorResponse($"Customer code '{request.CustomerCode}' already exists");
+                    return ApiResponse<int>.ErrorResponse($"Customer code '{request.CustomerCode}' already exists");
                 }
 
                 // Business Rule 2: Validate required fields
                 if (string.IsNullOrWhiteSpace(request.CustomerName))
                 {
-                    return ApiResponse<Guid>.ErrorResponse("Customer name is required");
+                    return ApiResponse<int>.ErrorResponse("Customer name is required");
                 }
 
                 // Business Rule 3: Validate credit limit if credit days are specified
                 if (request.CreditDays.HasValue && request.CreditDays.Value > 0 && !request.CreditLimit.HasValue)
                 {
-                    return ApiResponse<Guid>.ErrorResponse("Credit limit is required when credit days are specified");
+                    return ApiResponse<int>.ErrorResponse("Credit limit is required when credit days are specified");
                 }
 
                 // Business Rule 4: Validate GST format if provided
                 if (!string.IsNullOrWhiteSpace(request.GSTNo) && request.GSTNo.Length != 15)
                 {
-                    return ApiResponse<Guid>.ErrorResponse("GST number must be 15 characters long");
+                    return ApiResponse<int>.ErrorResponse("GST number must be 15 characters long");
                 }
 
                 // Create Customer
@@ -142,11 +142,11 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 var customerId = await _customerRepository.InsertAsync(customer);
 
-                return ApiResponse<Guid>.SuccessResponse(customerId, $"Customer '{request.CustomerCode}' created successfully");
+                return ApiResponse<int>.SuccessResponse(customerId, $"Customer '{request.CustomerCode}' created successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse<Guid>.ErrorResponse($"Error creating customer: {ex.Message}");
+                return ApiResponse<int>.ErrorResponse($"Error creating customer: {ex.Message}");
             }
         }
 
@@ -213,7 +213,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeleteCustomerAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteCustomerAsync(int id)
         {
             try
             {
@@ -241,7 +241,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> ActivateCustomerAsync(Guid id)
+        public async Task<ApiResponse<bool>> ActivateCustomerAsync(int id)
         {
             try
             {
@@ -271,7 +271,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeactivateCustomerAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeactivateCustomerAsync(int id)
         {
             try
             {

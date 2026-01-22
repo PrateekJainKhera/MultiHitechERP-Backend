@@ -12,12 +12,12 @@ namespace MultiHitechERP.API.Services.Interfaces
     public interface ISupplierService
     {
         // Basic CRUD
-        Task<ApiResponse<Supplier>> GetByIdAsync(Guid id);
+        Task<ApiResponse<Supplier>> GetByIdAsync(int id);
         Task<ApiResponse<Supplier>> GetByCodeAsync(string supplierCode);
         Task<ApiResponse<IEnumerable<Supplier>>> GetAllAsync();
-        Task<ApiResponse<Guid>> CreateSupplierAsync(Supplier supplier);
+        Task<ApiResponse<int>> CreateSupplierAsync(Supplier supplier);
         Task<ApiResponse<bool>> UpdateSupplierAsync(Supplier supplier);
-        Task<ApiResponse<bool>> DeleteSupplierAsync(Guid id);
+        Task<ApiResponse<bool>> DeleteSupplierAsync(int id);
 
         // Query Methods
         Task<ApiResponse<IEnumerable<Supplier>>> GetByTypeAsync(string supplierType);
@@ -29,13 +29,13 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<IEnumerable<Supplier>>> GetByProcessCapabilityAsync(string processCapability);
 
         // Performance Tracking
-        Task<ApiResponse<bool>> UpdatePerformanceMetricsAsync(Guid id, decimal onTimeDeliveryRate, decimal qualityRating, int totalOrders, int rejectedOrders);
+        Task<ApiResponse<bool>> UpdatePerformanceMetricsAsync(int id, decimal onTimeDeliveryRate, decimal qualityRating, int totalOrders, int rejectedOrders);
         Task<ApiResponse<IEnumerable<Supplier>>> GetTopPerformingAsync(int count);
         Task<ApiResponse<IEnumerable<Supplier>>> GetLowPerformingAsync(int count);
 
         // Approval Workflow
-        Task<ApiResponse<bool>> ApproveSupplierAsync(Guid id, string approvedBy);
-        Task<ApiResponse<bool>> RejectSupplierAsync(Guid id, string reason);
-        Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, string status);
+        Task<ApiResponse<bool>> ApproveSupplierAsync(int id, string approvedBy);
+        Task<ApiResponse<bool>> RejectSupplierAsync(int id, string reason);
+        Task<ApiResponse<bool>> UpdateStatusAsync(int id, string status);
     }
 }

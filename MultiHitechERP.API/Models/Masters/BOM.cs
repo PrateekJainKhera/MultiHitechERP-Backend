@@ -7,11 +7,11 @@ namespace MultiHitechERP.API.Models.Masters
     /// </summary>
     public class BOM
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string BOMNo { get; set; } = string.Empty;
 
         // Product Reference
-        public Guid ProductId { get; set; }
+        public int ProductId { get; set; }
         public string? ProductCode { get; set; }
         public string? ProductName { get; set; }
 

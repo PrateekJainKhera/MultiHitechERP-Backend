@@ -22,7 +22,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _materialRepository = materialRepository;
         }
 
-        public async Task<ApiResponse<MaterialResponse>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<MaterialResponse>> GetByIdAsync(int id)
         {
             try
             {
@@ -88,7 +88,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<Guid>> CreateMaterialAsync(CreateMaterialRequest request)
+        public async Task<ApiResponse<int>> CreateMaterialAsync(CreateMaterialRequest request)
         {
             try
             {
@@ -96,13 +96,13 @@ namespace MultiHitechERP.API.Services.Implementations
                 var exists = await _materialRepository.ExistsAsync(request.MaterialCode);
                 if (exists)
                 {
-                    return ApiResponse<Guid>.ErrorResponse($"Material code '{request.MaterialCode}' already exists");
+                    return ApiResponse<int>.ErrorResponse($"Material code '{request.MaterialCode}' already exists");
                 }
 
                 // Business Rule 2: Validate required fields
                 if (string.IsNullOrWhiteSpace(request.MaterialName))
                 {
-                    return ApiResponse<Guid>.ErrorResponse("Material name is required");
+                    return ApiResponse<int>.ErrorResponse("Material name is required");
                 }
 
                 // Business Rule 3: Validate stock levels
@@ -110,7 +110,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 {
                     if (request.ReorderLevel < request.MinStockLevel)
                     {
-                        return ApiResponse<Guid>.ErrorResponse("Reorder level cannot be less than minimum stock level");
+                        return ApiResponse<int>.ErrorResponse("Reorder level cannot be less than minimum stock level");
                     }
                 }
 
@@ -118,14 +118,14 @@ namespace MultiHitechERP.API.Services.Implementations
                 {
                     if (request.MaxStockLevel < request.MinStockLevel)
                     {
-                        return ApiResponse<Guid>.ErrorResponse("Maximum stock level cannot be less than minimum stock level");
+                        return ApiResponse<int>.ErrorResponse("Maximum stock level cannot be less than minimum stock level");
                     }
                 }
 
                 // Business Rule 4: Validate HSN Code format if provided
                 if (!string.IsNullOrWhiteSpace(request.HSNCode) && (request.HSNCode.Length < 4 || request.HSNCode.Length > 8))
                 {
-                    return ApiResponse<Guid>.ErrorResponse("HSN Code must be between 4 and 8 digits");
+                    return ApiResponse<int>.ErrorResponse("HSN Code must be between 4 and 8 digits");
                 }
 
                 // Create Material
@@ -170,11 +170,11 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 var materialId = await _materialRepository.InsertAsync(material);
 
-                return ApiResponse<Guid>.SuccessResponse(materialId, $"Material '{request.MaterialCode}' created successfully");
+                return ApiResponse<int>.SuccessResponse(materialId, $"Material '{request.MaterialCode}' created successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse<Guid>.ErrorResponse($"Error creating material: {ex.Message}");
+                return ApiResponse<int>.ErrorResponse($"Error creating material: {ex.Message}");
             }
         }
 
@@ -261,7 +261,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeleteMaterialAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteMaterialAsync(int id)
         {
             try
             {
@@ -289,7 +289,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> ActivateMaterialAsync(Guid id)
+        public async Task<ApiResponse<bool>> ActivateMaterialAsync(int id)
         {
             try
             {
@@ -319,7 +319,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeactivateMaterialAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeactivateMaterialAsync(int id)
         {
             try
             {

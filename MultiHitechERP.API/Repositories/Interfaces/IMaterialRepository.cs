@@ -11,19 +11,19 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface IMaterialRepository
     {
         // Basic CRUD Operations
-        Task<Material?> GetByIdAsync(Guid id);
+        Task<Material?> GetByIdAsync(int id);
         Task<Material?> GetByMaterialCodeAsync(string materialCode);
         Task<IEnumerable<Material>> GetAllAsync();
         Task<IEnumerable<Material>> GetActiveMaterialsAsync();
 
         // Create, Update, Delete
-        Task<Guid> InsertAsync(Material material);
+        Task<int> InsertAsync(Material material);
         Task<bool> UpdateAsync(Material material);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Status Operations
-        Task<bool> ActivateAsync(Guid id);
-        Task<bool> DeactivateAsync(Guid id);
+        Task<bool> ActivateAsync(int id);
+        Task<bool> DeactivateAsync(int id);
 
         // Queries
         Task<IEnumerable<Material>> SearchByNameAsync(string name);

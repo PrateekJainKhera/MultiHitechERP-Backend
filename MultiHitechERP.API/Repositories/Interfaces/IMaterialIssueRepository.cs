@@ -11,17 +11,17 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface IMaterialIssueRepository
     {
         // Basic CRUD Operations
-        Task<MaterialIssue?> GetByIdAsync(Guid id);
+        Task<MaterialIssue?> GetByIdAsync(int id);
         Task<MaterialIssue?> GetByIssueNoAsync(string issueNo);
         Task<IEnumerable<MaterialIssue>> GetAllAsync();
-        Task<IEnumerable<MaterialIssue>> GetByRequisitionIdAsync(Guid requisitionId);
+        Task<IEnumerable<MaterialIssue>> GetByRequisitionIdAsync(int requisitionId);
         Task<IEnumerable<MaterialIssue>> GetByJobCardNoAsync(string jobCardNo);
         Task<IEnumerable<MaterialIssue>> GetByOrderNoAsync(string orderNo);
 
         // Create, Update, Delete
-        Task<Guid> InsertAsync(MaterialIssue issue);
+        Task<int> InsertAsync(MaterialIssue issue);
         Task<bool> UpdateAsync(MaterialIssue issue);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Queries
         Task<IEnumerable<MaterialIssue>> GetByStatusAsync(string status);
@@ -30,6 +30,6 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<MaterialIssue>> GetByReceivedByAsync(string receivedById);
 
         // Statistics
-        Task<decimal> GetTotalIssuedQuantityAsync(Guid requisitionId);
+        Task<decimal> GetTotalIssuedQuantityAsync(int requisitionId);
     }
 }

@@ -21,7 +21,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<Drawing?> GetByIdAsync(Guid id)
+        public async Task<Drawing?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Masters_Drawings WHERE Id = @Id";
 
@@ -127,7 +127,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await reader.ReadAsync() ? MapToDrawing(reader) : null;
         }
 
-        public async Task<IEnumerable<Drawing>> GetByProductIdAsync(Guid productId)
+        public async Task<IEnumerable<Drawing>> GetByProductIdAsync(int productId)
         {
             const string query = @"
                 SELECT * FROM Masters_Drawings
@@ -195,7 +195,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return drawings;
         }
 
-        public async Task<Guid> InsertAsync(Drawing drawing)
+        public async Task<int> InsertAsync(Drawing drawing)
         {
             const string query = @"
                 INSERT INTO Masters_Drawings
@@ -213,7 +213,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                  @IsActive, @Status, @IsLatestRevision, @PreviousRevisionId, @VersionNumber,
                  @Remarks, @CreatedAt, @CreatedBy)";
 
-            var drawingId = Guid.NewGuid();
+            var drawingId = 0;
             drawing.Id = drawingId;
             drawing.CreatedAt = DateTime.UtcNow;
 
@@ -281,7 +281,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Masters_Drawings WHERE Id = @Id";
 
@@ -295,7 +295,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> MarkAsLatestRevisionAsync(Guid id)
+        public async Task<bool> MarkAsLatestRevisionAsync(int id)
         {
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             await connection.OpenAsync();
@@ -365,10 +365,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new Drawing
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 DrawingNumber = reader.GetString(reader.GetOrdinal("DrawingNumber")),
                 DrawingTitle = reader.GetString(reader.GetOrdinal("DrawingTitle")),
-                ProductId = reader.IsDBNull(reader.GetOrdinal("ProductId")) ? null : reader.GetGuid(reader.GetOrdinal("ProductId")),
+                ProductId = reader.IsDBNull(reader.GetOrdinal("ProductId")) ? null : reader.GetInt32(reader.GetOrdinal("ProductId")),
                 ProductCode = reader.IsDBNull(reader.GetOrdinal("ProductCode")) ? null : reader.GetString(reader.GetOrdinal("ProductCode")),
                 ProductName = reader.IsDBNull(reader.GetOrdinal("ProductName")) ? null : reader.GetString(reader.GetOrdinal("ProductName")),
                 RevisionNumber = reader.IsDBNull(reader.GetOrdinal("RevisionNumber")) ? null : reader.GetString(reader.GetOrdinal("RevisionNumber")),
@@ -395,7 +395,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? null : reader.GetString(reader.GetOrdinal("Status")),
                 IsLatestRevision = reader.GetBoolean(reader.GetOrdinal("IsLatestRevision")),
-                PreviousRevisionId = reader.IsDBNull(reader.GetOrdinal("PreviousRevisionId")) ? null : reader.GetGuid(reader.GetOrdinal("PreviousRevisionId")),
+                PreviousRevisionId = reader.IsDBNull(reader.GetOrdinal("PreviousRevisionId")) ? null : reader.GetInt32(reader.GetOrdinal("PreviousRevisionId")),
                 VersionNumber = reader.GetInt32(reader.GetOrdinal("VersionNumber")),
                 Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),

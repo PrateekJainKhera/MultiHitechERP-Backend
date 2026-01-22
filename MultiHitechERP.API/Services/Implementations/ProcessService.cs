@@ -18,7 +18,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _processRepository = processRepository;
         }
 
-        public async Task<ApiResponse<ProcessResponse>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<ProcessResponse>> GetByIdAsync(int id)
         {
             try
             {
@@ -78,16 +78,16 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<Guid>> CreateProcessAsync(CreateProcessRequest request)
+        public async Task<ApiResponse<int>> CreateProcessAsync(CreateProcessRequest request)
         {
             try
             {
                 var exists = await _processRepository.ExistsAsync(request.ProcessCode);
                 if (exists)
-                    return ApiResponse<Guid>.ErrorResponse($"Process code '{request.ProcessCode}' already exists");
+                    return ApiResponse<int>.ErrorResponse($"Process code '{request.ProcessCode}' already exists");
 
                 if (string.IsNullOrWhiteSpace(request.ProcessName))
-                    return ApiResponse<Guid>.ErrorResponse("Process name is required");
+                    return ApiResponse<int>.ErrorResponse("Process name is required");
 
                 var process = new Models.Masters.Process
                 {
@@ -119,11 +119,11 @@ namespace MultiHitechERP.API.Services.Implementations
                 };
 
                 var processId = await _processRepository.InsertAsync(process);
-                return ApiResponse<Guid>.SuccessResponse(processId, $"Process '{request.ProcessCode}' created successfully");
+                return ApiResponse<int>.SuccessResponse(processId, $"Process '{request.ProcessCode}' created successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse<Guid>.ErrorResponse($"Error creating process: {ex.Message}");
+                return ApiResponse<int>.ErrorResponse($"Error creating process: {ex.Message}");
             }
         }
 
@@ -181,7 +181,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeleteProcessAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteProcessAsync(int id)
         {
             try
             {
@@ -201,7 +201,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> ActivateProcessAsync(Guid id)
+        public async Task<ApiResponse<bool>> ActivateProcessAsync(int id)
         {
             try
             {
@@ -223,7 +223,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeactivateProcessAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeactivateProcessAsync(int id)
         {
             try
             {

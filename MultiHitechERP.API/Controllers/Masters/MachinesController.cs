@@ -25,7 +25,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(int id)
         {
             var result = await _machineService.GetByIdAsync(id);
             return result.Success ? Ok(result) : NotFound(result);
@@ -84,7 +84,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMachineRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateMachineRequest request)
         {
             if (id != request.Id)
                 return BadRequest("ID mismatch");
@@ -97,35 +97,35 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(int id)
         {
             var result = await _machineService.DeleteMachineAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/activate")]
-        public async Task<IActionResult> Activate(Guid id)
+        public async Task<IActionResult> Activate(int id)
         {
             var result = await _machineService.ActivateMachineAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/deactivate")]
-        public async Task<IActionResult> Deactivate(Guid id)
+        public async Task<IActionResult> Deactivate(int id)
         {
             var result = await _machineService.DeactivateMachineAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/assign")]
-        public async Task<IActionResult> AssignToJobCard(Guid id, [FromBody] string jobCardNo)
+        public async Task<IActionResult> AssignToJobCard(int id, [FromBody] string jobCardNo)
         {
             var result = await _machineService.AssignToJobCardAsync(id, jobCardNo);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/release")]
-        public async Task<IActionResult> ReleaseFromJobCard(Guid id)
+        public async Task<IActionResult> ReleaseFromJobCard(int id)
         {
             var result = await _machineService.ReleaseFromJobCardAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);

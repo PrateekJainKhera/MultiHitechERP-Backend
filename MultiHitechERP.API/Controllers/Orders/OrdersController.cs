@@ -51,7 +51,7 @@ namespace MultiHitechERP.API.Controllers.Orders
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ApiResponse<OrderResponse>), 200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(int id)
         {
             _logger.LogInformation("Getting order with ID: {OrderId}", id);
 
@@ -90,7 +90,7 @@ namespace MultiHitechERP.API.Controllers.Orders
         /// </summary>
         [HttpGet("by-customer/{customerId}")]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<OrderResponse>>), 200)]
-        public async Task<IActionResult> GetByCustomerId(Guid customerId)
+        public async Task<IActionResult> GetByCustomerId(int customerId)
         {
             _logger.LogInformation("Getting orders for customer: {CustomerId}", customerId);
 
@@ -235,7 +235,7 @@ namespace MultiHitechERP.API.Controllers.Orders
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateOrderRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateOrderRequest request)
         {
             _logger.LogInformation("Updating order: {OrderId}", id);
 
@@ -266,7 +266,7 @@ namespace MultiHitechERP.API.Controllers.Orders
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(int id)
         {
             _logger.LogInformation("Deleting order: {OrderId}", id);
 
@@ -287,7 +287,7 @@ namespace MultiHitechERP.API.Controllers.Orders
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> UpdateDrawingReview(
-            Guid id,
+            int id,
             [FromBody] UpdateDrawingReviewRequest request)
         {
             _logger.LogInformation("Updating drawing review for order: {OrderId}", id);
@@ -319,7 +319,7 @@ namespace MultiHitechERP.API.Controllers.Orders
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> ApproveDrawingReview(
-            Guid id,
+            int id,
             [FromBody] ApproveDrawingReviewRequest request)
         {
             _logger.LogInformation("Approving drawing review for order: {OrderId}", id);
@@ -345,7 +345,7 @@ namespace MultiHitechERP.API.Controllers.Orders
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> RejectDrawingReview(
-            Guid id,
+            int id,
             [FromBody] RejectDrawingReviewRequest request)
         {
             _logger.LogInformation("Rejecting drawing review for order: {OrderId}", id);
@@ -369,7 +369,7 @@ namespace MultiHitechERP.API.Controllers.Orders
         /// </summary>
         [HttpGet("{id}/can-generate-job-cards")]
         [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
-        public async Task<IActionResult> CanGenerateJobCards(Guid id)
+        public async Task<IActionResult> CanGenerateJobCards(int id)
         {
             _logger.LogInformation("Checking if order {OrderId} can generate job cards", id);
 

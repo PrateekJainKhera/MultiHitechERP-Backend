@@ -12,18 +12,18 @@ namespace MultiHitechERP.API.Services.Interfaces
     public interface IProcessService
     {
         // CRUD Operations
-        Task<ApiResponse<ProcessResponse>> GetByIdAsync(Guid id);
+        Task<ApiResponse<ProcessResponse>> GetByIdAsync(int id);
         Task<ApiResponse<ProcessResponse>> GetByProcessCodeAsync(string processCode);
         Task<ApiResponse<IEnumerable<ProcessResponse>>> GetAllAsync();
         Task<ApiResponse<IEnumerable<ProcessResponse>>> GetActiveProcessesAsync();
 
-        Task<ApiResponse<Guid>> CreateProcessAsync(CreateProcessRequest request);
+        Task<ApiResponse<int>> CreateProcessAsync(CreateProcessRequest request);
         Task<ApiResponse<bool>> UpdateProcessAsync(UpdateProcessRequest request);
-        Task<ApiResponse<bool>> DeleteProcessAsync(Guid id);
+        Task<ApiResponse<bool>> DeleteProcessAsync(int id);
 
         // Status Operations
-        Task<ApiResponse<bool>> ActivateProcessAsync(Guid id);
-        Task<ApiResponse<bool>> DeactivateProcessAsync(Guid id);
+        Task<ApiResponse<bool>> ActivateProcessAsync(int id);
+        Task<ApiResponse<bool>> DeactivateProcessAsync(int id);
 
         // Business Queries
         Task<ApiResponse<IEnumerable<ProcessResponse>>> GetByProcessTypeAsync(string processType);

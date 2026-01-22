@@ -13,33 +13,33 @@ namespace MultiHitechERP.API.Services.Interfaces
     public interface IProductionService
     {
         // Basic CRUD Operations
-        Task<ApiResponse<JobCardExecution>> GetByIdAsync(Guid id);
+        Task<ApiResponse<JobCardExecution>> GetByIdAsync(int id);
         Task<ApiResponse<IEnumerable<JobCardExecution>>> GetAllAsync();
-        Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByJobCardIdAsync(Guid jobCardId);
-        Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByMachineIdAsync(Guid machineId);
-        Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByOperatorIdAsync(Guid operatorId);
+        Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByJobCardIdAsync(int jobCardId);
+        Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByMachineIdAsync(int machineId);
+        Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByOperatorIdAsync(int operatorId);
 
         // Create, Update, Delete
-        Task<ApiResponse<Guid>> CreateExecutionAsync(JobCardExecution execution);
+        Task<ApiResponse<int>> CreateExecutionAsync(JobCardExecution execution);
         Task<ApiResponse<bool>> UpdateExecutionAsync(JobCardExecution execution);
-        Task<ApiResponse<bool>> DeleteExecutionAsync(Guid id);
+        Task<ApiResponse<bool>> DeleteExecutionAsync(int id);
 
         // Execution Operations
-        Task<ApiResponse<Guid>> StartProductionAsync(Guid jobCardId, Guid machineId, Guid operatorId, int quantityStarted);
-        Task<ApiResponse<bool>> PauseProductionAsync(Guid executionId);
-        Task<ApiResponse<bool>> ResumeProductionAsync(Guid executionId);
-        Task<ApiResponse<bool>> CompleteProductionAsync(Guid executionId, int quantityCompleted, int? quantityRejected);
-        Task<ApiResponse<bool>> UpdateQuantitiesAsync(Guid executionId, int? completed, int? rejected, int? inProgress);
+        Task<ApiResponse<int>> StartProductionAsync(int jobCardId, int machineId, int operatorId, int quantityStarted);
+        Task<ApiResponse<bool>> PauseProductionAsync(int executionId);
+        Task<ApiResponse<bool>> ResumeProductionAsync(int executionId);
+        Task<ApiResponse<bool>> CompleteProductionAsync(int executionId, int quantityCompleted, int? quantityRejected);
+        Task<ApiResponse<bool>> UpdateQuantitiesAsync(int executionId, int? completed, int? rejected, int? inProgress);
 
         // Queries
         Task<ApiResponse<IEnumerable<JobCardExecution>>> GetActiveExecutionsAsync();
         Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByStatusAsync(string status);
         Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByDateRangeAsync(DateTime startDate, DateTime endDate);
-        Task<ApiResponse<JobCardExecution>> GetCurrentExecutionForJobCardAsync(Guid jobCardId);
-        Task<ApiResponse<IEnumerable<JobCardExecution>>> GetExecutionHistoryForJobCardAsync(Guid jobCardId);
+        Task<ApiResponse<JobCardExecution>> GetCurrentExecutionForJobCardAsync(int jobCardId);
+        Task<ApiResponse<IEnumerable<JobCardExecution>>> GetExecutionHistoryForJobCardAsync(int jobCardId);
 
         // Statistics
-        Task<ApiResponse<int>> GetTotalExecutionTimeForJobCardAsync(Guid jobCardId);
-        Task<ApiResponse<int>> GetTotalCompletedQuantityForJobCardAsync(Guid jobCardId);
+        Task<ApiResponse<int>> GetTotalExecutionTimeForJobCardAsync(int jobCardId);
+        Task<ApiResponse<int>> GetTotalCompletedQuantityForJobCardAsync(int jobCardId);
     }
 }

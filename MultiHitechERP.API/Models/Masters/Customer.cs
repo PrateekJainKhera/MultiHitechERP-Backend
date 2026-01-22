@@ -7,7 +7,7 @@ namespace MultiHitechERP.API.Models.Masters
     /// </summary>
     public class Customer
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string CustomerCode { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
         public string CustomerType { get; set; } = string.Empty; // 'Direct', 'Agent', 'Dealer'

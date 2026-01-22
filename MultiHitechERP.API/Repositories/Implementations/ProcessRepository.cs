@@ -17,7 +17,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<Process?> GetByIdAsync(Guid id)
+        public async Task<Process?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Masters_Processes WHERE Id = @Id";
 
@@ -79,7 +79,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return processes;
         }
 
-        public async Task<Guid> InsertAsync(Process process)
+        public async Task<int> InsertAsync(Process process)
         {
             const string query = @"
                 INSERT INTO Masters_Processes (
@@ -107,7 +107,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            process.Id = Guid.NewGuid();
+            process.Id = 0;
             process.CreatedAt = DateTime.UtcNow;
             AddProcessParameters(command, process);
 
@@ -145,7 +145,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Masters_Processes WHERE Id = @Id";
 
@@ -157,7 +157,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> ActivateAsync(Guid id)
+        public async Task<bool> ActivateAsync(int id)
         {
             const string query = "UPDATE Masters_Processes SET IsActive = 1, Status = 'Active', UpdatedAt = @UpdatedAt WHERE Id = @Id";
 
@@ -170,7 +170,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> DeactivateAsync(Guid id)
+        public async Task<bool> DeactivateAsync(int id)
         {
             const string query = "UPDATE Masters_Processes SET IsActive = 0, Status = 'Inactive', UpdatedAt = @UpdatedAt WHERE Id = @Id";
 
@@ -272,7 +272,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new Process
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 ProcessCode = reader.GetString(reader.GetOrdinal("ProcessCode")),
                 ProcessName = reader.GetString(reader.GetOrdinal("ProcessName")),
                 ProcessType = reader.IsDBNull(reader.GetOrdinal("ProcessType")) ? null : reader.GetString(reader.GetOrdinal("ProcessType")),
@@ -281,7 +281,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                 ProcessDetails = reader.IsDBNull(reader.GetOrdinal("ProcessDetails")) ? null : reader.GetString(reader.GetOrdinal("ProcessDetails")),
                 MachineType = reader.IsDBNull(reader.GetOrdinal("MachineType")) ? null : reader.GetString(reader.GetOrdinal("MachineType")),
-                DefaultMachineId = reader.IsDBNull(reader.GetOrdinal("DefaultMachineId")) ? null : reader.GetGuid(reader.GetOrdinal("DefaultMachineId")),
+                DefaultMachineId = reader.IsDBNull(reader.GetOrdinal("DefaultMachineId")) ? null : reader.GetInt32(reader.GetOrdinal("DefaultMachineId")),
                 DefaultMachineName = reader.IsDBNull(reader.GetOrdinal("DefaultMachineName")) ? null : reader.GetString(reader.GetOrdinal("DefaultMachineName")),
                 StandardSetupTimeMin = reader.IsDBNull(reader.GetOrdinal("StandardSetupTimeMin")) ? null : reader.GetInt32(reader.GetOrdinal("StandardSetupTimeMin")),
                 StandardCycleTimeMin = reader.IsDBNull(reader.GetOrdinal("StandardCycleTimeMin")) ? null : reader.GetInt32(reader.GetOrdinal("StandardCycleTimeMin")),

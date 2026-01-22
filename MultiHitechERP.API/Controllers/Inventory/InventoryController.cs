@@ -40,7 +40,7 @@ namespace MultiHitechERP.API.Controllers.Inventory
         /// Get inventory by ID
         /// </summary>
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<InventoryResponse>>> GetById(Guid id)
+        public async Task<ActionResult<ApiResponse<InventoryResponse>>> GetById(int id)
         {
             var response = await _service.GetByIdAsync(id);
             if (!response.Success)
@@ -54,7 +54,7 @@ namespace MultiHitechERP.API.Controllers.Inventory
         /// Get inventory by material ID
         /// </summary>
         [HttpGet("by-material/{materialId:guid}")]
-        public async Task<ActionResult<ApiResponse<InventoryResponse>>> GetByMaterialId(Guid materialId)
+        public async Task<ActionResult<ApiResponse<InventoryResponse>>> GetByMaterialId(int materialId)
         {
             var response = await _service.GetByMaterialIdAsync(materialId);
             if (!response.Success)
@@ -254,7 +254,7 @@ namespace MultiHitechERP.API.Controllers.Inventory
         /// Get transactions by material ID
         /// </summary>
         [HttpGet("transactions/by-material/{materialId:guid}")]
-        public async Task<ActionResult<ApiResponse<InventoryTransactionResponse[]>>> GetTransactionsByMaterialId(Guid materialId)
+        public async Task<ActionResult<ApiResponse<InventoryTransactionResponse[]>>> GetTransactionsByMaterialId(int materialId)
         {
             var response = await _service.GetTransactionsByMaterialIdAsync(materialId);
             if (!response.Success)

@@ -18,7 +18,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<Product?> GetByIdAsync(int id)
+        public async Task<Product?> GetByIdAsync(Guid id)
         {
             const string query = "SELECT * FROM Masters_Products WHERE Id = @Id";
 
@@ -84,23 +84,22 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return products;
         }
 
-        public async Task<int> InsertAsync(Product product)
+        public async Task<Guid> InsertAsync(Product product)
         {
             const string query = @"
                 INSERT INTO Masters_Products
-                (PartCode, CustomerId, CustomerName, ModelName, RollerType, Diameter, Length, Weight,
-                 MaterialGrade, SurfaceFinish, Hardness, DrawingNo, RevisionNo, DrawingId,
-                 ProcessTemplateId, ProductTemplateId, StandardCost, SellingPrice, StandardLeadTimeDays,
-                 MinOrderQuantity, Category, ProductType, Description, HSNCode, UOM, Remarks,
-                 IsActive, CreatedAt, CreatedBy)
+                (Id, PartCode, ModelName, Category, SubCategory, ProductType, Specification, Description, HSNCode,
+                 Length, Width, Height, Diameter, Weight, UOM, DrawingId, DrawingNumber, BOMId, ProcessRouteId,
+                 StandardCost, SellingPrice, MaterialGrade, MaterialSpecification, StandardBatchSize, MinOrderQuantity,
+                 LeadTimeDays, IsActive, Status, Remarks, CreatedAt, CreatedBy)
                 VALUES
-                (@PartCode, @CustomerId, @CustomerName, @ModelName, @RollerType, @Diameter, @Length, @Weight,
-                 @MaterialGrade, @SurfaceFinish, @Hardness, @DrawingNo, @RevisionNo, @DrawingId,
-                 @ProcessTemplateId, @ProductTemplateId, @StandardCost, @SellingPrice, @StandardLeadTimeDays,
-                 @MinOrderQuantity, @Category, @ProductType, @Description, @HSNCode, @UOM, @Remarks,
-                 @IsActive, @CreatedAt, @CreatedBy);
-                SELECT CAST(SCOPE_IDENTITY() AS INT);";
+                (@Id, @PartCode, @ModelName, @Category, @SubCategory, @ProductType, @Specification, @Description, @HSNCode,
+                 @Length, @Width, @Height, @Diameter, @Weight, @UOM, @DrawingId, @DrawingNumber, @BOMId, @ProcessRouteId,
+                 @StandardCost, @SellingPrice, @MaterialGrade, @MaterialSpecification, @StandardBatchSize, @MinOrderQuantity,
+                 @LeadTimeDays, @IsActive, @Status, @Remarks, @CreatedAt, @CreatedBy)";
 
+            var productId = Guid.NewGuid();
+            product.Id = productId;
             product.CreatedAt = DateTime.UtcNow;
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -109,8 +108,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             AddProductParameters(command, product);
 
             await connection.OpenAsync();
-            var productId = (int)await command.ExecuteScalarAsync();
-            product.Id = productId;
+            await command.ExecuteNonQueryAsync();
 
             return productId;
         }
@@ -120,32 +118,33 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 UPDATE Masters_Products SET
                     PartCode = @PartCode,
-                    CustomerId = @CustomerId,
-                    CustomerName = @CustomerName,
                     ModelName = @ModelName,
-                    RollerType = @RollerType,
-                    Diameter = @Diameter,
-                    Length = @Length,
-                    Weight = @Weight,
-                    MaterialGrade = @MaterialGrade,
-                    SurfaceFinish = @SurfaceFinish,
-                    Hardness = @Hardness,
-                    DrawingNo = @DrawingNo,
-                    RevisionNo = @RevisionNo,
-                    DrawingId = @DrawingId,
-                    ProcessTemplateId = @ProcessTemplateId,
-                    ProductTemplateId = @ProductTemplateId,
-                    StandardCost = @StandardCost,
-                    SellingPrice = @SellingPrice,
-                    StandardLeadTimeDays = @StandardLeadTimeDays,
-                    MinOrderQuantity = @MinOrderQuantity,
                     Category = @Category,
+                    SubCategory = @SubCategory,
                     ProductType = @ProductType,
+                    Specification = @Specification,
                     Description = @Description,
                     HSNCode = @HSNCode,
+                    Length = @Length,
+                    Width = @Width,
+                    Height = @Height,
+                    Diameter = @Diameter,
+                    Weight = @Weight,
                     UOM = @UOM,
-                    Remarks = @Remarks,
+                    DrawingId = @DrawingId,
+                    DrawingNumber = @DrawingNumber,
+                    BOMId = @BOMId,
+                    ProcessRouteId = @ProcessRouteId,
+                    StandardCost = @StandardCost,
+                    SellingPrice = @SellingPrice,
+                    MaterialGrade = @MaterialGrade,
+                    MaterialSpecification = @MaterialSpecification,
+                    StandardBatchSize = @StandardBatchSize,
+                    MinOrderQuantity = @MinOrderQuantity,
+                    LeadTimeDays = @LeadTimeDays,
                     IsActive = @IsActive,
+                    Status = @Status,
+                    Remarks = @Remarks,
                     UpdatedAt = @UpdatedAt,
                     UpdatedBy = @UpdatedBy
                 WHERE Id = @Id";
@@ -163,7 +162,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(Guid id)
         {
             const string query = "DELETE FROM Masters_Products WHERE Id = @Id";
 
@@ -177,7 +176,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> ActivateAsync(int id)
+        public async Task<bool> ActivateAsync(Guid id)
         {
             const string query = "UPDATE Masters_Products SET IsActive = 1, Status = 'Active', UpdatedAt = @UpdatedAt WHERE Id = @Id";
 
@@ -192,7 +191,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeactivateAsync(int id)
+        public async Task<bool> DeactivateAsync(Guid id)
         {
             const string query = "UPDATE Masters_Products SET IsActive = 0, Status = 'Inactive', UpdatedAt = @UpdatedAt WHERE Id = @Id";
 
@@ -267,7 +266,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return products;
         }
 
-        public async Task<IEnumerable<Product>> GetByDrawingIdAsync(int drawingId)
+        public async Task<IEnumerable<Product>> GetByDrawingIdAsync(Guid drawingId)
         {
             const string query = "SELECT * FROM Masters_Products WHERE DrawingId = @DrawingId ORDER BY ModelName";
             var products = new List<Product>();
@@ -305,34 +304,35 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new Product
             {
-                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                Id = reader.GetGuid(reader.GetOrdinal("Id")),
                 PartCode = reader.GetString(reader.GetOrdinal("PartCode")),
-                CustomerId = reader.IsDBNull(reader.GetOrdinal("CustomerId")) ? null : reader.GetInt32(reader.GetOrdinal("CustomerId")),
-                CustomerName = reader.IsDBNull(reader.GetOrdinal("CustomerName")) ? null : reader.GetString(reader.GetOrdinal("CustomerName")),
                 ModelName = reader.GetString(reader.GetOrdinal("ModelName")),
-                RollerType = reader.GetString(reader.GetOrdinal("RollerType")),
-                Diameter = reader.IsDBNull(reader.GetOrdinal("Diameter")) ? null : reader.GetDecimal(reader.GetOrdinal("Diameter")),
-                Length = reader.IsDBNull(reader.GetOrdinal("Length")) ? null : reader.GetDecimal(reader.GetOrdinal("Length")),
-                Weight = reader.IsDBNull(reader.GetOrdinal("Weight")) ? null : reader.GetDecimal(reader.GetOrdinal("Weight")),
-                MaterialGrade = reader.IsDBNull(reader.GetOrdinal("MaterialGrade")) ? null : reader.GetString(reader.GetOrdinal("MaterialGrade")),
-                SurfaceFinish = reader.IsDBNull(reader.GetOrdinal("SurfaceFinish")) ? null : reader.GetString(reader.GetOrdinal("SurfaceFinish")),
-                Hardness = reader.IsDBNull(reader.GetOrdinal("Hardness")) ? null : reader.GetString(reader.GetOrdinal("Hardness")),
-                DrawingNo = reader.IsDBNull(reader.GetOrdinal("DrawingNo")) ? null : reader.GetString(reader.GetOrdinal("DrawingNo")),
-                RevisionNo = reader.IsDBNull(reader.GetOrdinal("RevisionNo")) ? null : reader.GetString(reader.GetOrdinal("RevisionNo")),
-                DrawingId = reader.IsDBNull(reader.GetOrdinal("DrawingId")) ? null : reader.GetInt32(reader.GetOrdinal("DrawingId")),
-                ProcessTemplateId = reader.IsDBNull(reader.GetOrdinal("ProcessTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ProcessTemplateId")),
-                ProductTemplateId = reader.IsDBNull(reader.GetOrdinal("ProductTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ProductTemplateId")),
-                StandardCost = reader.IsDBNull(reader.GetOrdinal("StandardCost")) ? null : reader.GetDecimal(reader.GetOrdinal("StandardCost")),
-                SellingPrice = reader.IsDBNull(reader.GetOrdinal("SellingPrice")) ? null : reader.GetDecimal(reader.GetOrdinal("SellingPrice")),
-                StandardLeadTimeDays = reader.IsDBNull(reader.GetOrdinal("StandardLeadTimeDays")) ? null : reader.GetInt32(reader.GetOrdinal("StandardLeadTimeDays")),
-                MinOrderQuantity = reader.IsDBNull(reader.GetOrdinal("MinOrderQuantity")) ? null : reader.GetInt32(reader.GetOrdinal("MinOrderQuantity")),
                 Category = reader.IsDBNull(reader.GetOrdinal("Category")) ? null : reader.GetString(reader.GetOrdinal("Category")),
+                SubCategory = reader.IsDBNull(reader.GetOrdinal("SubCategory")) ? null : reader.GetString(reader.GetOrdinal("SubCategory")),
                 ProductType = reader.IsDBNull(reader.GetOrdinal("ProductType")) ? null : reader.GetString(reader.GetOrdinal("ProductType")),
+                Specification = reader.IsDBNull(reader.GetOrdinal("Specification")) ? null : reader.GetString(reader.GetOrdinal("Specification")),
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                 HSNCode = reader.IsDBNull(reader.GetOrdinal("HSNCode")) ? null : reader.GetString(reader.GetOrdinal("HSNCode")),
+                Length = reader.IsDBNull(reader.GetOrdinal("Length")) ? null : reader.GetDecimal(reader.GetOrdinal("Length")),
+                Width = reader.IsDBNull(reader.GetOrdinal("Width")) ? null : reader.GetDecimal(reader.GetOrdinal("Width")),
+                Height = reader.IsDBNull(reader.GetOrdinal("Height")) ? null : reader.GetDecimal(reader.GetOrdinal("Height")),
+                Diameter = reader.IsDBNull(reader.GetOrdinal("Diameter")) ? null : reader.GetDecimal(reader.GetOrdinal("Diameter")),
+                Weight = reader.IsDBNull(reader.GetOrdinal("Weight")) ? null : reader.GetDecimal(reader.GetOrdinal("Weight")),
                 UOM = reader.IsDBNull(reader.GetOrdinal("UOM")) ? null : reader.GetString(reader.GetOrdinal("UOM")),
-                Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
+                DrawingId = reader.IsDBNull(reader.GetOrdinal("DrawingId")) ? null : reader.GetGuid(reader.GetOrdinal("DrawingId")),
+                DrawingNumber = reader.IsDBNull(reader.GetOrdinal("DrawingNumber")) ? null : reader.GetString(reader.GetOrdinal("DrawingNumber")),
+                BOMId = reader.IsDBNull(reader.GetOrdinal("BOMId")) ? null : reader.GetGuid(reader.GetOrdinal("BOMId")),
+                ProcessRouteId = reader.IsDBNull(reader.GetOrdinal("ProcessRouteId")) ? null : reader.GetGuid(reader.GetOrdinal("ProcessRouteId")),
+                StandardCost = reader.IsDBNull(reader.GetOrdinal("StandardCost")) ? null : reader.GetDecimal(reader.GetOrdinal("StandardCost")),
+                SellingPrice = reader.IsDBNull(reader.GetOrdinal("SellingPrice")) ? null : reader.GetDecimal(reader.GetOrdinal("SellingPrice")),
+                MaterialGrade = reader.IsDBNull(reader.GetOrdinal("MaterialGrade")) ? null : reader.GetString(reader.GetOrdinal("MaterialGrade")),
+                MaterialSpecification = reader.IsDBNull(reader.GetOrdinal("MaterialSpecification")) ? null : reader.GetString(reader.GetOrdinal("MaterialSpecification")),
+                StandardBatchSize = reader.IsDBNull(reader.GetOrdinal("StandardBatchSize")) ? null : reader.GetInt32(reader.GetOrdinal("StandardBatchSize")),
+                MinOrderQuantity = reader.IsDBNull(reader.GetOrdinal("MinOrderQuantity")) ? null : reader.GetInt32(reader.GetOrdinal("MinOrderQuantity")),
+                LeadTimeDays = reader.IsDBNull(reader.GetOrdinal("LeadTimeDays")) ? null : reader.GetInt32(reader.GetOrdinal("LeadTimeDays")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
+                Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? null : reader.GetString(reader.GetOrdinal("Status")),
+                Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
                 UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
@@ -344,32 +344,33 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             command.Parameters.AddWithValue("@Id", product.Id);
             command.Parameters.AddWithValue("@PartCode", product.PartCode);
-            command.Parameters.AddWithValue("@CustomerId", (object?)product.CustomerId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CustomerName", (object?)product.CustomerName ?? DBNull.Value);
             command.Parameters.AddWithValue("@ModelName", product.ModelName);
-            command.Parameters.AddWithValue("@RollerType", product.RollerType);
-            command.Parameters.AddWithValue("@Diameter", (object?)product.Diameter ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Length", (object?)product.Length ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Weight", (object?)product.Weight ?? DBNull.Value);
-            command.Parameters.AddWithValue("@MaterialGrade", (object?)product.MaterialGrade ?? DBNull.Value);
-            command.Parameters.AddWithValue("@SurfaceFinish", (object?)product.SurfaceFinish ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Hardness", (object?)product.Hardness ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DrawingNo", (object?)product.DrawingNo ?? DBNull.Value);
-            command.Parameters.AddWithValue("@RevisionNo", (object?)product.RevisionNo ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DrawingId", (object?)product.DrawingId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ProcessTemplateId", (object?)product.ProcessTemplateId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ProductTemplateId", (object?)product.ProductTemplateId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@StandardCost", (object?)product.StandardCost ?? DBNull.Value);
-            command.Parameters.AddWithValue("@SellingPrice", (object?)product.SellingPrice ?? DBNull.Value);
-            command.Parameters.AddWithValue("@StandardLeadTimeDays", (object?)product.StandardLeadTimeDays ?? DBNull.Value);
-            command.Parameters.AddWithValue("@MinOrderQuantity", (object?)product.MinOrderQuantity ?? DBNull.Value);
             command.Parameters.AddWithValue("@Category", (object?)product.Category ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SubCategory", (object?)product.SubCategory ?? DBNull.Value);
             command.Parameters.AddWithValue("@ProductType", (object?)product.ProductType ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Specification", (object?)product.Specification ?? DBNull.Value);
             command.Parameters.AddWithValue("@Description", (object?)product.Description ?? DBNull.Value);
             command.Parameters.AddWithValue("@HSNCode", (object?)product.HSNCode ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Length", (object?)product.Length ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Width", (object?)product.Width ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Height", (object?)product.Height ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Diameter", (object?)product.Diameter ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Weight", (object?)product.Weight ?? DBNull.Value);
             command.Parameters.AddWithValue("@UOM", (object?)product.UOM ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Remarks", (object?)product.Remarks ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingId", (object?)product.DrawingId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingNumber", (object?)product.DrawingNumber ?? DBNull.Value);
+            command.Parameters.AddWithValue("@BOMId", (object?)product.BOMId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProcessRouteId", (object?)product.ProcessRouteId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@StandardCost", (object?)product.StandardCost ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SellingPrice", (object?)product.SellingPrice ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MaterialGrade", (object?)product.MaterialGrade ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MaterialSpecification", (object?)product.MaterialSpecification ?? DBNull.Value);
+            command.Parameters.AddWithValue("@StandardBatchSize", (object?)product.StandardBatchSize ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MinOrderQuantity", (object?)product.MinOrderQuantity ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LeadTimeDays", (object?)product.LeadTimeDays ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", product.IsActive);
+            command.Parameters.AddWithValue("@Status", (object?)product.Status ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Remarks", (object?)product.Remarks ?? DBNull.Value);
             command.Parameters.AddWithValue("@CreatedAt", product.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", (object?)product.CreatedBy ?? DBNull.Value);
             command.Parameters.AddWithValue("@UpdatedAt", (object?)product.UpdatedAt ?? DBNull.Value);

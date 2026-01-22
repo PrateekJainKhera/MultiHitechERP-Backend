@@ -11,28 +11,28 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface IOperatorRepository
     {
         // Basic CRUD Operations
-        Task<Operator?> GetByIdAsync(Guid id);
+        Task<Operator?> GetByIdAsync(int id);
         Task<Operator?> GetByOperatorCodeAsync(string operatorCode);
         Task<IEnumerable<Operator>> GetAllAsync();
         Task<IEnumerable<Operator>> GetActiveOperatorsAsync();
 
         // Create, Update, Delete
-        Task<Guid> InsertAsync(Operator operatorEntity);
+        Task<int> InsertAsync(Operator operatorEntity);
         Task<bool> UpdateAsync(Operator operatorEntity);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Status & Availability Operations
-        Task<bool> UpdateStatusAsync(Guid id, string status);
-        Task<bool> UpdateAvailabilityAsync(Guid id, bool isAvailable);
-        Task<bool> AssignToJobCardAsync(Guid id, Guid jobCardId, string jobCardNo, Guid? machineId);
-        Task<bool> ReleaseFromJobCardAsync(Guid id);
+        Task<bool> UpdateStatusAsync(int id, string status);
+        Task<bool> UpdateAvailabilityAsync(int id, bool isAvailable);
+        Task<bool> AssignToJobCardAsync(int id, int jobCardId, string jobCardNo, int? machineId);
+        Task<bool> ReleaseFromJobCardAsync(int id);
 
         // Queries
         Task<IEnumerable<Operator>> GetAvailableOperatorsAsync();
         Task<IEnumerable<Operator>> GetByDepartmentAsync(string department);
         Task<IEnumerable<Operator>> GetByShiftAsync(string shift);
         Task<IEnumerable<Operator>> GetBySkillLevelAsync(string skillLevel);
-        Task<IEnumerable<Operator>> GetByMachineExpertiseAsync(Guid machineId);
+        Task<IEnumerable<Operator>> GetByMachineExpertiseAsync(int machineId);
         Task<bool> ExistsAsync(string operatorCode);
     }
 }

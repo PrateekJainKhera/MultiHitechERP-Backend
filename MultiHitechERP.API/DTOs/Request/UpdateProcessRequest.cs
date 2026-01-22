@@ -6,7 +6,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateProcessRequest
     {
         [Required]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         [Required(ErrorMessage = "Process code is required")]
         public string ProcessCode { get; set; } = string.Empty;
@@ -25,7 +25,7 @@ namespace MultiHitechERP.API.DTOs.Request
 
         // Machine Requirements
         public string? MachineType { get; set; }
-        public Guid? DefaultMachineId { get; set; }
+        public int? DefaultMachineId { get; set; }
         public string? DefaultMachineName { get; set; }
 
         // Time Standards

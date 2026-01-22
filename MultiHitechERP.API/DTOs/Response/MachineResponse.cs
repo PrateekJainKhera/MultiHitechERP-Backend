@@ -4,7 +4,7 @@ namespace MultiHitechERP.API.DTOs.Response
 {
     public class MachineResponse
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string MachineCode { get; set; } = string.Empty;
         public string MachineName { get; set; } = string.Empty;
 

@@ -25,7 +25,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(int id)
         {
             var result = await _processService.GetByIdAsync(id);
             return result.Success ? Ok(result) : NotFound(result);
@@ -84,7 +84,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProcessRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateProcessRequest request)
         {
             if (id != request.Id)
                 return BadRequest("ID mismatch");
@@ -97,21 +97,21 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(int id)
         {
             var result = await _processService.DeleteProcessAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/activate")]
-        public async Task<IActionResult> Activate(Guid id)
+        public async Task<IActionResult> Activate(int id)
         {
             var result = await _processService.ActivateProcessAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/deactivate")]
-        public async Task<IActionResult> Deactivate(Guid id)
+        public async Task<IActionResult> Deactivate(int id)
         {
             var result = await _processService.DeactivateProcessAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);

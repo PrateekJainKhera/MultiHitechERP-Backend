@@ -21,7 +21,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<Inventory?> GetByIdAsync(Guid id)
+        public async Task<Inventory?> GetByIdAsync(int id)
         {
             const string query = @"
                 SELECT * FROM Inventory_Stock
@@ -40,7 +40,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return null;
         }
 
-        public async Task<Inventory?> GetByMaterialIdAsync(Guid materialId)
+        public async Task<Inventory?> GetByMaterialIdAsync(int materialId)
         {
             const string query = @"
                 SELECT * FROM Inventory_Stock
@@ -82,7 +82,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return inventories;
         }
 
-        public async Task<Guid> InsertAsync(Inventory inventory)
+        public async Task<int> InsertAsync(Inventory inventory)
         {
             const string query = @"
                 INSERT INTO Inventory_Stock (
@@ -109,7 +109,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            var id = Guid.NewGuid();
+            var id = 0;
             command.Parameters.AddWithValue("@Id", id);
             command.Parameters.AddWithValue("@MaterialId", inventory.MaterialId);
             command.Parameters.AddWithValue("@MaterialCode", (object?)inventory.MaterialCode ?? DBNull.Value);
@@ -210,7 +210,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Inventory_Stock WHERE Id = @Id";
 
@@ -346,7 +346,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return inventories;
         }
 
-        public async Task<bool> UpdateStockLevelsAsync(Guid materialId, decimal totalQty, decimal availableQty, decimal allocatedQty, decimal issuedQty)
+        public async Task<bool> UpdateStockLevelsAsync(int materialId, decimal totalQty, decimal availableQty, decimal allocatedQty, decimal issuedQty)
         {
             const string query = @"
                 UPDATE Inventory_Stock
@@ -372,7 +372,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateAverageCostAsync(Guid materialId, decimal avgCost, decimal totalValue)
+        public async Task<bool> UpdateAverageCostAsync(int materialId, decimal avgCost, decimal totalValue)
         {
             const string query = @"
                 UPDATE Inventory_Stock
@@ -394,7 +394,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateStockStatusAsync(Guid materialId, bool isLowStock, bool isOutOfStock)
+        public async Task<bool> UpdateStockStatusAsync(int materialId, bool isLowStock, bool isOutOfStock)
         {
             const string query = @"
                 UPDATE Inventory_Stock
@@ -417,7 +417,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         }
 
         // Transaction Methods
-        public async Task<Guid> InsertTransactionAsync(InventoryTransaction transaction)
+        public async Task<int> InsertTransactionAsync(InventoryTransaction transaction)
         {
             const string query = @"
                 INSERT INTO Inventory_Transactions (
@@ -446,7 +446,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            var id = Guid.NewGuid();
+            var id = 0;
             command.Parameters.AddWithValue("@Id", id);
             command.Parameters.AddWithValue("@MaterialId", transaction.MaterialId);
             command.Parameters.AddWithValue("@TransactionType", transaction.TransactionType);
@@ -477,7 +477,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return id;
         }
 
-        public async Task<IEnumerable<InventoryTransaction>> GetTransactionsByMaterialIdAsync(Guid materialId)
+        public async Task<IEnumerable<InventoryTransaction>> GetTransactionsByMaterialIdAsync(int materialId)
         {
             const string query = @"
                 SELECT * FROM Inventory_Transactions
@@ -551,7 +551,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return transactions;
         }
 
-        public async Task<IEnumerable<InventoryTransaction>> GetTransactionsByJobCardIdAsync(Guid jobCardId)
+        public async Task<IEnumerable<InventoryTransaction>> GetTransactionsByJobCardIdAsync(int jobCardId)
         {
             const string query = @"
                 SELECT * FROM Inventory_Transactions
@@ -598,7 +598,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return transactions;
         }
 
-        public async Task<bool> ReconcileStockAsync(Guid materialId, decimal actualQuantity, string performedBy, string remarks)
+        public async Task<bool> ReconcileStockAsync(int materialId, decimal actualQuantity, string performedBy, string remarks)
         {
             // Get current stock
             var inventory = await GetByMaterialIdAsync(materialId);
@@ -655,8 +655,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new Inventory
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                MaterialId = reader.GetGuid(reader.GetOrdinal("MaterialId")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                MaterialId = reader.GetInt32(reader.GetOrdinal("MaterialId")),
                 MaterialCode = reader.IsDBNull(reader.GetOrdinal("MaterialCode")) ? null : reader.GetString(reader.GetOrdinal("MaterialCode")),
                 MaterialName = reader.IsDBNull(reader.GetOrdinal("MaterialName")) ? null : reader.GetString(reader.GetOrdinal("MaterialName")),
                 MaterialCategory = reader.IsDBNull(reader.GetOrdinal("MaterialCategory")) ? null : reader.GetString(reader.GetOrdinal("MaterialCategory")),
@@ -690,15 +690,15 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new InventoryTransaction
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                MaterialId = reader.GetGuid(reader.GetOrdinal("MaterialId")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                MaterialId = reader.GetInt32(reader.GetOrdinal("MaterialId")),
                 TransactionType = reader.GetString(reader.GetOrdinal("TransactionType")),
                 TransactionNo = reader.GetString(reader.GetOrdinal("TransactionNo")),
                 TransactionDate = reader.GetDateTime(reader.GetOrdinal("TransactionDate")),
                 Quantity = reader.GetDecimal(reader.GetOrdinal("Quantity")),
                 UOM = reader.GetString(reader.GetOrdinal("UOM")),
                 ReferenceType = reader.IsDBNull(reader.GetOrdinal("ReferenceType")) ? null : reader.GetString(reader.GetOrdinal("ReferenceType")),
-                ReferenceId = reader.IsDBNull(reader.GetOrdinal("ReferenceId")) ? null : reader.GetGuid(reader.GetOrdinal("ReferenceId")),
+                ReferenceId = reader.IsDBNull(reader.GetOrdinal("ReferenceId")) ? null : reader.GetInt32(reader.GetOrdinal("ReferenceId")),
                 ReferenceNo = reader.IsDBNull(reader.GetOrdinal("ReferenceNo")) ? null : reader.GetString(reader.GetOrdinal("ReferenceNo")),
                 FromLocation = reader.IsDBNull(reader.GetOrdinal("FromLocation")) ? null : reader.GetString(reader.GetOrdinal("FromLocation")),
                 ToLocation = reader.IsDBNull(reader.GetOrdinal("ToLocation")) ? null : reader.GetString(reader.GetOrdinal("ToLocation")),
@@ -707,9 +707,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 BalanceQuantity = reader.GetDecimal(reader.GetOrdinal("BalanceQuantity")),
                 Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
                 PerformedBy = reader.IsDBNull(reader.GetOrdinal("PerformedBy")) ? null : reader.GetString(reader.GetOrdinal("PerformedBy")),
-                JobCardId = reader.IsDBNull(reader.GetOrdinal("JobCardId")) ? null : reader.GetGuid(reader.GetOrdinal("JobCardId")),
-                RequisitionId = reader.IsDBNull(reader.GetOrdinal("RequisitionId")) ? null : reader.GetGuid(reader.GetOrdinal("RequisitionId")),
-                SupplierId = reader.IsDBNull(reader.GetOrdinal("SupplierId")) ? null : reader.GetGuid(reader.GetOrdinal("SupplierId")),
+                JobCardId = reader.IsDBNull(reader.GetOrdinal("JobCardId")) ? null : reader.GetInt32(reader.GetOrdinal("JobCardId")),
+                RequisitionId = reader.IsDBNull(reader.GetOrdinal("RequisitionId")) ? null : reader.GetInt32(reader.GetOrdinal("RequisitionId")),
+                SupplierId = reader.IsDBNull(reader.GetOrdinal("SupplierId")) ? null : reader.GetInt32(reader.GetOrdinal("SupplierId")),
                 GRNNo = reader.IsDBNull(reader.GetOrdinal("GRNNo")) ? null : reader.GetString(reader.GetOrdinal("GRNNo")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy"))

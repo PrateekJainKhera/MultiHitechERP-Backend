@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateBOMItemRequest
     {
         [Required]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         [Range(1, int.MaxValue)]
         public int LineNo { get; set; }
@@ -17,9 +17,9 @@ namespace MultiHitechERP.API.DTOs.Request
         [StringLength(50)]
         public string? ItemType { get; set; }
 
-        public Guid? MaterialId { get; set; }
+        public int? MaterialId { get; set; }
 
-        public Guid? ChildPartId { get; set; }
+        public int? ChildPartId { get; set; }
 
         [Range(0.01, double.MaxValue)]
         public decimal QuantityRequired { get; set; }

@@ -8,8 +8,8 @@ namespace MultiHitechERP.API.Models.Inventory
     /// </summary>
     public class InventoryTransaction
     {
-        public Guid Id { get; set; }
-        public Guid MaterialId { get; set; }
+        public int Id { get; set; }
+        public int MaterialId { get; set; }
 
         // Transaction Details
         public string TransactionType { get; set; } = string.Empty; // StockIn, StockOut, Adjustment, Transfer, Return
@@ -22,7 +22,7 @@ namespace MultiHitechERP.API.Models.Inventory
 
         // Reference
         public string? ReferenceType { get; set; } // GRN, MaterialIssue, Adjustment, Return
-        public Guid? ReferenceId { get; set; }
+        public int? ReferenceId { get; set; }
         public string? ReferenceNo { get; set; }
 
         // Location
@@ -41,11 +41,11 @@ namespace MultiHitechERP.API.Models.Inventory
         public string? PerformedBy { get; set; }
 
         // Job Card / Requisition Reference
-        public Guid? JobCardId { get; set; }
-        public Guid? RequisitionId { get; set; }
+        public int? JobCardId { get; set; }
+        public int? RequisitionId { get; set; }
 
         // Supplier Reference (for stock in)
-        public Guid? SupplierId { get; set; }
+        public int? SupplierId { get; set; }
         public string? GRNNo { get; set; }
 
         // Audit

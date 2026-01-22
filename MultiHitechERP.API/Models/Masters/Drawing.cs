@@ -7,12 +7,12 @@ namespace MultiHitechERP.API.Models.Masters
     /// </summary>
     public class Drawing
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string DrawingNumber { get; set; } = string.Empty;
         public string DrawingTitle { get; set; } = string.Empty;
 
         // Product Reference
-        public Guid? ProductId { get; set; }
+        public int? ProductId { get; set; }
         public string? ProductCode { get; set; }
         public string? ProductName { get; set; }
 
@@ -55,7 +55,7 @@ namespace MultiHitechERP.API.Models.Masters
         public bool IsLatestRevision { get; set; } = true;
 
         // Version History
-        public Guid? PreviousRevisionId { get; set; }
+        public int? PreviousRevisionId { get; set; }
         public int VersionNumber { get; set; } = 1;
 
         public string? Remarks { get; set; }

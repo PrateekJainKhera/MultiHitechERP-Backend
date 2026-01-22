@@ -6,7 +6,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateMachineRequest
     {
         [Required]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         [Required(ErrorMessage = "Machine code is required")]
         public string MachineCode { get; set; } = string.Empty;

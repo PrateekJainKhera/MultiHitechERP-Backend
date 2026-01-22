@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class StockAdjustmentRequest
     {
         [Required]
-        public Guid MaterialId { get; set; }
+        public int MaterialId { get; set; }
 
         [Required]
         public decimal Quantity { get; set; } // Can be positive or negative

@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class StockReconciliationRequest
     {
         [Required]
-        public Guid MaterialId { get; set; }
+        public int MaterialId { get; set; }
 
         [Required]
         [Range(0, double.MaxValue)]

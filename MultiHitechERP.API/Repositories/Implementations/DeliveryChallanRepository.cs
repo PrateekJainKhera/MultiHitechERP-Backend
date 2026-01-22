@@ -22,7 +22,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<DeliveryChallan?> GetByIdAsync(Guid id)
+        public async Task<DeliveryChallan?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Dispatch_DeliveryChallans WHERE Id = @Id";
 
@@ -77,7 +77,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return challans;
         }
 
-        public async Task<IEnumerable<DeliveryChallan>> GetByOrderIdAsync(Guid orderId)
+        public async Task<IEnumerable<DeliveryChallan>> GetByOrderIdAsync(int orderId)
         {
             const string query = "SELECT * FROM Dispatch_DeliveryChallans WHERE OrderId = @OrderId ORDER BY ChallanDate DESC";
 
@@ -96,7 +96,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return challans;
         }
 
-        public async Task<IEnumerable<DeliveryChallan>> GetByCustomerIdAsync(Guid customerId)
+        public async Task<IEnumerable<DeliveryChallan>> GetByCustomerIdAsync(int customerId)
         {
             const string query = "SELECT * FROM Dispatch_DeliveryChallans WHERE CustomerId = @CustomerId ORDER BY ChallanDate DESC";
 
@@ -134,7 +134,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return challans;
         }
 
-        public async Task<Guid> InsertAsync(DeliveryChallan challan)
+        public async Task<int> InsertAsync(DeliveryChallan challan)
         {
             const string query = @"
                 INSERT INTO Dispatch_DeliveryChallans (
@@ -161,7 +161,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            var id = Guid.NewGuid();
+            var id = 0;
 
             command.Parameters.AddWithValue("@Id", id);
             command.Parameters.AddWithValue("@ChallanNo", challan.ChallanNo);
@@ -268,7 +268,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Dispatch_DeliveryChallans WHERE Id = @Id";
 
@@ -281,7 +281,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateStatusAsync(Guid id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status)
         {
             const string query = "UPDATE Dispatch_DeliveryChallans SET Status = @Status WHERE Id = @Id";
 
@@ -295,7 +295,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DispatchChallanAsync(Guid id, DateTime dispatchedAt)
+        public async Task<bool> DispatchChallanAsync(int id, DateTime dispatchedAt)
         {
             const string query = @"
                 UPDATE Dispatch_DeliveryChallans
@@ -313,7 +313,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
-        public async Task<bool> DeliverChallanAsync(Guid id, DateTime deliveredAt, string receivedBy)
+        public async Task<bool> DeliverChallanAsync(int id, DateTime deliveredAt, string receivedBy)
         {
             const string query = @"
                 UPDATE Dispatch_DeliveryChallans
@@ -416,14 +416,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new DeliveryChallan
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 ChallanNo = reader.GetString(reader.GetOrdinal("ChallanNo")),
                 ChallanDate = reader.GetDateTime(reader.GetOrdinal("ChallanDate")),
-                OrderId = reader.GetGuid(reader.GetOrdinal("OrderId")),
+                OrderId = reader.GetInt32(reader.GetOrdinal("OrderId")),
                 OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo")) ? null : reader.GetString(reader.GetOrdinal("OrderNo")),
-                CustomerId = reader.GetGuid(reader.GetOrdinal("CustomerId")),
+                CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
                 CustomerName = reader.IsDBNull(reader.GetOrdinal("CustomerName")) ? null : reader.GetString(reader.GetOrdinal("CustomerName")),
-                ProductId = reader.GetGuid(reader.GetOrdinal("ProductId")),
+                ProductId = reader.GetInt32(reader.GetOrdinal("ProductId")),
                 ProductName = reader.IsDBNull(reader.GetOrdinal("ProductName")) ? null : reader.GetString(reader.GetOrdinal("ProductName")),
                 QuantityDispatched = reader.GetInt32(reader.GetOrdinal("QuantityDispatched")),
                 DeliveryDate = reader.IsDBNull(reader.GetOrdinal("DeliveryDate")) ? null : reader.GetDateTime(reader.GetOrdinal("DeliveryDate")),

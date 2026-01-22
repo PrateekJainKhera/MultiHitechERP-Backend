@@ -25,7 +25,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(int id)
         {
             var result = await _drawingService.GetByIdAsync(id);
             return result.Success ? Ok(result) : NotFound(result);
@@ -60,7 +60,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpGet("by-product/{productId}")]
-        public async Task<IActionResult> GetByProductId(Guid productId)
+        public async Task<IActionResult> GetByProductId(int productId)
         {
             var result = await _drawingService.GetByProductIdAsync(productId);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -91,7 +91,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateDrawingRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateDrawingRequest request)
         {
             if (id != request.Id)
                 return BadRequest("ID mismatch");
@@ -104,14 +104,14 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(int id)
         {
             var result = await _drawingService.DeleteDrawingAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/mark-latest")]
-        public async Task<IActionResult> MarkAsLatestRevision(Guid id)
+        public async Task<IActionResult> MarkAsLatestRevision(int id)
         {
             var result = await _drawingService.MarkAsLatestRevisionAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);

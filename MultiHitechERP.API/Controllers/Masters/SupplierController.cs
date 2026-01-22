@@ -29,7 +29,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<Supplier>>> GetById(Guid id)
+        public async Task<ActionResult<ApiResponse<Supplier>>> GetById(int id)
         {
             var response = await _service.GetByIdAsync(id);
             return response.Success ? Ok(response) : NotFound(response);
@@ -140,7 +140,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Update(Guid id, [FromBody] UpdateSupplierRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> Update(int id, [FromBody] UpdateSupplierRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -175,14 +175,14 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpDelete("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             var response = await _service.DeleteSupplierAsync(id);
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
         [HttpPost("{id:guid}/approve")]
-        public async Task<ActionResult<ApiResponse<bool>>> Approve(Guid id, [FromBody] ApproveRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> Approve(int id, [FromBody] ApproveRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -192,7 +192,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpPost("{id:guid}/reject")]
-        public async Task<ActionResult<ApiResponse<bool>>> Reject(Guid id, [FromBody] RejectRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> Reject(int id, [FromBody] RejectRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -202,7 +202,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpPatch("{id:guid}/status")]
-        public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(int id, [FromBody] UpdateStatusRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -212,7 +212,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpPut("{id:guid}/performance")]
-        public async Task<ActionResult<ApiResponse<bool>>> UpdatePerformanceMetrics(Guid id, [FromBody] UpdatePerformanceRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> UpdatePerformanceMetrics(int id, [FromBody] UpdatePerformanceRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));

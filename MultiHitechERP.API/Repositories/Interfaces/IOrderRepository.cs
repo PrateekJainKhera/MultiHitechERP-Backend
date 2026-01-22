@@ -11,23 +11,23 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface IOrderRepository
     {
         // Basic CRUD Operations
-        Task<Order?> GetByIdAsync(Guid id);
+        Task<Order?> GetByIdAsync(int id);
         Task<Order?> GetByOrderNoAsync(string orderNo);
         Task<IEnumerable<Order>> GetAllAsync();
-        Task<IEnumerable<Order>> GetByCustomerIdAsync(Guid customerId);
-        Task<IEnumerable<Order>> GetByProductIdAsync(Guid productId);
+        Task<IEnumerable<Order>> GetByCustomerIdAsync(int customerId);
+        Task<IEnumerable<Order>> GetByProductIdAsync(int productId);
         Task<IEnumerable<Order>> GetByStatusAsync(string status);
 
         // Create, Update, Delete
-        Task<Guid> InsertAsync(Order order);
+        Task<int> InsertAsync(Order order);
         Task<bool> UpdateAsync(Order order);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Business Operations
-        Task<bool> UpdateDrawingReviewStatusAsync(Guid id, string status, string reviewedBy, string? notes);
-        Task<bool> UpdatePlanningStatusAsync(Guid id, string status);
-        Task<bool> UpdateQuantitiesAsync(Guid id, int qtyCompleted, int qtyRejected, int qtyInProgress);
-        Task<bool> UpdateStatusAsync(Guid id, string status);
+        Task<bool> UpdateDrawingReviewStatusAsync(int id, string status, string reviewedBy, string? notes);
+        Task<bool> UpdatePlanningStatusAsync(int id, string status);
+        Task<bool> UpdateQuantitiesAsync(int id, int qtyCompleted, int qtyRejected, int qtyInProgress);
+        Task<bool> UpdateStatusAsync(int id, string status);
 
         // Queries
         Task<IEnumerable<Order>> GetPendingDrawingReviewAsync();
@@ -37,6 +37,6 @@ namespace MultiHitechERP.API.Repositories.Interfaces
 
         // Optimistic Locking
         Task<bool> UpdateWithVersionCheckAsync(Order order);
-        Task<int> GetVersionAsync(Guid id);
+        Task<int> GetVersionAsync(int id);
     }
 }

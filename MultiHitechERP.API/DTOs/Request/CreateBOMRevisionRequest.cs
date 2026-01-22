@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class CreateBOMRevisionRequest
     {
         [Required]
-        public Guid BOMId { get; set; }
+        public int BOMId { get; set; }
 
         [Required]
         [StringLength(20)]

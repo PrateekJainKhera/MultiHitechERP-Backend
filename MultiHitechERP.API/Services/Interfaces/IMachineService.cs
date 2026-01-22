@@ -12,22 +12,22 @@ namespace MultiHitechERP.API.Services.Interfaces
     public interface IMachineService
     {
         // CRUD Operations
-        Task<ApiResponse<MachineResponse>> GetByIdAsync(Guid id);
+        Task<ApiResponse<MachineResponse>> GetByIdAsync(int id);
         Task<ApiResponse<MachineResponse>> GetByMachineCodeAsync(string machineCode);
         Task<ApiResponse<IEnumerable<MachineResponse>>> GetAllAsync();
         Task<ApiResponse<IEnumerable<MachineResponse>>> GetActiveMachinesAsync();
 
-        Task<ApiResponse<Guid>> CreateMachineAsync(CreateMachineRequest request);
+        Task<ApiResponse<int>> CreateMachineAsync(CreateMachineRequest request);
         Task<ApiResponse<bool>> UpdateMachineAsync(UpdateMachineRequest request);
-        Task<ApiResponse<bool>> DeleteMachineAsync(Guid id);
+        Task<ApiResponse<bool>> DeleteMachineAsync(int id);
 
         // Status Operations
-        Task<ApiResponse<bool>> ActivateMachineAsync(Guid id);
-        Task<ApiResponse<bool>> DeactivateMachineAsync(Guid id);
+        Task<ApiResponse<bool>> ActivateMachineAsync(int id);
+        Task<ApiResponse<bool>> DeactivateMachineAsync(int id);
 
         // Availability Operations
-        Task<ApiResponse<bool>> AssignToJobCardAsync(Guid id, string jobCardNo);
-        Task<ApiResponse<bool>> ReleaseFromJobCardAsync(Guid id);
+        Task<ApiResponse<bool>> AssignToJobCardAsync(int id, string jobCardNo);
+        Task<ApiResponse<bool>> ReleaseFromJobCardAsync(int id);
 
         // Business Queries
         Task<ApiResponse<IEnumerable<MachineResponse>>> GetAvailableMachinesAsync();

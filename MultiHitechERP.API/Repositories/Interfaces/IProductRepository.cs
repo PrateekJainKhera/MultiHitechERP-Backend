@@ -11,25 +11,25 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface IProductRepository
     {
         // Basic CRUD Operations
-        Task<Product?> GetByIdAsync(Guid id);
-        Task<Product?> GetByProductCodeAsync(string productCode);
+        Task<Product?> GetByIdAsync(int id);
+        Task<Product?> GetByPartCodeAsync(string productCode);
         Task<IEnumerable<Product>> GetAllAsync();
         Task<IEnumerable<Product>> GetActiveProductsAsync();
 
         // Create, Update, Delete
-        Task<Guid> InsertAsync(Product product);
+        Task<int> InsertAsync(Product product);
         Task<bool> UpdateAsync(Product product);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Status Operations
-        Task<bool> ActivateAsync(Guid id);
-        Task<bool> DeactivateAsync(Guid id);
+        Task<bool> ActivateAsync(int id);
+        Task<bool> DeactivateAsync(int id);
 
         // Queries
         Task<IEnumerable<Product>> SearchByNameAsync(string name);
         Task<IEnumerable<Product>> GetByCategoryAsync(string category);
         Task<IEnumerable<Product>> GetByProductTypeAsync(string productType);
-        Task<IEnumerable<Product>> GetByDrawingIdAsync(Guid drawingId);
+        Task<IEnumerable<Product>> GetByDrawingIdAsync(int drawingId);
         Task<bool> ExistsAsync(string productCode);
     }
 }

@@ -7,12 +7,12 @@ namespace MultiHitechERP.API.Models.Stores
     /// </summary>
     public class MaterialAllocation
     {
-        public Guid Id { get; set; }
-        public Guid RequisitionId { get; set; }
-        public Guid RequisitionItemId { get; set; }
+        public int Id { get; set; }
+        public int RequisitionId { get; set; }
+        public int RequisitionItemId { get; set; }
 
         // Material Piece
-        public Guid MaterialPieceId { get; set; }
+        public int MaterialPieceId { get; set; }
         public string? PieceNo { get; set; }
 
         // Allocated Quantity

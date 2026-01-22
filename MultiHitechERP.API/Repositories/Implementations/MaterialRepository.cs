@@ -17,7 +17,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<Material?> GetByIdAsync(Guid id)
+        public async Task<Material?> GetByIdAsync(int id)
         {
             const string query = "SELECT * FROM Masters_Materials WHERE Id = @Id";
 
@@ -79,7 +79,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return materials;
         }
 
-        public async Task<Guid> InsertAsync(Material material)
+        public async Task<int> InsertAsync(Material material)
         {
             const string query = @"
                 INSERT INTO Masters_Materials (
@@ -107,7 +107,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            material.Id = Guid.NewGuid();
+            material.Id = 0;
             material.CreatedAt = DateTime.UtcNow;
             AddMaterialParameters(command, material);
 
@@ -146,7 +146,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Masters_Materials WHERE Id = @Id";
 
@@ -158,7 +158,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> ActivateAsync(Guid id)
+        public async Task<bool> ActivateAsync(int id)
         {
             const string query = "UPDATE Masters_Materials SET IsActive = 1, Status = 'Active', UpdatedAt = @UpdatedAt WHERE Id = @Id";
 
@@ -171,7 +171,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
-        public async Task<bool> DeactivateAsync(Guid id)
+        public async Task<bool> DeactivateAsync(int id)
         {
             const string query = "UPDATE Masters_Materials SET IsActive = 0, Status = 'Inactive', UpdatedAt = @UpdatedAt WHERE Id = @Id";
 
@@ -292,7 +292,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             return new Material
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 MaterialCode = reader.GetString(reader.GetOrdinal("MaterialCode")),
                 MaterialName = reader.GetString(reader.GetOrdinal("MaterialName")),
                 Category = reader.IsDBNull(reader.GetOrdinal("Category")) ? null : reader.GetString(reader.GetOrdinal("Category")),
@@ -320,7 +320,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 ReorderLevel = reader.IsDBNull(reader.GetOrdinal("ReorderLevel")) ? null : reader.GetDecimal(reader.GetOrdinal("ReorderLevel")),
                 ReorderQuantity = reader.IsDBNull(reader.GetOrdinal("ReorderQuantity")) ? null : reader.GetDecimal(reader.GetOrdinal("ReorderQuantity")),
                 LeadTimeDays = reader.IsDBNull(reader.GetOrdinal("LeadTimeDays")) ? null : reader.GetInt32(reader.GetOrdinal("LeadTimeDays")),
-                PreferredSupplierId = reader.IsDBNull(reader.GetOrdinal("PreferredSupplierId")) ? null : reader.GetGuid(reader.GetOrdinal("PreferredSupplierId")),
+                PreferredSupplierId = reader.IsDBNull(reader.GetOrdinal("PreferredSupplierId")) ? null : reader.GetInt32(reader.GetOrdinal("PreferredSupplierId")),
                 PreferredSupplierName = reader.IsDBNull(reader.GetOrdinal("PreferredSupplierName")) ? null : reader.GetString(reader.GetOrdinal("PreferredSupplierName")),
                 StorageLocation = reader.IsDBNull(reader.GetOrdinal("StorageLocation")) ? null : reader.GetString(reader.GetOrdinal("StorageLocation")),
                 StorageConditions = reader.IsDBNull(reader.GetOrdinal("StorageConditions")) ? null : reader.GetString(reader.GetOrdinal("StorageConditions")),

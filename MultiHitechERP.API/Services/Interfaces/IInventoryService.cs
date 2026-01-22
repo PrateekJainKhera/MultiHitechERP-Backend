@@ -12,12 +12,12 @@ namespace MultiHitechERP.API.Services.Interfaces
     public interface IInventoryService
     {
         // Basic CRUD
-        Task<ApiResponse<Inventory>> GetByIdAsync(Guid id);
-        Task<ApiResponse<Inventory>> GetByMaterialIdAsync(Guid materialId);
+        Task<ApiResponse<Inventory>> GetByIdAsync(int id);
+        Task<ApiResponse<Inventory>> GetByMaterialIdAsync(int materialId);
         Task<ApiResponse<IEnumerable<Inventory>>> GetAllAsync();
-        Task<ApiResponse<Guid>> CreateInventoryAsync(Inventory inventory);
+        Task<ApiResponse<int>> CreateInventoryAsync(Inventory inventory);
         Task<ApiResponse<bool>> UpdateInventoryAsync(Inventory inventory);
-        Task<ApiResponse<bool>> DeleteInventoryAsync(Guid id);
+        Task<ApiResponse<bool>> DeleteInventoryAsync(int id);
 
         // Stock Queries
         Task<ApiResponse<IEnumerable<Inventory>>> GetLowStockAsync();
@@ -27,19 +27,19 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<IEnumerable<Inventory>>> GetActiveAsync();
 
         // Stock Operations
-        Task<ApiResponse<Guid>> RecordStockInAsync(Guid materialId, decimal quantity, string grnNo, Guid? supplierId, decimal? unitCost, string performedBy, string remarks);
-        Task<ApiResponse<Guid>> RecordStockOutAsync(Guid materialId, decimal quantity, Guid? jobCardId, Guid? requisitionId, string performedBy, string remarks);
-        Task<ApiResponse<Guid>> RecordStockAdjustmentAsync(Guid materialId, decimal quantity, string remarks, string performedBy);
-        Task<ApiResponse<bool>> ReconcileStockAsync(Guid materialId, decimal actualQuantity, string performedBy, string remarks);
+        Task<ApiResponse<int>> RecordStockInAsync(int materialId, decimal quantity, string grnNo, int? supplierId, decimal? unitCost, string performedBy, string remarks);
+        Task<ApiResponse<int>> RecordStockOutAsync(int materialId, decimal quantity, int? jobCardId, int? requisitionId, string performedBy, string remarks);
+        Task<ApiResponse<int>> RecordStockAdjustmentAsync(int materialId, decimal quantity, string remarks, string performedBy);
+        Task<ApiResponse<bool>> ReconcileStockAsync(int materialId, decimal actualQuantity, string performedBy, string remarks);
 
         // Transactions
-        Task<ApiResponse<IEnumerable<InventoryTransaction>>> GetTransactionsByMaterialIdAsync(Guid materialId);
+        Task<ApiResponse<IEnumerable<InventoryTransaction>>> GetTransactionsByMaterialIdAsync(int materialId);
         Task<ApiResponse<IEnumerable<InventoryTransaction>>> GetTransactionsByTypeAsync(string transactionType);
         Task<ApiResponse<IEnumerable<InventoryTransaction>>> GetTransactionsByDateRangeAsync(DateTime startDate, DateTime endDate);
         Task<ApiResponse<IEnumerable<InventoryTransaction>>> GetRecentTransactionsAsync(int count);
 
         // Stock Level Management
-        Task<ApiResponse<bool>> UpdateStockLevelsAsync(Guid materialId, decimal? minStock, decimal? maxStock, decimal? reorderLevel, decimal? reorderQuantity);
-        Task<ApiResponse<bool>> CheckAndUpdateStockStatusAsync(Guid materialId);
+        Task<ApiResponse<bool>> UpdateStockLevelsAsync(int materialId, decimal? minStock, decimal? maxStock, decimal? reorderLevel, decimal? reorderQuantity);
+        Task<ApiResponse<bool>> CheckAndUpdateStockStatusAsync(int materialId);
     }
 }

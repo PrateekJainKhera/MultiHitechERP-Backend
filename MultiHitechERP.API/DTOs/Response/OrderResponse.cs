@@ -7,18 +7,18 @@ namespace MultiHitechERP.API.DTOs.Response
     /// </summary>
     public class OrderResponse
     {
-        public Guid Id { get; set; }
+        public int Id { get; set; }
         public string OrderNo { get; set; } = string.Empty;
         public DateTime OrderDate { get; set; }
         public DateTime DueDate { get; set; }
         public DateTime? AdjustedDueDate { get; set; }
 
         // Customer & Product Info (joined data)
-        public Guid CustomerId { get; set; }
+        public int CustomerId { get; set; }
         public string? CustomerName { get; set; }
         public string? CustomerCode { get; set; }
 
-        public Guid ProductId { get; set; }
+        public int ProductId { get; set; }
         public string? ProductName { get; set; }
         public string? ProductCode { get; set; }
 

@@ -25,7 +25,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _jobCardRepository = jobCardRepository;
         }
 
-        public async Task<ApiResponse<QCResult>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<QCResult>> GetByIdAsync(int id)
         {
             var result = await _qcResultRepository.GetByIdAsync(id);
             if (result == null)
@@ -40,10 +40,10 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<QCResult>>.SuccessResponse(results);
         }
 
-        public async Task<ApiResponse<Guid>> CreateQCResultAsync(QCResult qcResult)
+        public async Task<ApiResponse<int>> CreateQCResultAsync(QCResult qcResult)
         {
             var id = await _qcResultRepository.InsertAsync(qcResult);
-            return ApiResponse<Guid>.SuccessResponse(id, "QC Result created successfully");
+            return ApiResponse<int>.SuccessResponse(id, "QC Result created successfully");
         }
 
         public async Task<ApiResponse<bool>> UpdateQCResultAsync(QCResult qcResult)
@@ -59,7 +59,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "QC Result updated successfully");
         }
 
-        public async Task<ApiResponse<bool>> DeleteQCResultAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteQCResultAsync(int id)
         {
             var existing = await _qcResultRepository.GetByIdAsync(id);
             if (existing == null)
@@ -72,13 +72,13 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "QC Result deleted successfully");
         }
 
-        public async Task<ApiResponse<IEnumerable<QCResult>>> GetByJobCardIdAsync(Guid jobCardId)
+        public async Task<ApiResponse<IEnumerable<QCResult>>> GetByJobCardIdAsync(int jobCardId)
         {
             var results = await _qcResultRepository.GetByJobCardIdAsync(jobCardId);
             return ApiResponse<IEnumerable<QCResult>>.SuccessResponse(results);
         }
 
-        public async Task<ApiResponse<IEnumerable<QCResult>>> GetByOrderIdAsync(Guid orderId)
+        public async Task<ApiResponse<IEnumerable<QCResult>>> GetByOrderIdAsync(int orderId)
         {
             var results = await _qcResultRepository.GetByOrderIdAsync(orderId);
             return ApiResponse<IEnumerable<QCResult>>.SuccessResponse(results);
@@ -141,8 +141,8 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<QCResult>>.SuccessResponse(results);
         }
 
-        public async Task<ApiResponse<Guid>> RecordInspectionAsync(
-            Guid jobCardId,
+        public async Task<ApiResponse<int>> RecordInspectionAsync(
+            int jobCardId,
             int quantityInspected,
             int quantityPassed,
             int quantityRejected,
@@ -155,14 +155,14 @@ namespace MultiHitechERP.API.Services.Implementations
             // Validate job card exists
             var jobCard = await _jobCardRepository.GetByIdAsync(jobCardId);
             if (jobCard == null)
-                return ApiResponse<Guid>.ErrorResponse("Job card not found");
+                return ApiResponse<int>.ErrorResponse("Job card not found");
 
             // Validate quantities
             if (quantityInspected <= 0)
-                return ApiResponse<Guid>.ErrorResponse("Quantity inspected must be greater than zero");
+                return ApiResponse<int>.ErrorResponse("Quantity inspected must be greater than zero");
 
             if (quantityPassed + quantityRejected + (quantityRework ?? 0) != quantityInspected)
-                return ApiResponse<Guid>.ErrorResponse("Sum of passed, rejected, and rework quantities must equal total inspected");
+                return ApiResponse<int>.ErrorResponse("Sum of passed, rejected, and rework quantities must equal total inspected");
 
             // Determine QC status based on results
             string qcStatus;
@@ -211,10 +211,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 // await _jobCardRepository.UpdateQCStatusAsync(jobCardId, "Rework");
             }
 
-            return ApiResponse<Guid>.SuccessResponse(id, $"Inspection recorded successfully - Status: {qcStatus}");
+            return ApiResponse<int>.SuccessResponse(id, $"Inspection recorded successfully - Status: {qcStatus}");
         }
 
-        public async Task<ApiResponse<bool>> UpdateQCStatusAsync(Guid id, string status)
+        public async Task<ApiResponse<bool>> UpdateQCStatusAsync(int id, string status)
         {
             var existing = await _qcResultRepository.GetByIdAsync(id);
             if (existing == null)
@@ -240,7 +240,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "QC status updated successfully");
         }
 
-        public async Task<ApiResponse<bool>> ApproveQCResultAsync(Guid id, string approvedBy)
+        public async Task<ApiResponse<bool>> ApproveQCResultAsync(int id, string approvedBy)
         {
             var existing = await _qcResultRepository.GetByIdAsync(id);
             if (existing == null)
@@ -262,7 +262,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "QC result approved successfully");
         }
 
-        public async Task<ApiResponse<bool>> RejectQCResultAsync(Guid id, string rejectionReason)
+        public async Task<ApiResponse<bool>> RejectQCResultAsync(int id, string rejectionReason)
         {
             var existing = await _qcResultRepository.GetByIdAsync(id);
             if (existing == null)
@@ -304,25 +304,25 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<QCResult>>.SuccessResponse(results);
         }
 
-        public async Task<ApiResponse<int>> GetTotalInspectedQuantityForJobCardAsync(Guid jobCardId)
+        public async Task<ApiResponse<int>> GetTotalInspectedQuantityForJobCardAsync(int jobCardId)
         {
             var total = await _qcResultRepository.GetTotalInspectedQuantityForJobCardAsync(jobCardId);
             return ApiResponse<int>.SuccessResponse(total);
         }
 
-        public async Task<ApiResponse<int>> GetTotalPassedQuantityForJobCardAsync(Guid jobCardId)
+        public async Task<ApiResponse<int>> GetTotalPassedQuantityForJobCardAsync(int jobCardId)
         {
             var total = await _qcResultRepository.GetTotalPassedQuantityForJobCardAsync(jobCardId);
             return ApiResponse<int>.SuccessResponse(total);
         }
 
-        public async Task<ApiResponse<int>> GetTotalRejectedQuantityForJobCardAsync(Guid jobCardId)
+        public async Task<ApiResponse<int>> GetTotalRejectedQuantityForJobCardAsync(int jobCardId)
         {
             var total = await _qcResultRepository.GetTotalRejectedQuantityForJobCardAsync(jobCardId);
             return ApiResponse<int>.SuccessResponse(total);
         }
 
-        public async Task<ApiResponse<decimal>> GetPassRateForJobCardAsync(Guid jobCardId)
+        public async Task<ApiResponse<decimal>> GetPassRateForJobCardAsync(int jobCardId)
         {
             var passRate = await _qcResultRepository.GetPassRateForJobCardAsync(jobCardId);
             return ApiResponse<decimal>.SuccessResponse(passRate);
@@ -334,7 +334,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<decimal>.SuccessResponse(passRate);
         }
 
-        public async Task<ApiResponse<QCResult>> GetLatestResultForJobCardAsync(Guid jobCardId)
+        public async Task<ApiResponse<QCResult>> GetLatestResultForJobCardAsync(int jobCardId)
         {
             var result = await _qcResultRepository.GetLatestResultForJobCardAsync(jobCardId);
             if (result == null)

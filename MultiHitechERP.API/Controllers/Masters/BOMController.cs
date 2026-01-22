@@ -41,7 +41,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get BOM by ID
         /// </summary>
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<BOMResponse>>> GetById(Guid id)
+        public async Task<ActionResult<ApiResponse<BOMResponse>>> GetById(int id)
         {
             var response = await _service.GetByIdAsync(id);
             if (!response.Success)
@@ -69,7 +69,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get BOMs by product ID
         /// </summary>
         [HttpGet("by-product/{productId:guid}")]
-        public async Task<ActionResult<ApiResponse<BOMResponse[]>>> GetByProductId(Guid productId)
+        public async Task<ActionResult<ApiResponse<BOMResponse[]>>> GetByProductId(int productId)
         {
             var response = await _service.GetByProductIdAsync(productId);
             if (!response.Success)
@@ -83,7 +83,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get latest revision BOM for a product
         /// </summary>
         [HttpGet("latest-revision/{productId:guid}")]
-        public async Task<ActionResult<ApiResponse<BOMResponse>>> GetLatestRevision(Guid productId)
+        public async Task<ActionResult<ApiResponse<BOMResponse>>> GetLatestRevision(int productId)
         {
             var response = await _service.GetLatestRevisionAsync(productId);
             if (!response.Success)
@@ -181,7 +181,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Update an existing BOM
         /// </summary>
         [HttpPut("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Update(Guid id, [FromBody] UpdateBOMRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> Update(int id, [FromBody] UpdateBOMRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -215,7 +215,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Delete a BOM
         /// </summary>
         [HttpDelete("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             var response = await _service.DeleteBOMAsync(id);
             if (!response.Success)
@@ -228,7 +228,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Approve a BOM
         /// </summary>
         [HttpPost("{id:guid}/approve")]
-        public async Task<ActionResult<ApiResponse<bool>>> Approve(Guid id, [FromBody] ApproveBOMRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> Approve(int id, [FromBody] ApproveBOMRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -244,7 +244,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Update BOM status
         /// </summary>
         [HttpPatch("{id:guid}/status")]
-        public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(int id, [FromBody] UpdateStatusRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -278,7 +278,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get all items for a BOM
         /// </summary>
         [HttpGet("{bomId:guid}/items")]
-        public async Task<ActionResult<ApiResponse<BOMItemResponse[]>>> GetBOMItems(Guid bomId)
+        public async Task<ActionResult<ApiResponse<BOMItemResponse[]>>> GetBOMItems(int bomId)
         {
             var response = await _service.GetBOMItemsAsync(bomId);
             if (!response.Success)
@@ -292,7 +292,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get material items for a BOM
         /// </summary>
         [HttpGet("{bomId:guid}/items/materials")]
-        public async Task<ActionResult<ApiResponse<BOMItemResponse[]>>> GetMaterialItems(Guid bomId)
+        public async Task<ActionResult<ApiResponse<BOMItemResponse[]>>> GetMaterialItems(int bomId)
         {
             var response = await _service.GetMaterialItemsAsync(bomId);
             if (!response.Success)
@@ -306,7 +306,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get child part items for a BOM
         /// </summary>
         [HttpGet("{bomId:guid}/items/child-parts")]
-        public async Task<ActionResult<ApiResponse<BOMItemResponse[]>>> GetChildPartItems(Guid bomId)
+        public async Task<ActionResult<ApiResponse<BOMItemResponse[]>>> GetChildPartItems(int bomId)
         {
             var response = await _service.GetChildPartItemsAsync(bomId);
             if (!response.Success)
@@ -320,7 +320,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get items by type for a BOM
         /// </summary>
         [HttpGet("{bomId:guid}/items/by-type/{itemType}")]
-        public async Task<ActionResult<ApiResponse<BOMItemResponse[]>>> GetItemsByType(Guid bomId, string itemType)
+        public async Task<ActionResult<ApiResponse<BOMItemResponse[]>>> GetItemsByType(int bomId, string itemType)
         {
             var response = await _service.GetItemsByTypeAsync(bomId, itemType);
             if (!response.Success)
@@ -367,7 +367,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Update a BOM item
         /// </summary>
         [HttpPut("items/{itemId:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> UpdateBOMItem(Guid itemId, [FromBody] UpdateBOMItemRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateBOMItem(int itemId, [FromBody] UpdateBOMItemRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -403,7 +403,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Delete a BOM item
         /// </summary>
         [HttpDelete("items/{itemId:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> DeleteBOMItem(Guid itemId)
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteBOMItem(int itemId)
         {
             var response = await _service.DeleteBOMItemAsync(itemId);
             if (!response.Success)
@@ -416,7 +416,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Delete all BOM items
         /// </summary>
         [HttpDelete("{bomId:guid}/items")]
-        public async Task<ActionResult<ApiResponse<bool>>> DeleteAllBOMItems(Guid bomId)
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteAllBOMItems(int bomId)
         {
             var response = await _service.DeleteAllBOMItemsAsync(bomId);
             if (!response.Success)

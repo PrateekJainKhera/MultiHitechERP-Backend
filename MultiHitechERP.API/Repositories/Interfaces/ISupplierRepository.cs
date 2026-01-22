@@ -11,12 +11,12 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface ISupplierRepository
     {
         // Basic CRUD
-        Task<Supplier?> GetByIdAsync(Guid id);
+        Task<Supplier?> GetByIdAsync(int id);
         Task<Supplier?> GetByCodeAsync(string supplierCode);
         Task<IEnumerable<Supplier>> GetAllAsync();
-        Task<Guid> InsertAsync(Supplier supplier);
+        Task<int> InsertAsync(Supplier supplier);
         Task<bool> UpdateAsync(Supplier supplier);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Query Methods
         Task<IEnumerable<Supplier>> GetByTypeAsync(string supplierType);
@@ -28,13 +28,13 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<Supplier>> GetByProcessCapabilityAsync(string processCapability);
 
         // Performance Tracking
-        Task<bool> UpdatePerformanceMetricsAsync(Guid id, decimal onTimeDeliveryRate, decimal qualityRating, int totalOrders, int rejectedOrders);
+        Task<bool> UpdatePerformanceMetricsAsync(int id, decimal onTimeDeliveryRate, decimal qualityRating, int totalOrders, int rejectedOrders);
         Task<IEnumerable<Supplier>> GetTopPerformingAsync(int count);
         Task<IEnumerable<Supplier>> GetLowPerformingAsync(int count);
 
         // Status Updates
-        Task<bool> UpdateStatusAsync(Guid id, string status);
-        Task<bool> ApproveSupplierAsync(Guid id, string approvedBy);
-        Task<bool> RejectSupplierAsync(Guid id, string reason);
+        Task<bool> UpdateStatusAsync(int id, string status);
+        Task<bool> ApproveSupplierAsync(int id, string approvedBy);
+        Task<bool> RejectSupplierAsync(int id, string reason);
     }
 }

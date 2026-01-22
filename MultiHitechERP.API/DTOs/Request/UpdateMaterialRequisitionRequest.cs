@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateMaterialRequisitionRequest
     {
         [Required]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         [Required]
         [StringLength(50)]
@@ -18,12 +18,12 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required]
         public DateTime RequisitionDate { get; set; }
 
-        public Guid? JobCardId { get; set; }
+        public int? JobCardId { get; set; }
 
         [StringLength(50)]
         public string? JobCardNo { get; set; }
 
-        public Guid? OrderId { get; set; }
+        public int? OrderId { get; set; }
 
         [StringLength(50)]
         public string? OrderNo { get; set; }

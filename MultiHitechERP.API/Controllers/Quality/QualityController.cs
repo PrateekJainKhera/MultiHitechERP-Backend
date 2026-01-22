@@ -41,7 +41,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Get QC result by ID
         /// </summary>
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<QCResultResponse>>> GetById(Guid id)
+        public async Task<ActionResult<ApiResponse<QCResultResponse>>> GetById(int id)
         {
             var response = await _service.GetByIdAsync(id);
             if (!response.Success)
@@ -55,7 +55,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Get QC results by job card ID
         /// </summary>
         [HttpGet("by-job-card/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<QCResultResponse[]>>> GetByJobCardId(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<QCResultResponse[]>>> GetByJobCardId(int jobCardId)
         {
             var response = await _service.GetByJobCardIdAsync(jobCardId);
             if (!response.Success)
@@ -69,7 +69,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Get QC results by order ID
         /// </summary>
         [HttpGet("by-order/{orderId:guid}")]
-        public async Task<ActionResult<ApiResponse<QCResultResponse[]>>> GetByOrderId(Guid orderId)
+        public async Task<ActionResult<ApiResponse<QCResultResponse[]>>> GetByOrderId(int orderId)
         {
             var response = await _service.GetByOrderIdAsync(orderId);
             if (!response.Success)
@@ -225,7 +225,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Get latest QC result for a job card
         /// </summary>
         [HttpGet("latest/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<QCResultResponse>>> GetLatestForJobCard(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<QCResultResponse>>> GetLatestForJobCard(int jobCardId)
         {
             var response = await _service.GetLatestResultForJobCardAsync(jobCardId);
             if (!response.Success)
@@ -265,7 +265,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Update QC status
         /// </summary>
         [HttpPatch("{id:guid}/status")]
-        public async Task<ActionResult<ApiResponse<bool>>> UpdateQCStatus(Guid id, [FromBody] UpdateQCStatusRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateQCStatus(int id, [FromBody] UpdateQCStatusRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -281,7 +281,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Approve a QC result
         /// </summary>
         [HttpPost("{id:guid}/approve")]
-        public async Task<ActionResult<ApiResponse<bool>>> ApproveQCResult(Guid id, [FromBody] ApproveQCRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> ApproveQCResult(int id, [FromBody] ApproveQCRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -297,7 +297,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Reject a QC result
         /// </summary>
         [HttpPost("{id:guid}/reject")]
-        public async Task<ActionResult<ApiResponse<bool>>> RejectQCResult(Guid id, [FromBody] RejectQCRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> RejectQCResult(int id, [FromBody] RejectQCRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -313,7 +313,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Get total inspected quantity for a job card
         /// </summary>
         [HttpGet("statistics/total-inspected/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<int>>> GetTotalInspectedQuantity(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<int>>> GetTotalInspectedQuantity(int jobCardId)
         {
             var response = await _service.GetTotalInspectedQuantityForJobCardAsync(jobCardId);
             if (!response.Success)
@@ -326,7 +326,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Get total passed quantity for a job card
         /// </summary>
         [HttpGet("statistics/total-passed/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<int>>> GetTotalPassedQuantity(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<int>>> GetTotalPassedQuantity(int jobCardId)
         {
             var response = await _service.GetTotalPassedQuantityForJobCardAsync(jobCardId);
             if (!response.Success)
@@ -339,7 +339,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Get total rejected quantity for a job card
         /// </summary>
         [HttpGet("statistics/total-rejected/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<int>>> GetTotalRejectedQuantity(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<int>>> GetTotalRejectedQuantity(int jobCardId)
         {
             var response = await _service.GetTotalRejectedQuantityForJobCardAsync(jobCardId);
             if (!response.Success)
@@ -352,7 +352,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Get pass rate for a job card (percentage)
         /// </summary>
         [HttpGet("statistics/pass-rate/{jobCardId:guid}")]
-        public async Task<ActionResult<ApiResponse<decimal>>> GetPassRate(Guid jobCardId)
+        public async Task<ActionResult<ApiResponse<decimal>>> GetPassRate(int jobCardId)
         {
             var response = await _service.GetPassRateForJobCardAsync(jobCardId);
             if (!response.Success)
@@ -380,7 +380,7 @@ namespace MultiHitechERP.API.Controllers.Quality
         /// Delete a QC result record
         /// </summary>
         [HttpDelete("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             var response = await _service.DeleteQCResultAsync(id);
             if (!response.Success)

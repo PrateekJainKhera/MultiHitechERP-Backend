@@ -6,7 +6,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateMaterialRequest
     {
         [Required]
-        public Guid Id { get; set; }
+        public int Id { get; set; }
 
         [Required(ErrorMessage = "Material code is required")]
         public string MaterialCode { get; set; } = string.Empty;
@@ -54,7 +54,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public int? LeadTimeDays { get; set; }
 
         // Supplier
-        public Guid? PreferredSupplierId { get; set; }
+        public int? PreferredSupplierId { get; set; }
         public string? PreferredSupplierName { get; set; }
 
         // Storage

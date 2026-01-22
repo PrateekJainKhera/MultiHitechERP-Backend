@@ -11,23 +11,23 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface IDrawingRepository
     {
         // Basic CRUD Operations
-        Task<Drawing?> GetByIdAsync(Guid id);
+        Task<Drawing?> GetByIdAsync(int id);
         Task<Drawing?> GetByDrawingNumberAsync(string drawingNumber);
         Task<IEnumerable<Drawing>> GetAllAsync();
         Task<IEnumerable<Drawing>> GetActiveDrawingsAsync();
 
         // Create, Update, Delete
-        Task<Guid> InsertAsync(Drawing drawing);
+        Task<int> InsertAsync(Drawing drawing);
         Task<bool> UpdateAsync(Drawing drawing);
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(int id);
 
         // Revision Operations
         Task<IEnumerable<Drawing>> GetRevisionHistoryAsync(string drawingNumber);
         Task<Drawing?> GetLatestRevisionAsync(string drawingNumber);
-        Task<bool> MarkAsLatestRevisionAsync(Guid id);
+        Task<bool> MarkAsLatestRevisionAsync(int id);
 
         // Queries
-        Task<IEnumerable<Drawing>> GetByProductIdAsync(Guid productId);
+        Task<IEnumerable<Drawing>> GetByProductIdAsync(int productId);
         Task<IEnumerable<Drawing>> GetByDrawingTypeAsync(string drawingType);
         Task<IEnumerable<Drawing>> GetPendingApprovalAsync();
         Task<bool> ExistsAsync(string drawingNumber, string revisionNumber);

@@ -25,7 +25,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(int id)
         {
             var result = await _productService.GetByIdAsync(id);
             return result.Success ? Ok(result) : NotFound(result);
@@ -34,7 +34,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         [HttpGet("by-code/{productCode}")]
         public async Task<IActionResult> GetByProductCode(string productCode)
         {
-            var result = await _productService.GetByProductCodeAsync(productCode);
+            var result = await _productService.GetByPartCodeAsync(productCode);
             return result.Success ? Ok(result) : NotFound(result);
         }
 
@@ -77,7 +77,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateProductRequest request)
         {
             if (id != request.Id)
                 return BadRequest("ID mismatch");
@@ -90,21 +90,21 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(int id)
         {
             var result = await _productService.DeleteProductAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/activate")]
-        public async Task<IActionResult> Activate(Guid id)
+        public async Task<IActionResult> Activate(int id)
         {
             var result = await _productService.ActivateProductAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost("{id}/deactivate")]
-        public async Task<IActionResult> Deactivate(Guid id)
+        public async Task<IActionResult> Deactivate(int id)
         {
             var result = await _productService.DeactivateProductAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);

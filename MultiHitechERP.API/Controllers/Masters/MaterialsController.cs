@@ -34,7 +34,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Get material by ID
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetById(int id)
         {
             var result = await _materialService.GetByIdAsync(id);
             return result.Success ? Ok(result) : NotFound(result);
@@ -129,7 +129,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Update existing material
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMaterialRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateMaterialRequest request)
         {
             if (id != request.Id)
             {
@@ -149,7 +149,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Delete material
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<IActionResult> Delete(int id)
         {
             var result = await _materialService.DeleteMaterialAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -159,7 +159,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Activate material
         /// </summary>
         [HttpPost("{id}/activate")]
-        public async Task<IActionResult> Activate(Guid id)
+        public async Task<IActionResult> Activate(int id)
         {
             var result = await _materialService.ActivateMaterialAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
@@ -169,7 +169,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         /// Deactivate material
         /// </summary>
         [HttpPost("{id}/deactivate")]
-        public async Task<IActionResult> Deactivate(Guid id)
+        public async Task<IActionResult> Deactivate(int id)
         {
             var result = await _materialService.DeactivateMaterialAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);

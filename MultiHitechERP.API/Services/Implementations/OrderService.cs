@@ -29,7 +29,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _productRepository = productRepository;
         }
 
-        public async Task<ApiResponse<OrderResponse>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<OrderResponse>> GetByIdAsync(int id)
         {
             try
             {
@@ -87,7 +87,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<OrderResponse>>> GetByCustomerIdAsync(Guid customerId)
+        public async Task<ApiResponse<IEnumerable<OrderResponse>>> GetByCustomerIdAsync(int customerId)
         {
             try
             {
@@ -127,7 +127,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<Guid>> CreateOrderAsync(CreateOrderRequest request)
+        public async Task<ApiResponse<int>> CreateOrderAsync(CreateOrderRequest request)
         {
             try
             {
@@ -135,34 +135,34 @@ namespace MultiHitechERP.API.Services.Implementations
                 var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
                 if (customer == null)
                 {
-                    return ApiResponse<Guid>.ErrorResponse("Customer not found");
+                    return ApiResponse<int>.ErrorResponse("Customer not found");
                 }
                 if (!customer.IsActive)
                 {
-                    return ApiResponse<Guid>.ErrorResponse("Customer is inactive");
+                    return ApiResponse<int>.ErrorResponse("Customer is inactive");
                 }
 
                 // Business Rule 2: Validate Product exists and is active
                 var product = await _productRepository.GetByIdAsync(request.ProductId);
                 if (product == null)
                 {
-                    return ApiResponse<Guid>.ErrorResponse("Product not found");
+                    return ApiResponse<int>.ErrorResponse("Product not found");
                 }
                 if (!product.IsActive)
                 {
-                    return ApiResponse<Guid>.ErrorResponse("Product is inactive");
+                    return ApiResponse<int>.ErrorResponse("Product is inactive");
                 }
 
                 // Business Rule 3: Validate Due Date is in future
                 if (request.DueDate <= DateTime.UtcNow)
                 {
-                    return ApiResponse<Guid>.ErrorResponse("Due date must be in the future");
+                    return ApiResponse<int>.ErrorResponse("Due date must be in the future");
                 }
 
                 // Business Rule 4: Validate Quantity
                 if (request.Quantity <= 0)
                 {
-                    return ApiResponse<Guid>.ErrorResponse("Quantity must be greater than 0");
+                    return ApiResponse<int>.ErrorResponse("Quantity must be greater than 0");
                 }
 
                 // Generate Order Number
@@ -191,11 +191,11 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 var orderId = await _orderRepository.InsertAsync(order);
 
-                return ApiResponse<Guid>.SuccessResponse(orderId, $"Order {orderNo} created successfully");
+                return ApiResponse<int>.SuccessResponse(orderId, $"Order {orderNo} created successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse<Guid>.ErrorResponse($"Error creating order: {ex.Message}");
+                return ApiResponse<int>.ErrorResponse($"Error creating order: {ex.Message}");
             }
         }
 
@@ -261,7 +261,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeleteOrderAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteOrderAsync(int id)
         {
             try
             {
@@ -330,7 +330,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> ApproveDrawingReviewAsync(Guid orderId, string reviewedBy, string? notes)
+        public async Task<ApiResponse<bool>> ApproveDrawingReviewAsync(int orderId, string reviewedBy, string? notes)
         {
             var request = new UpdateDrawingReviewRequest
             {
@@ -343,7 +343,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return await UpdateDrawingReviewStatusAsync(request);
         }
 
-        public async Task<ApiResponse<bool>> RejectDrawingReviewAsync(Guid orderId, string reviewedBy, string reason)
+        public async Task<ApiResponse<bool>> RejectDrawingReviewAsync(int orderId, string reviewedBy, string reason)
         {
             var request = new UpdateDrawingReviewRequest
             {
@@ -356,7 +356,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return await UpdateDrawingReviewStatusAsync(request);
         }
 
-        public async Task<ApiResponse<bool>> UpdateOrderStatusAsync(Guid orderId, string status)
+        public async Task<ApiResponse<bool>> UpdateOrderStatusAsync(int orderId, string status)
         {
             try
             {
@@ -374,7 +374,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> UpdatePlanningStatusAsync(Guid orderId, string status)
+        public async Task<ApiResponse<bool>> UpdatePlanningStatusAsync(int orderId, string status)
         {
             try
             {
@@ -472,7 +472,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> CanGenerateJobCardsAsync(Guid orderId)
+        public async Task<ApiResponse<bool>> CanGenerateJobCardsAsync(int orderId)
         {
             try
             {
@@ -554,8 +554,8 @@ namespace MultiHitechERP.API.Services.Implementations
                 CustomerCode = customer?.CustomerCode,
 
                 ProductId = order.ProductId,
-                ProductName = product?.ProductName,
-                ProductCode = product?.ProductCode,
+                ProductName = product?.ModelName,
+                ProductCode = product?.PartCode,
 
                 Quantity = order.Quantity,
                 OriginalQuantity = order.OriginalQuantity,

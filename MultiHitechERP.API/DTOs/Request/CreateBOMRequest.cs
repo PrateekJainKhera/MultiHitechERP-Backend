@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class CreateBOMRequest
     {
         [Required]
-        public Guid ProductId { get; set; }
+        public int ProductId { get; set; }
 
         [StringLength(50)]
         public string? BOMNo { get; set; }

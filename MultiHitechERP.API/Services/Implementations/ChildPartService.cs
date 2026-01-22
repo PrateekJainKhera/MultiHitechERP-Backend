@@ -20,7 +20,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _childPartRepository = childPartRepository;
         }
 
-        public async Task<ApiResponse<ChildPart>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<ChildPart>> GetByIdAsync(int id)
         {
             var childPart = await _childPartRepository.GetByIdAsync(id);
             if (childPart == null)
@@ -47,22 +47,22 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<ChildPart>>.SuccessResponse(childParts);
         }
 
-        public async Task<ApiResponse<Guid>> CreateChildPartAsync(ChildPart childPart)
+        public async Task<ApiResponse<int>> CreateChildPartAsync(ChildPart childPart)
         {
             // Validate required fields
             if (string.IsNullOrWhiteSpace(childPart.ChildPartCode))
-                return ApiResponse<Guid>.ErrorResponse("Child part code is required");
+                return ApiResponse<int>.ErrorResponse("Child part code is required");
 
             if (string.IsNullOrWhiteSpace(childPart.ChildPartName))
-                return ApiResponse<Guid>.ErrorResponse("Child part name is required");
+                return ApiResponse<int>.ErrorResponse("Child part name is required");
 
             // Check if code already exists
             var existing = await _childPartRepository.GetByCodeAsync(childPart.ChildPartCode);
             if (existing != null)
-                return ApiResponse<Guid>.ErrorResponse($"Child part with code '{childPart.ChildPartCode}' already exists");
+                return ApiResponse<int>.ErrorResponse($"Child part with code '{childPart.ChildPartCode}' already exists");
 
             var id = await _childPartRepository.InsertAsync(childPart);
-            return ApiResponse<Guid>.SuccessResponse(id, "Child part created successfully");
+            return ApiResponse<int>.SuccessResponse(id, "Child part created successfully");
         }
 
         public async Task<ApiResponse<bool>> UpdateChildPartAsync(ChildPart childPart)
@@ -93,7 +93,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Child part updated successfully");
         }
 
-        public async Task<ApiResponse<bool>> DeleteChildPartAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteChildPartAsync(int id)
         {
             var existing = await _childPartRepository.GetByIdAsync(id);
             if (existing == null)
@@ -106,7 +106,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Child part deleted successfully");
         }
 
-        public async Task<ApiResponse<IEnumerable<ChildPart>>> GetByProductIdAsync(Guid productId)
+        public async Task<ApiResponse<IEnumerable<ChildPart>>> GetByProductIdAsync(int productId)
         {
             var childParts = await _childPartRepository.GetByProductIdAsync(productId);
             return ApiResponse<IEnumerable<ChildPart>>.SuccessResponse(childParts);
@@ -121,7 +121,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<ChildPart>>.SuccessResponse(childParts);
         }
 
-        public async Task<ApiResponse<IEnumerable<ChildPart>>> GetByMaterialIdAsync(Guid materialId)
+        public async Task<ApiResponse<IEnumerable<ChildPart>>> GetByMaterialIdAsync(int materialId)
         {
             var childParts = await _childPartRepository.GetByMaterialIdAsync(materialId);
             return ApiResponse<IEnumerable<ChildPart>>.SuccessResponse(childParts);
@@ -169,19 +169,19 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<ChildPart>>.SuccessResponse(childParts);
         }
 
-        public async Task<ApiResponse<IEnumerable<ChildPart>>> GetByDrawingIdAsync(Guid drawingId)
+        public async Task<ApiResponse<IEnumerable<ChildPart>>> GetByDrawingIdAsync(int drawingId)
         {
             var childParts = await _childPartRepository.GetByDrawingIdAsync(drawingId);
             return ApiResponse<IEnumerable<ChildPart>>.SuccessResponse(childParts);
         }
 
-        public async Task<ApiResponse<IEnumerable<ChildPart>>> GetByProcessTemplateIdAsync(Guid processTemplateId)
+        public async Task<ApiResponse<IEnumerable<ChildPart>>> GetByProcessTemplateIdAsync(int processTemplateId)
         {
             var childParts = await _childPartRepository.GetByProcessTemplateIdAsync(processTemplateId);
             return ApiResponse<IEnumerable<ChildPart>>.SuccessResponse(childParts);
         }
 
-        public async Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, string status)
+        public async Task<ApiResponse<bool>> UpdateStatusAsync(int id, string status)
         {
             var childPart = await _childPartRepository.GetByIdAsync(id);
             if (childPart == null)

@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class CreateDispatchChallanRequest
     {
         [Required]
-        public Guid OrderId { get; set; }
+        public int OrderId { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be greater than zero")]

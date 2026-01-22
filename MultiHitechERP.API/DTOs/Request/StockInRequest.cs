@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class StockInRequest
     {
         [Required]
-        public Guid MaterialId { get; set; }
+        public int MaterialId { get; set; }
 
         [Required]
         [Range(0.01, double.MaxValue)]
@@ -19,7 +19,7 @@ namespace MultiHitechERP.API.DTOs.Request
         [StringLength(50)]
         public string GRNNo { get; set; } = string.Empty;
 
-        public Guid? SupplierId { get; set; }
+        public int? SupplierId { get; set; }
 
         [Range(0, double.MaxValue)]
         public decimal? UnitCost { get; set; }

@@ -41,7 +41,7 @@ namespace MultiHitechERP.API.Controllers.Dispatch
         /// Get delivery challan by ID
         /// </summary>
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<DeliveryChallanResponse>>> GetById(Guid id)
+        public async Task<ActionResult<ApiResponse<DeliveryChallanResponse>>> GetById(int id)
         {
             var response = await _service.GetByIdAsync(id);
             if (!response.Success)
@@ -69,7 +69,7 @@ namespace MultiHitechERP.API.Controllers.Dispatch
         /// Get delivery challans by order ID
         /// </summary>
         [HttpGet("by-order/{orderId:guid}")]
-        public async Task<ActionResult<ApiResponse<DeliveryChallanResponse[]>>> GetByOrderId(Guid orderId)
+        public async Task<ActionResult<ApiResponse<DeliveryChallanResponse[]>>> GetByOrderId(int orderId)
         {
             var response = await _service.GetByOrderIdAsync(orderId);
             if (!response.Success)
@@ -83,7 +83,7 @@ namespace MultiHitechERP.API.Controllers.Dispatch
         /// Get delivery challans by customer ID
         /// </summary>
         [HttpGet("by-customer/{customerId:guid}")]
-        public async Task<ActionResult<ApiResponse<DeliveryChallanResponse[]>>> GetByCustomerId(Guid customerId)
+        public async Task<ActionResult<ApiResponse<DeliveryChallanResponse[]>>> GetByCustomerId(int customerId)
         {
             var response = await _service.GetByCustomerIdAsync(customerId);
             if (!response.Success)
@@ -193,7 +193,7 @@ namespace MultiHitechERP.API.Controllers.Dispatch
         /// Dispatch a delivery challan
         /// </summary>
         [HttpPost("{id:guid}/dispatch")]
-        public async Task<ActionResult<ApiResponse<bool>>> DispatchChallan(Guid id)
+        public async Task<ActionResult<ApiResponse<bool>>> DispatchChallan(int id)
         {
             var response = await _service.DispatchChallanAsync(id);
             if (!response.Success)
@@ -206,7 +206,7 @@ namespace MultiHitechERP.API.Controllers.Dispatch
         /// Mark delivery challan as delivered
         /// </summary>
         [HttpPost("{id:guid}/deliver")]
-        public async Task<ActionResult<ApiResponse<bool>>> DeliverChallan(Guid id, [FromBody] DeliverChallanRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> DeliverChallan(int id, [FromBody] DeliverChallanRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -222,7 +222,7 @@ namespace MultiHitechERP.API.Controllers.Dispatch
         /// Update delivery challan status
         /// </summary>
         [HttpPatch("{id:guid}/status")]
-        public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(Guid id, [FromBody] UpdateQCStatusRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(int id, [FromBody] UpdateQCStatusRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<bool>.ErrorResponse("Invalid request data"));
@@ -238,7 +238,7 @@ namespace MultiHitechERP.API.Controllers.Dispatch
         /// Delete a delivery challan
         /// </summary>
         [HttpDelete("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             var response = await _service.DeleteChallanAsync(id);
             if (!response.Success)

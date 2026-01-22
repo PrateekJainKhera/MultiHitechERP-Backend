@@ -7,20 +7,20 @@ namespace MultiHitechERP.API.Models.Masters
     /// </summary>
     public class BOMItem
     {
-        public Guid Id { get; set; }
-        public Guid BOMId { get; set; }
+        public int Id { get; set; }
+        public int BOMId { get; set; }
         public int LineNo { get; set; }
 
         // Item Type (Material, Sub-Assembly, Child Part)
         public string ItemType { get; set; } = "Material";
 
         // Material Reference (if ItemType = Material)
-        public Guid? MaterialId { get; set; }
+        public int? MaterialId { get; set; }
         public string? MaterialCode { get; set; }
         public string? MaterialName { get; set; }
 
         // Child Part Reference (if ItemType = Child Part)
-        public Guid? ChildPartId { get; set; }
+        public int? ChildPartId { get; set; }
         public string? ChildPartCode { get; set; }
         public string? ChildPartName { get; set; }
 

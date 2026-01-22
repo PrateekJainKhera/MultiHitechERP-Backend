@@ -7,8 +7,8 @@ namespace MultiHitechERP.API.Models.Stores
     /// </summary>
     public class MaterialPiece
     {
-        public Guid Id { get; set; }
-        public Guid MaterialId { get; set; }
+        public int Id { get; set; }
+        public int MaterialId { get; set; }
         public string PieceNo { get; set; } = string.Empty;
 
         // Length Tracking (CRITICAL for steel rods/pipes)
@@ -19,8 +19,8 @@ namespace MultiHitechERP.API.Models.Stores
 
         // Status
         public string Status { get; set; } = "Available";
-        public Guid? AllocatedToRequisitionId { get; set; }
-        public Guid? IssuedToJobCardId { get; set; }
+        public int? AllocatedToRequisitionId { get; set; }
+        public int? IssuedToJobCardId { get; set; }
 
         // Location
         public string? StorageLocation { get; set; }
@@ -31,7 +31,7 @@ namespace MultiHitechERP.API.Models.Stores
         public string? GRNNo { get; set; }
         public DateTime ReceivedDate { get; set; }
         public string? SupplierBatchNo { get; set; }
-        public Guid? SupplierId { get; set; }
+        public int? SupplierId { get; set; }
         public decimal? UnitCost { get; set; }
 
         // Audit

@@ -19,7 +19,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _operatorRepository = operatorRepository;
         }
 
-        public async Task<ApiResponse<OperatorResponse>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<OperatorResponse>> GetByIdAsync(int id)
         {
             try
             {
@@ -135,7 +135,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<OperatorResponse>>> GetByMachineExpertiseAsync(Guid machineId)
+        public async Task<ApiResponse<IEnumerable<OperatorResponse>>> GetByMachineExpertiseAsync(int machineId)
         {
             try
             {
@@ -149,17 +149,17 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<Guid>> CreateOperatorAsync(CreateOperatorRequest request)
+        public async Task<ApiResponse<int>> CreateOperatorAsync(CreateOperatorRequest request)
         {
             try
             {
                 // Validation
                 var exists = await _operatorRepository.ExistsAsync(request.OperatorCode);
                 if (exists)
-                    return ApiResponse<Guid>.ErrorResponse($"Operator code '{request.OperatorCode}' already exists");
+                    return ApiResponse<int>.ErrorResponse($"Operator code '{request.OperatorCode}' already exists");
 
                 if (string.IsNullOrWhiteSpace(request.OperatorName))
-                    return ApiResponse<Guid>.ErrorResponse("Operator name is required");
+                    return ApiResponse<int>.ErrorResponse("Operator name is required");
 
                 // Map to entity
                 var operatorEntity = new Operator
@@ -193,11 +193,11 @@ namespace MultiHitechERP.API.Services.Implementations
                 };
 
                 var operatorId = await _operatorRepository.InsertAsync(operatorEntity);
-                return ApiResponse<Guid>.SuccessResponse(operatorId, $"Operator '{request.OperatorCode}' created successfully");
+                return ApiResponse<int>.SuccessResponse(operatorId, $"Operator '{request.OperatorCode}' created successfully");
             }
             catch (Exception ex)
             {
-                return ApiResponse<Guid>.ErrorResponse($"Error creating operator: {ex.Message}");
+                return ApiResponse<int>.ErrorResponse($"Error creating operator: {ex.Message}");
             }
         }
 
@@ -261,7 +261,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> DeleteOperatorAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteOperatorAsync(int id)
         {
             try
             {
@@ -281,7 +281,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, string status)
+        public async Task<ApiResponse<bool>> UpdateStatusAsync(int id, string status)
         {
             try
             {
@@ -301,7 +301,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> UpdateAvailabilityAsync(Guid id, bool isAvailable)
+        public async Task<ApiResponse<bool>> UpdateAvailabilityAsync(int id, bool isAvailable)
         {
             try
             {
@@ -321,7 +321,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> AssignToJobCardAsync(Guid id, Guid jobCardId, string jobCardNo, Guid? machineId)
+        public async Task<ApiResponse<bool>> AssignToJobCardAsync(int id, int jobCardId, string jobCardNo, int? machineId)
         {
             try
             {
@@ -347,7 +347,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> ReleaseFromJobCardAsync(Guid id)
+        public async Task<ApiResponse<bool>> ReleaseFromJobCardAsync(int id)
         {
             try
             {

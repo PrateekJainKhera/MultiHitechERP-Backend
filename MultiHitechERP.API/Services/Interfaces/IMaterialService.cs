@@ -12,18 +12,18 @@ namespace MultiHitechERP.API.Services.Interfaces
     public interface IMaterialService
     {
         // CRUD Operations
-        Task<ApiResponse<MaterialResponse>> GetByIdAsync(Guid id);
+        Task<ApiResponse<MaterialResponse>> GetByIdAsync(int id);
         Task<ApiResponse<MaterialResponse>> GetByMaterialCodeAsync(string materialCode);
         Task<ApiResponse<IEnumerable<MaterialResponse>>> GetAllAsync();
         Task<ApiResponse<IEnumerable<MaterialResponse>>> GetActiveMaterialsAsync();
 
-        Task<ApiResponse<Guid>> CreateMaterialAsync(CreateMaterialRequest request);
+        Task<ApiResponse<int>> CreateMaterialAsync(CreateMaterialRequest request);
         Task<ApiResponse<bool>> UpdateMaterialAsync(UpdateMaterialRequest request);
-        Task<ApiResponse<bool>> DeleteMaterialAsync(Guid id);
+        Task<ApiResponse<bool>> DeleteMaterialAsync(int id);
 
         // Status Operations
-        Task<ApiResponse<bool>> ActivateMaterialAsync(Guid id);
-        Task<ApiResponse<bool>> DeactivateMaterialAsync(Guid id);
+        Task<ApiResponse<bool>> ActivateMaterialAsync(int id);
+        Task<ApiResponse<bool>> DeactivateMaterialAsync(int id);
 
         // Business Queries
         Task<ApiResponse<IEnumerable<MaterialResponse>>> GetByCategoryAsync(string category);

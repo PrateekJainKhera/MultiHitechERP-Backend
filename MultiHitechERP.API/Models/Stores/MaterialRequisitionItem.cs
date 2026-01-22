@@ -7,12 +7,12 @@ namespace MultiHitechERP.API.Models.Stores
     /// </summary>
     public class MaterialRequisitionItem
     {
-        public Guid Id { get; set; }
-        public Guid RequisitionId { get; set; }
+        public int Id { get; set; }
+        public int RequisitionId { get; set; }
         public int LineNo { get; set; }
 
         // Material Details
-        public Guid MaterialId { get; set; }
+        public int MaterialId { get; set; }
         public string? MaterialCode { get; set; }
         public string? MaterialName { get; set; }
         public string? MaterialGrade { get; set; }
@@ -37,9 +37,9 @@ namespace MultiHitechERP.API.Models.Stores
         public DateTime? IssuedAt { get; set; }
 
         // Reference
-        public Guid? JobCardId { get; set; }
+        public int? JobCardId { get; set; }
         public string? JobCardNo { get; set; }
-        public Guid? ProcessId { get; set; }
+        public int? ProcessId { get; set; }
         public string? ProcessName { get; set; }
 
         public string? Remarks { get; set; }

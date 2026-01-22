@@ -25,7 +25,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _orderRepository = orderRepository;
         }
 
-        public async Task<ApiResponse<DeliveryChallan>> GetByIdAsync(Guid id)
+        public async Task<ApiResponse<DeliveryChallan>> GetByIdAsync(int id)
         {
             var challan = await _challanRepository.GetByIdAsync(id);
             if (challan == null)
@@ -52,10 +52,10 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<DeliveryChallan>>.SuccessResponse(challans);
         }
 
-        public async Task<ApiResponse<Guid>> CreateChallanAsync(DeliveryChallan challan)
+        public async Task<ApiResponse<int>> CreateChallanAsync(DeliveryChallan challan)
         {
             var id = await _challanRepository.InsertAsync(challan);
-            return ApiResponse<Guid>.SuccessResponse(id, "Delivery challan created successfully");
+            return ApiResponse<int>.SuccessResponse(id, "Delivery challan created successfully");
         }
 
         public async Task<ApiResponse<bool>> UpdateChallanAsync(DeliveryChallan challan)
@@ -71,7 +71,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Delivery challan updated successfully");
         }
 
-        public async Task<ApiResponse<bool>> DeleteChallanAsync(Guid id)
+        public async Task<ApiResponse<bool>> DeleteChallanAsync(int id)
         {
             var existing = await _challanRepository.GetByIdAsync(id);
             if (existing == null)
@@ -84,13 +84,13 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Delivery challan deleted successfully");
         }
 
-        public async Task<ApiResponse<IEnumerable<DeliveryChallan>>> GetByOrderIdAsync(Guid orderId)
+        public async Task<ApiResponse<IEnumerable<DeliveryChallan>>> GetByOrderIdAsync(int orderId)
         {
             var challans = await _challanRepository.GetByOrderIdAsync(orderId);
             return ApiResponse<IEnumerable<DeliveryChallan>>.SuccessResponse(challans);
         }
 
-        public async Task<ApiResponse<IEnumerable<DeliveryChallan>>> GetByCustomerIdAsync(Guid customerId)
+        public async Task<ApiResponse<IEnumerable<DeliveryChallan>>> GetByCustomerIdAsync(int customerId)
         {
             var challans = await _challanRepository.GetByCustomerIdAsync(customerId);
             return ApiResponse<IEnumerable<DeliveryChallan>>.SuccessResponse(challans);
@@ -123,8 +123,8 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<IEnumerable<DeliveryChallan>>.SuccessResponse(challans);
         }
 
-        public async Task<ApiResponse<Guid>> CreateDispatchChallanAsync(
-            Guid orderId,
+        public async Task<ApiResponse<int>> CreateDispatchChallanAsync(
+            int orderId,
             int quantityDispatched,
             string deliveryAddress,
             string? transportMode,
@@ -135,17 +135,17 @@ namespace MultiHitechERP.API.Services.Implementations
             // Validate order exists
             var order = await _orderRepository.GetByIdAsync(orderId);
             if (order == null)
-                return ApiResponse<Guid>.ErrorResponse("Order not found");
+                return ApiResponse<int>.ErrorResponse("Order not found");
 
             if (order.Status != "Completed" && order.Status != "QC Approved")
-                return ApiResponse<Guid>.ErrorResponse($"Cannot create dispatch challan - order status is '{order.Status}'");
+                return ApiResponse<int>.ErrorResponse($"Cannot create dispatch challan - order status is '{order.Status}'");
 
             // Validate quantity
             if (quantityDispatched <= 0)
-                return ApiResponse<Guid>.ErrorResponse("Quantity dispatched must be greater than zero");
+                return ApiResponse<int>.ErrorResponse("Quantity dispatched must be greater than zero");
 
             if (quantityDispatched > order.Quantity)
-                return ApiResponse<Guid>.ErrorResponse($"Quantity dispatched ({quantityDispatched}) cannot exceed order quantity ({order.Quantity})");
+                return ApiResponse<int>.ErrorResponse($"Quantity dispatched ({quantityDispatched}) cannot exceed order quantity ({order.Quantity})");
 
             // Generate challan number
             var challanNo = $"DC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
@@ -170,10 +170,10 @@ namespace MultiHitechERP.API.Services.Implementations
 
             var id = await _challanRepository.InsertAsync(challan);
 
-            return ApiResponse<Guid>.SuccessResponse(id, $"Delivery challan {challanNo} created successfully");
+            return ApiResponse<int>.SuccessResponse(id, $"Delivery challan {challanNo} created successfully");
         }
 
-        public async Task<ApiResponse<bool>> DispatchChallanAsync(Guid id)
+        public async Task<ApiResponse<bool>> DispatchChallanAsync(int id)
         {
             var challan = await _challanRepository.GetByIdAsync(id);
             if (challan == null)
@@ -193,7 +193,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Challan dispatched successfully");
         }
 
-        public async Task<ApiResponse<bool>> DeliverChallanAsync(Guid id, string receivedBy)
+        public async Task<ApiResponse<bool>> DeliverChallanAsync(int id, string receivedBy)
         {
             var challan = await _challanRepository.GetByIdAsync(id);
             if (challan == null)
@@ -212,7 +212,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Challan marked as delivered successfully");
         }
 
-        public async Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, string status)
+        public async Task<ApiResponse<bool>> UpdateStatusAsync(int id, string status)
         {
             var challan = await _challanRepository.GetByIdAsync(id);
             if (challan == null)

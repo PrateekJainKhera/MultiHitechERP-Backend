@@ -7,8 +7,8 @@ namespace MultiHitechERP.API.DTOs.Response
     /// </summary>
     public class MaterialPieceResponse
     {
-        public Guid Id { get; set; }
-        public Guid MaterialId { get; set; }
+        public int Id { get; set; }
+        public int MaterialId { get; set; }
         public string PieceNo { get; set; } = string.Empty;
 
         public decimal OriginalLengthMM { get; set; }
@@ -17,8 +17,8 @@ namespace MultiHitechERP.API.DTOs.Response
         public decimal CurrentWeightKG { get; set; }
 
         public string Status { get; set; } = string.Empty;
-        public Guid? AllocatedToRequisitionId { get; set; }
-        public Guid? IssuedToJobCardId { get; set; }
+        public int? AllocatedToRequisitionId { get; set; }
+        public int? IssuedToJobCardId { get; set; }
 
         public string? StorageLocation { get; set; }
         public string? BinNumber { get; set; }
@@ -27,7 +27,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? GRNNo { get; set; }
         public DateTime ReceivedDate { get; set; }
         public string? SupplierBatchNo { get; set; }
-        public Guid? SupplierId { get; set; }
+        public int? SupplierId { get; set; }
         public decimal? UnitCost { get; set; }
 
         public DateTime CreatedAt { get; set; }

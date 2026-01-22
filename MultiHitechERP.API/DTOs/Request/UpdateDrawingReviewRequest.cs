@@ -9,7 +9,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class UpdateDrawingReviewRequest
     {
         [Required(ErrorMessage = "Order ID is required")]
-        public Guid OrderId { get; set; }
+        public int OrderId { get; set; }
 
         [Required(ErrorMessage = "Drawing review status is required")]
         public string Status { get; set; } = string.Empty;
