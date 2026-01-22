@@ -83,38 +83,39 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Machines (
-                    Id, MachineCode, MachineName, MachineType, Category,
-                    Manufacturer, Model, SerialNumber, YearOfManufacture,
+                    MachineCode, MachineName, MachineType, Category,
+                    Manufacturer, SerialNumber, YearOfManufacture,
                     Capacity, CapacityUnit, Specifications,
                     MaxWorkpieceLength, MaxWorkpieceDiameter, ChuckSize,
-                    Department, ShopFloor, Location,
+                    ShopFloor, Location,
                     HourlyRate, PowerConsumption, OperatorsRequired,
-                    PurchaseDate, LastMaintenanceDate, NextMaintenanceDate, MaintenanceSchedule,
-                    IsActive, Status, CurrentJobCardNo, IsAvailable, AvailableFrom,
+                    PurchaseDate, NextMaintenanceDate, MaintenanceSchedule,
+                    IsActive, CurrentJobCardNo, IsAvailable, AvailableFrom,
                     Remarks, CreatedAt, CreatedBy
                 ) VALUES (
-                    @Id, @MachineCode, @MachineName, @MachineType, @Category,
-                    @Manufacturer, @Model, @SerialNumber, @YearOfManufacture,
+                    @MachineCode, @MachineName, @MachineType, @Category,
+                    @Manufacturer, @SerialNumber, @YearOfManufacture,
                     @Capacity, @CapacityUnit, @Specifications,
                     @MaxWorkpieceLength, @MaxWorkpieceDiameter, @ChuckSize,
-                    @Department, @ShopFloor, @Location,
+                    @ShopFloor, @Location,
                     @HourlyRate, @PowerConsumption, @OperatorsRequired,
-                    @PurchaseDate, @LastMaintenanceDate, @NextMaintenanceDate, @MaintenanceSchedule,
-                    @IsActive, @Status, @CurrentJobCardNo, @IsAvailable, @AvailableFrom,
+                    @PurchaseDate, @NextMaintenanceDate, @MaintenanceSchedule,
+                    @IsActive, @CurrentJobCardNo, @IsAvailable, @AvailableFrom,
                     @Remarks, @CreatedAt, @CreatedBy
-                )";
+                );
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            machine.Id = 0;
             machine.CreatedAt = DateTime.UtcNow;
             AddMachineParameters(command, machine);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            var machineId = (int)await command.ExecuteScalarAsync();
+            machine.Id = machineId;
 
-            return machine.Id;
+            return machineId;
         }
 
         public async Task<bool> UpdateAsync(Machine machine)
@@ -122,15 +123,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 UPDATE Masters_Machines SET
                     MachineName = @MachineName, MachineType = @MachineType, Category = @Category,
-                    Manufacturer = @Manufacturer, Model = @Model, SerialNumber = @SerialNumber,
+                    Manufacturer = @Manufacturer, SerialNumber = @SerialNumber,
                     YearOfManufacture = @YearOfManufacture,
                     Capacity = @Capacity, CapacityUnit = @CapacityUnit, Specifications = @Specifications,
                     MaxWorkpieceLength = @MaxWorkpieceLength, MaxWorkpieceDiameter = @MaxWorkpieceDiameter,
-                    ChuckSize = @ChuckSize, Department = @Department, ShopFloor = @ShopFloor, Location = @Location,
+                    ChuckSize = @ChuckSize, ShopFloor = @ShopFloor, Location = @Location,
                     HourlyRate = @HourlyRate, PowerConsumption = @PowerConsumption, OperatorsRequired = @OperatorsRequired,
-                    PurchaseDate = @PurchaseDate, LastMaintenanceDate = @LastMaintenanceDate,
-                    NextMaintenanceDate = @NextMaintenanceDate, MaintenanceSchedule = @MaintenanceSchedule,
-                    IsActive = @IsActive, Status = @Status, CurrentJobCardNo = @CurrentJobCardNo,
+                    PurchaseDate = @PurchaseDate, NextMaintenanceDate = @NextMaintenanceDate, MaintenanceSchedule = @MaintenanceSchedule,
+                    IsActive = @IsActive, CurrentJobCardNo = @CurrentJobCardNo,
                     IsAvailable = @IsAvailable, AvailableFrom = @AvailableFrom,
                     Remarks = @Remarks, UpdatedAt = @UpdatedAt, UpdatedBy = @UpdatedBy
                 WHERE Id = @Id";

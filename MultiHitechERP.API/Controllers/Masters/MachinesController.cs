@@ -7,7 +7,7 @@ using MultiHitechERP.API.Services.Interfaces;
 namespace MultiHitechERP.API.Controllers.Masters
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/machines")]
     public class MachinesController : ControllerBase
     {
         private readonly IMachineService _machineService;
