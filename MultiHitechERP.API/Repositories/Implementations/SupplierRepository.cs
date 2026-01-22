@@ -85,7 +85,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Suppliers (
-                    Id, SupplierCode, SupplierName, SupplierType, Category,
+                    SupplierCode, SupplierName, SupplierType, Category,
                     ContactPerson, ContactNumber, Email, Website,
                     AddressLine1, AddressLine2, City, State, Country, PostalCode,
                     GSTNumber, PANNumber, TaxStatus,
@@ -99,7 +99,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     CreatedAt, CreatedBy
                 )
                 VALUES (
-                    @Id, @SupplierCode, @SupplierName, @SupplierType, @Category,
+                    @SupplierCode, @SupplierName, @SupplierType, @Category,
                     @ContactPerson, @ContactNumber, @Email, @Website,
                     @AddressLine1, @AddressLine2, @City, @State, @Country, @PostalCode,
                     @GSTNumber, @PANNumber, @TaxStatus,
@@ -111,13 +111,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     @IsActive, @IsApproved, @Status, @ApprovalStatus,
                     @Remarks, @InternalNotes,
                     @CreatedAt, @CreatedBy
-                )";
+                );
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
+            supplier.CreatedAt = DateTime.UtcNow;
 
-            var id = 0;
-            command.Parameters.AddWithValue("@Id", id);
             command.Parameters.AddWithValue("@SupplierCode", supplier.SupplierCode);
             command.Parameters.AddWithValue("@SupplierName", supplier.SupplierName);
             command.Parameters.AddWithValue("@SupplierType", (object?)supplier.SupplierType ?? DBNull.Value);
@@ -157,13 +157,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@ApprovalStatus", (object?)supplier.ApprovalStatus ?? DBNull.Value);
             command.Parameters.AddWithValue("@Remarks", (object?)supplier.Remarks ?? DBNull.Value);
             command.Parameters.AddWithValue("@InternalNotes", (object?)supplier.InternalNotes ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@CreatedAt", supplier.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", (object?)supplier.CreatedBy ?? DBNull.Value);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            var supplierId = (int)await command.ExecuteScalarAsync();
+            supplier.Id = supplierId;
 
-            return id;
+            return supplierId;
         }
 
         public async Task<bool> UpdateAsync(Supplier supplier)

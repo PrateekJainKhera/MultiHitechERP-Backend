@@ -11,7 +11,7 @@ using MultiHitechERP.API.Services.Interfaces;
 namespace MultiHitechERP.API.Controllers.Masters
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/suppliers")]
     public class SupplierController : ControllerBase
     {
         private readonly ISupplierService _service;
@@ -28,7 +28,7 @@ namespace MultiHitechERP.API.Controllers.Masters
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
-        [HttpGet("{id:guid}")]
+        [HttpGet("{id:int}")]
         public async Task<ActionResult<ApiResponse<Supplier>>> GetById(int id)
         {
             var response = await _service.GetByIdAsync(id);
@@ -106,10 +106,10 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<Guid>>> Create([FromBody] CreateSupplierRequest request)
+        public async Task<ActionResult<ApiResponse<int>>> Create([FromBody] CreateSupplierRequest request)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ApiResponse<Guid>.ErrorResponse("Invalid request data"));
+                return BadRequest(ApiResponse<int>.ErrorResponse("Invalid request data"));
 
             var supplier = new Supplier
             {
@@ -139,7 +139,7 @@ namespace MultiHitechERP.API.Controllers.Masters
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
-        [HttpPut("{id:guid}")]
+        [HttpPut("{id:int}")]
         public async Task<ActionResult<ApiResponse<bool>>> Update(int id, [FromBody] UpdateSupplierRequest request)
         {
             if (!ModelState.IsValid)
@@ -174,14 +174,14 @@ namespace MultiHitechERP.API.Controllers.Masters
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
-        [HttpDelete("{id:guid}")]
+        [HttpDelete("{id:int}")]
         public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             var response = await _service.DeleteSupplierAsync(id);
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
-        [HttpPost("{id:guid}/approve")]
+        [HttpPost("{id:int}/approve")]
         public async Task<ActionResult<ApiResponse<bool>>> Approve(int id, [FromBody] ApproveRequest request)
         {
             if (!ModelState.IsValid)
@@ -191,7 +191,7 @@ namespace MultiHitechERP.API.Controllers.Masters
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
-        [HttpPost("{id:guid}/reject")]
+        [HttpPost("{id:int}/reject")]
         public async Task<ActionResult<ApiResponse<bool>>> Reject(int id, [FromBody] RejectRequest request)
         {
             if (!ModelState.IsValid)
@@ -201,7 +201,7 @@ namespace MultiHitechERP.API.Controllers.Masters
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
-        [HttpPatch("{id:guid}/status")]
+        [HttpPatch("{id:int}/status")]
         public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(int id, [FromBody] UpdateStatusRequest request)
         {
             if (!ModelState.IsValid)
@@ -211,7 +211,7 @@ namespace MultiHitechERP.API.Controllers.Masters
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
-        [HttpPut("{id:guid}/performance")]
+        [HttpPut("{id:int}/performance")]
         public async Task<ActionResult<ApiResponse<bool>>> UpdatePerformanceMetrics(int id, [FromBody] UpdatePerformanceRequest request)
         {
             if (!ModelState.IsValid)
