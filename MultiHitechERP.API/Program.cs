@@ -42,6 +42,7 @@ builder.Services.AddScoped<IChildPartRepository, ChildPartRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 builder.Services.AddScoped<IProcessTemplateRepository, ProcessTemplateRepository>();
+builder.Services.AddScoped<IProductTemplateRepository, ProductTemplateRepository>();
 
 // Register Services
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -61,6 +62,7 @@ builder.Services.AddScoped<IDispatchService, DispatchService>();
 builder.Services.AddScoped<IBOMService, BOMService>();
 builder.Services.AddScoped<IChildPartService, ChildPartService>();
 builder.Services.AddScoped<IProcessTemplateService, ProcessTemplateService>();
+builder.Services.AddScoped<IProductTemplateService, ProductTemplateService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 
 // CORS for frontend
