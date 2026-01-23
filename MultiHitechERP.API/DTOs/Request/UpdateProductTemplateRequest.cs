@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace MultiHitechERP.API.DTOs.Request
@@ -8,35 +9,22 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Template name is required")]
+        [Required]
+        public string TemplateCode { get; set; } = string.Empty;
+
+        [Required]
         public string TemplateName { get; set; } = string.Empty;
 
-        // Product Classification
-        public string? ProductType { get; set; }
-        public string? Category { get; set; }
-        public string? RollerType { get; set; }
-
-        // Description
         public string? Description { get; set; }
 
-        // Process Reference
-        public int? ProcessTemplateId { get; set; }
-        public string? ProcessTemplateName { get; set; }
+        [Required]
+        public string RollerType { get; set; } = string.Empty;
 
-        // Estimates
-        public int? EstimatedLeadTimeDays { get; set; }
-        public decimal? StandardCost { get; set; }
+        [Required]
+        public int ProcessTemplateId { get; set; }
 
-        // Status
+        public List<CreateProductTemplateChildPartRequest> ChildParts { get; set; } = new();
+
         public bool IsActive { get; set; }
-        public string? Status { get; set; }
-        public bool IsDefault { get; set; }
-
-        // Approval
-        public string? ApprovedBy { get; set; }
-        public DateTime? ApprovalDate { get; set; }
-
-        public string? Remarks { get; set; }
-        public string? UpdatedBy { get; set; }
     }
 }

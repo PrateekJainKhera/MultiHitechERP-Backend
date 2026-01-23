@@ -1,39 +1,49 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace MultiHitechERP.API.DTOs.Request
 {
     public class CreateProductTemplateRequest
     {
-        [Required(ErrorMessage = "Template name is required")]
+        [Required]
+        public string TemplateCode { get; set; } = string.Empty;
+
+        [Required]
         public string TemplateName { get; set; } = string.Empty;
 
-        // Product Classification
-        public string? ProductType { get; set; }
-        public string? Category { get; set; }
-        public string? RollerType { get; set; }
-
-        // Description
         public string? Description { get; set; }
 
-        // Process Reference
-        public int? ProcessTemplateId { get; set; }
-        public string? ProcessTemplateName { get; set; }
+        [Required]
+        public string RollerType { get; set; } = string.Empty;
 
-        // Estimates
-        public int? EstimatedLeadTimeDays { get; set; }
-        public decimal? StandardCost { get; set; }
+        [Required]
+        public int ProcessTemplateId { get; set; }
 
-        // Status
+        public List<CreateProductTemplateChildPartRequest> ChildParts { get; set; } = new();
+
         public bool IsActive { get; set; } = true;
-        public string? Status { get; set; } = "Active";
-        public bool IsDefault { get; set; }
-
-        // Approval
-        public string? ApprovedBy { get; set; }
-        public DateTime? ApprovalDate { get; set; }
-
-        public string? Remarks { get; set; }
         public string? CreatedBy { get; set; }
+    }
+
+    public class CreateProductTemplateChildPartRequest
+    {
+        [Required]
+        public string ChildPartName { get; set; } = string.Empty;
+
+        public string? ChildPartCode { get; set; }
+
+        [Required]
+        public decimal Quantity { get; set; }
+
+        [Required]
+        public string Unit { get; set; } = string.Empty;
+
+        public string? Notes { get; set; }
+
+        [Required]
+        public int SequenceNo { get; set; }
+
+        public int? ChildPartTemplateId { get; set; }
     }
 }

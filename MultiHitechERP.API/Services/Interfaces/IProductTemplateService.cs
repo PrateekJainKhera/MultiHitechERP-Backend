@@ -13,6 +13,7 @@ namespace MultiHitechERP.API.Services.Interfaces
     {
         // CRUD Operations
         Task<ApiResponse<ProductTemplateResponse>> GetByIdAsync(int id);
+        Task<ApiResponse<ProductTemplateResponse>> GetByCodeAsync(string templateCode);
         Task<ApiResponse<ProductTemplateResponse>> GetByNameAsync(string templateName);
         Task<ApiResponse<IEnumerable<ProductTemplateResponse>>> GetAllAsync();
         Task<ApiResponse<IEnumerable<ProductTemplateResponse>>> GetActiveTemplatesAsync();
@@ -22,12 +23,7 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<bool>> DeleteTemplateAsync(int id);
 
         // Business Queries
-        Task<ApiResponse<IEnumerable<ProductTemplateResponse>>> GetByProductTypeAsync(string productType);
-        Task<ApiResponse<IEnumerable<ProductTemplateResponse>>> GetByCategoryAsync(string category);
+        Task<ApiResponse<IEnumerable<ProductTemplateResponse>>> GetByRollerTypeAsync(string rollerType);
         Task<ApiResponse<IEnumerable<ProductTemplateResponse>>> GetByProcessTemplateIdAsync(int processTemplateId);
-        Task<ApiResponse<IEnumerable<ProductTemplateResponse>>> GetDefaultTemplatesAsync();
-
-        // Approval
-        Task<ApiResponse<bool>> ApproveTemplateAsync(int id, string approvedBy);
     }
 }

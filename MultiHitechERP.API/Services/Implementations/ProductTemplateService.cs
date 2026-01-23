@@ -22,6 +22,8 @@ namespace MultiHitechERP.API.Services.Implementations
             _productTemplateRepository = productTemplateRepository;
         }
 
+        #region Template CRUD Operations
+
         public async Task<ApiResponse<ProductTemplateResponse>> GetByIdAsync(int id)
         {
             try
@@ -32,7 +34,26 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<ProductTemplateResponse>.ErrorResponse($"Product template with ID {id} not found");
                 }
 
-                var response = MapToResponse(template);
+                var response = MapToTemplateResponse(template);
+                return ApiResponse<ProductTemplateResponse>.SuccessResponse(response);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<ProductTemplateResponse>.ErrorResponse($"Error retrieving product template: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<ProductTemplateResponse>> GetByCodeAsync(string templateCode)
+        {
+            try
+            {
+                var template = await _productTemplateRepository.GetByCodeAsync(templateCode);
+                if (template == null)
+                {
+                    return ApiResponse<ProductTemplateResponse>.ErrorResponse($"Product template with code '{templateCode}' not found");
+                }
+
+                var response = MapToTemplateResponse(template);
                 return ApiResponse<ProductTemplateResponse>.SuccessResponse(response);
             }
             catch (Exception ex)
@@ -51,7 +72,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<ProductTemplateResponse>.ErrorResponse($"Product template '{templateName}' not found");
                 }
 
-                var response = MapToResponse(template);
+                var response = MapToTemplateResponse(template);
                 return ApiResponse<ProductTemplateResponse>.SuccessResponse(response);
             }
             catch (Exception ex)
@@ -65,7 +86,7 @@ namespace MultiHitechERP.API.Services.Implementations
             try
             {
                 var templates = await _productTemplateRepository.GetAllAsync();
-                var responses = templates.Select(MapToResponse).ToList();
+                var responses = templates.Select(MapToTemplateResponse).ToList();
                 return ApiResponse<IEnumerable<ProductTemplateResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
@@ -79,7 +100,7 @@ namespace MultiHitechERP.API.Services.Implementations
             try
             {
                 var templates = await _productTemplateRepository.GetActiveTemplatesAsync();
-                var responses = templates.Select(MapToResponse).ToList();
+                var responses = templates.Select(MapToTemplateResponse).ToList();
                 return ApiResponse<IEnumerable<ProductTemplateResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
@@ -92,43 +113,47 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                // Business Rule 1: Validate template name is unique
+                // Business Rule: Validate template name is unique
                 var exists = await _productTemplateRepository.ExistsAsync(request.TemplateName);
                 if (exists)
                 {
-                    return ApiResponse<int>.ErrorResponse($"Product template '{request.TemplateName}' already exists");
+                    return ApiResponse<int>.ErrorResponse($"Product template with name '{request.TemplateName}' already exists");
                 }
 
-                // Business Rule 2: Validate required fields
-                if (string.IsNullOrWhiteSpace(request.TemplateName))
-                {
-                    return ApiResponse<int>.ErrorResponse("Template name is required");
-                }
-
-                // Create Template
+                // Create template entity
                 var template = new ProductTemplate
                 {
-                    TemplateName = request.TemplateName.Trim(),
-                    ProductType = request.ProductType?.Trim(),
-                    Category = request.Category?.Trim(),
-                    RollerType = request.RollerType?.Trim(),
-                    Description = request.Description?.Trim(),
+                    TemplateCode = request.TemplateCode,
+                    TemplateName = request.TemplateName,
+                    Description = request.Description,
+                    RollerType = request.RollerType,
                     ProcessTemplateId = request.ProcessTemplateId,
-                    ProcessTemplateName = request.ProcessTemplateName?.Trim(),
-                    EstimatedLeadTimeDays = request.EstimatedLeadTimeDays,
-                    StandardCost = request.StandardCost,
                     IsActive = request.IsActive,
-                    Status = request.Status?.Trim() ?? "Active",
-                    IsDefault = request.IsDefault,
-                    ApprovedBy = request.ApprovedBy?.Trim(),
-                    ApprovalDate = request.ApprovalDate,
-                    Remarks = request.Remarks?.Trim(),
-                    CreatedBy = request.CreatedBy?.Trim() ?? "System"
+                    CreatedBy = request.CreatedBy
                 };
 
+                // Insert template
                 var templateId = await _productTemplateRepository.InsertAsync(template);
 
-                return ApiResponse<int>.SuccessResponse(templateId, $"Product template '{request.TemplateName}' created successfully");
+                // Insert child parts if any
+                if (request.ChildParts != null && request.ChildParts.Any())
+                {
+                    var childParts = request.ChildParts.Select(cp => new ProductTemplateChildPart
+                    {
+                        ProductTemplateId = templateId,
+                        ChildPartName = cp.ChildPartName,
+                        ChildPartCode = cp.ChildPartCode,
+                        Quantity = cp.Quantity,
+                        Unit = cp.Unit,
+                        Notes = cp.Notes,
+                        SequenceNo = cp.SequenceNo,
+                        ChildPartTemplateId = cp.ChildPartTemplateId
+                    }).ToList();
+
+                    await _productTemplateRepository.InsertChildPartsAsync(templateId, childParts);
+                }
+
+                return ApiResponse<int>.SuccessResponse(templateId, "Product template created successfully");
             }
             catch (Exception ex)
             {
@@ -140,46 +165,55 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                // Get existing template
+                // Verify template exists
                 var existingTemplate = await _productTemplateRepository.GetByIdAsync(request.Id);
                 if (existingTemplate == null)
                 {
-                    return ApiResponse<bool>.ErrorResponse("Product template not found");
+                    return ApiResponse<bool>.ErrorResponse($"Product template with ID {request.Id} not found");
                 }
 
-                // Business Rule 1: Validate template name uniqueness if changed
-                if (existingTemplate.TemplateName != request.TemplateName)
+                // Update template entity
+                var template = new ProductTemplate
                 {
-                    var exists = await _productTemplateRepository.ExistsAsync(request.TemplateName);
-                    if (exists)
-                    {
-                        return ApiResponse<bool>.ErrorResponse($"Product template '{request.TemplateName}' already exists");
-                    }
-                }
+                    Id = request.Id,
+                    TemplateCode = request.TemplateCode,
+                    TemplateName = request.TemplateName,
+                    Description = request.Description,
+                    RollerType = request.RollerType,
+                    ProcessTemplateId = request.ProcessTemplateId,
+                    IsActive = request.IsActive,
+                    CreatedAt = existingTemplate.CreatedAt,
+                    CreatedBy = existingTemplate.CreatedBy
+                };
 
                 // Update template
-                existingTemplate.TemplateName = request.TemplateName.Trim();
-                existingTemplate.ProductType = request.ProductType?.Trim();
-                existingTemplate.Category = request.Category?.Trim();
-                existingTemplate.RollerType = request.RollerType?.Trim();
-                existingTemplate.Description = request.Description?.Trim();
-                existingTemplate.ProcessTemplateId = request.ProcessTemplateId;
-                existingTemplate.ProcessTemplateName = request.ProcessTemplateName?.Trim();
-                existingTemplate.EstimatedLeadTimeDays = request.EstimatedLeadTimeDays;
-                existingTemplate.StandardCost = request.StandardCost;
-                existingTemplate.IsActive = request.IsActive;
-                existingTemplate.Status = request.Status?.Trim();
-                existingTemplate.IsDefault = request.IsDefault;
-                existingTemplate.ApprovedBy = request.ApprovedBy?.Trim();
-                existingTemplate.ApprovalDate = request.ApprovalDate;
-                existingTemplate.Remarks = request.Remarks?.Trim();
-                existingTemplate.UpdatedBy = request.UpdatedBy?.Trim() ?? "System";
+                var success = await _productTemplateRepository.UpdateAsync(template);
+                if (!success)
+                {
+                    return ApiResponse<bool>.ErrorResponse("Failed to update product template");
+                }
 
-                var success = await _productTemplateRepository.UpdateAsync(existingTemplate);
+                // Update child parts: Delete all and re-insert
+                await _productTemplateRepository.DeleteChildPartsByTemplateIdAsync(request.Id);
 
-                return success
-                    ? ApiResponse<bool>.SuccessResponse(true, $"Product template '{request.TemplateName}' updated successfully")
-                    : ApiResponse<bool>.ErrorResponse("Failed to update product template");
+                if (request.ChildParts != null && request.ChildParts.Any())
+                {
+                    var childParts = request.ChildParts.Select(cp => new ProductTemplateChildPart
+                    {
+                        ProductTemplateId = request.Id,
+                        ChildPartName = cp.ChildPartName,
+                        ChildPartCode = cp.ChildPartCode,
+                        Quantity = cp.Quantity,
+                        Unit = cp.Unit,
+                        Notes = cp.Notes,
+                        SequenceNo = cp.SequenceNo,
+                        ChildPartTemplateId = cp.ChildPartTemplateId
+                    }).ToList();
+
+                    await _productTemplateRepository.InsertChildPartsAsync(request.Id, childParts);
+                }
+
+                return ApiResponse<bool>.SuccessResponse(true, "Product template updated successfully");
             }
             catch (Exception ex)
             {
@@ -191,17 +225,21 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
+                // Verify template exists
                 var template = await _productTemplateRepository.GetByIdAsync(id);
                 if (template == null)
                 {
-                    return ApiResponse<bool>.ErrorResponse("Product template not found");
+                    return ApiResponse<bool>.ErrorResponse($"Product template with ID {id} not found");
                 }
 
+                // Delete template (child parts will cascade)
                 var success = await _productTemplateRepository.DeleteAsync(id);
+                if (!success)
+                {
+                    return ApiResponse<bool>.ErrorResponse("Failed to delete product template");
+                }
 
-                return success
-                    ? ApiResponse<bool>.SuccessResponse(true, "Product template deleted successfully")
-                    : ApiResponse<bool>.ErrorResponse("Failed to delete product template");
+                return ApiResponse<bool>.SuccessResponse(true, "Product template deleted successfully");
             }
             catch (Exception ex)
             {
@@ -209,31 +247,21 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ProductTemplateResponse>>> GetByProductTypeAsync(string productType)
-        {
-            try
-            {
-                var templates = await _productTemplateRepository.GetByProductTypeAsync(productType);
-                var responses = templates.Select(MapToResponse).ToList();
-                return ApiResponse<IEnumerable<ProductTemplateResponse>>.SuccessResponse(responses);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<ProductTemplateResponse>>.ErrorResponse($"Error retrieving templates by product type: {ex.Message}");
-            }
-        }
+        #endregion
 
-        public async Task<ApiResponse<IEnumerable<ProductTemplateResponse>>> GetByCategoryAsync(string category)
+        #region Business Queries
+
+        public async Task<ApiResponse<IEnumerable<ProductTemplateResponse>>> GetByRollerTypeAsync(string rollerType)
         {
             try
             {
-                var templates = await _productTemplateRepository.GetByCategoryAsync(category);
-                var responses = templates.Select(MapToResponse).ToList();
+                var templates = await _productTemplateRepository.GetByRollerTypeAsync(rollerType);
+                var responses = templates.Select(MapToTemplateResponse).ToList();
                 return ApiResponse<IEnumerable<ProductTemplateResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
             {
-                return ApiResponse<IEnumerable<ProductTemplateResponse>>.ErrorResponse($"Error retrieving templates by category: {ex.Message}");
+                return ApiResponse<IEnumerable<ProductTemplateResponse>>.ErrorResponse($"Error retrieving templates by roller type: {ex.Message}");
             }
         }
 
@@ -242,7 +270,7 @@ namespace MultiHitechERP.API.Services.Implementations
             try
             {
                 var templates = await _productTemplateRepository.GetByProcessTemplateIdAsync(processTemplateId);
-                var responses = templates.Select(MapToResponse).ToList();
+                var responses = templates.Select(MapToTemplateResponse).ToList();
                 return ApiResponse<IEnumerable<ProductTemplateResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
@@ -251,67 +279,45 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ProductTemplateResponse>>> GetDefaultTemplatesAsync()
-        {
-            try
-            {
-                var templates = await _productTemplateRepository.GetDefaultTemplatesAsync();
-                var responses = templates.Select(MapToResponse).ToList();
-                return ApiResponse<IEnumerable<ProductTemplateResponse>>.SuccessResponse(responses);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<ProductTemplateResponse>>.ErrorResponse($"Error retrieving default templates: {ex.Message}");
-            }
-        }
+        #endregion
 
-        public async Task<ApiResponse<bool>> ApproveTemplateAsync(int id, string approvedBy)
-        {
-            try
-            {
-                var template = await _productTemplateRepository.GetByIdAsync(id);
-                if (template == null)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Product template not found");
-                }
+        #region Mapping Methods
 
-                var success = await _productTemplateRepository.ApproveTemplateAsync(id, approvedBy);
-
-                return success
-                    ? ApiResponse<bool>.SuccessResponse(true, $"Product template approved by {approvedBy}")
-                    : ApiResponse<bool>.ErrorResponse("Failed to approve product template");
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResponse($"Error approving template: {ex.Message}");
-            }
-        }
-
-        private static ProductTemplateResponse MapToResponse(ProductTemplate template)
+        private ProductTemplateResponse MapToTemplateResponse(ProductTemplate template)
         {
             return new ProductTemplateResponse
             {
                 Id = template.Id,
+                TemplateCode = template.TemplateCode,
                 TemplateName = template.TemplateName,
-                ProductType = template.ProductType,
-                Category = template.Category,
-                RollerType = template.RollerType,
                 Description = template.Description,
+                RollerType = template.RollerType,
                 ProcessTemplateId = template.ProcessTemplateId,
                 ProcessTemplateName = template.ProcessTemplateName,
-                EstimatedLeadTimeDays = template.EstimatedLeadTimeDays,
-                StandardCost = template.StandardCost,
                 IsActive = template.IsActive,
-                Status = template.Status,
-                IsDefault = template.IsDefault,
-                ApprovedBy = template.ApprovedBy,
-                ApprovalDate = template.ApprovalDate,
-                Remarks = template.Remarks,
                 CreatedAt = template.CreatedAt,
-                CreatedBy = template.CreatedBy,
                 UpdatedAt = template.UpdatedAt,
-                UpdatedBy = template.UpdatedBy
+                CreatedBy = template.CreatedBy,
+                ChildParts = template.ChildParts?.Select(MapToChildPartResponse).ToList() ?? new List<ProductTemplateChildPartResponse>()
             };
         }
+
+        private ProductTemplateChildPartResponse MapToChildPartResponse(ProductTemplateChildPart childPart)
+        {
+            return new ProductTemplateChildPartResponse
+            {
+                Id = childPart.Id,
+                ProductTemplateId = childPart.ProductTemplateId,
+                ChildPartName = childPart.ChildPartName,
+                ChildPartCode = childPart.ChildPartCode,
+                Quantity = childPart.Quantity,
+                Unit = childPart.Unit,
+                Notes = childPart.Notes,
+                SequenceNo = childPart.SequenceNo,
+                ChildPartTemplateId = childPart.ChildPartTemplateId
+            };
+        }
+
+        #endregion
     }
 }

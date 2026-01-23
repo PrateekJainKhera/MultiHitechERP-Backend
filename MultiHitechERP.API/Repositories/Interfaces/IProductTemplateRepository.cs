@@ -12,6 +12,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     {
         // Basic CRUD Operations
         Task<ProductTemplate?> GetByIdAsync(int id);
+        Task<ProductTemplate?> GetByCodeAsync(string templateCode);
         Task<ProductTemplate?> GetByNameAsync(string templateName);
         Task<IEnumerable<ProductTemplate>> GetAllAsync();
         Task<IEnumerable<ProductTemplate>> GetActiveTemplatesAsync();
@@ -22,13 +23,13 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<bool> DeleteAsync(int id);
 
         // Queries
-        Task<IEnumerable<ProductTemplate>> GetByProductTypeAsync(string productType);
-        Task<IEnumerable<ProductTemplate>> GetByCategoryAsync(string category);
+        Task<IEnumerable<ProductTemplate>> GetByRollerTypeAsync(string rollerType);
         Task<IEnumerable<ProductTemplate>> GetByProcessTemplateIdAsync(int processTemplateId);
-        Task<IEnumerable<ProductTemplate>> GetDefaultTemplatesAsync();
         Task<bool> ExistsAsync(string templateName);
 
-        // Approval
-        Task<bool> ApproveTemplateAsync(int id, string approvedBy);
+        // Child Parts
+        Task<IEnumerable<ProductTemplateChildPart>> GetChildPartsByTemplateIdAsync(int templateId);
+        Task<bool> DeleteChildPartsByTemplateIdAsync(int templateId);
+        Task<bool> InsertChildPartsAsync(int templateId, IEnumerable<ProductTemplateChildPart> childParts);
     }
 }

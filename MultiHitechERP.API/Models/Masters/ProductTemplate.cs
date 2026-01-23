@@ -1,45 +1,31 @@
 using System;
+using System.Collections.Generic;
 
 namespace MultiHitechERP.API.Models.Masters
 {
     /// <summary>
-    /// Represents a product template for quick product creation
-    /// Links product configuration to a process template
+    /// Product Template - Complete manufacturing recipe for a roller type
+    /// Combines child parts BOM + process sequence in one template
     /// </summary>
     public class ProductTemplate
     {
         public int Id { get; set; }
+        public string TemplateCode { get; set; } = string.Empty;
         public string TemplateName { get; set; } = string.Empty;
-
-        // Product Classification
-        public string? ProductType { get; set; }
-        public string? Category { get; set; }
-        public string? RollerType { get; set; }
-
-        // Description
         public string? Description { get; set; }
+        public string RollerType { get; set; } = string.Empty;
 
         // Process Reference
-        public int? ProcessTemplateId { get; set; }
-        public string? ProcessTemplateName { get; set; }
+        public int ProcessTemplateId { get; set; }
+        public string ProcessTemplateName { get; set; } = string.Empty;
 
-        // Estimates
-        public int? EstimatedLeadTimeDays { get; set; }
-        public decimal? StandardCost { get; set; }
+        // Child parts (loaded separately via join)
+        public List<ProductTemplateChildPart>? ChildParts { get; set; }
 
-        // Status
+        // Metadata
         public bool IsActive { get; set; }
-        public string? Status { get; set; }
-        public bool IsDefault { get; set; }
-
-        // Approval
-        public string? ApprovedBy { get; set; }
-        public DateTime? ApprovalDate { get; set; }
-
-        public string? Remarks { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
         public string? CreatedBy { get; set; }
-        public DateTime? UpdatedAt { get; set; }
-        public string? UpdatedBy { get; set; }
     }
 }

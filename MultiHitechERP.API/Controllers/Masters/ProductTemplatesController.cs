@@ -31,6 +31,13 @@ namespace MultiHitechERP.API.Controllers.Masters
             return result.Success ? Ok(result) : NotFound(result);
         }
 
+        [HttpGet("by-code/{templateCode}")]
+        public async Task<IActionResult> GetByCode(string templateCode)
+        {
+            var result = await _productTemplateService.GetByCodeAsync(templateCode);
+            return result.Success ? Ok(result) : NotFound(result);
+        }
+
         [HttpGet("by-name/{templateName}")]
         public async Task<IActionResult> GetByName(string templateName)
         {
@@ -45,24 +52,10 @@ namespace MultiHitechERP.API.Controllers.Masters
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        [HttpGet("default")]
-        public async Task<IActionResult> GetDefaultTemplates()
+        [HttpGet("by-roller-type/{rollerType}")]
+        public async Task<IActionResult> GetByRollerType(string rollerType)
         {
-            var result = await _productTemplateService.GetDefaultTemplatesAsync();
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpGet("by-product-type/{productType}")]
-        public async Task<IActionResult> GetByProductType(string productType)
-        {
-            var result = await _productTemplateService.GetByProductTypeAsync(productType);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpGet("by-category/{category}")]
-        public async Task<IActionResult> GetByCategory(string category)
-        {
-            var result = await _productTemplateService.GetByCategoryAsync(category);
+            var result = await _productTemplateService.GetByRollerTypeAsync(rollerType);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
@@ -100,13 +93,6 @@ namespace MultiHitechERP.API.Controllers.Masters
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _productTemplateService.DeleteTemplateAsync(id);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpPost("{id:int}/approve")]
-        public async Task<IActionResult> ApproveTemplate(int id, [FromBody] string approvedBy)
-        {
-            var result = await _productTemplateService.ApproveTemplateAsync(id, approvedBy);
             return result.Success ? Ok(result) : BadRequest(result);
         }
     }
