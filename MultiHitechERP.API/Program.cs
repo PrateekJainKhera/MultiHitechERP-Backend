@@ -14,6 +14,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "MultiHitech ERP API", Version = "v1" });
+    c.CustomSchemaIds(type => type.FullName); // Fix for duplicate class names
 });
 
 // Database Connection Factory
@@ -40,6 +41,7 @@ builder.Services.AddScoped<IBOMRepository, BOMRepository>();
 builder.Services.AddScoped<IChildPartRepository, ChildPartRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
+builder.Services.AddScoped<IProcessTemplateRepository, ProcessTemplateRepository>();
 
 // Register Services
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -58,6 +60,7 @@ builder.Services.AddScoped<IQualityService, QualityService>();
 builder.Services.AddScoped<IDispatchService, DispatchService>();
 builder.Services.AddScoped<IBOMService, BOMService>();
 builder.Services.AddScoped<IChildPartService, ChildPartService>();
+builder.Services.AddScoped<IProcessTemplateService, ProcessTemplateService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 
 // CORS for frontend
