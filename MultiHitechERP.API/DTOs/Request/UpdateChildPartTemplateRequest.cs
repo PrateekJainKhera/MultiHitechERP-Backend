@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace MultiHitechERP.API.DTOs.Request
@@ -8,15 +8,20 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Template name is required")]
+        [Required]
+        public string TemplateCode { get; set; } = string.Empty;
+
+        [Required]
         public string TemplateName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Child part type is required")]
+        [Required]
         public string ChildPartType { get; set; } = string.Empty;
 
-        // Description
-        public string? Description { get; set; }
-        public string? Category { get; set; }
+        [Required]
+        public string RollerType { get; set; } = string.Empty;
+
+        public string? DrawingNumber { get; set; }
+        public string? DrawingRevision { get; set; }
 
         // Dimensions
         public decimal? Length { get; set; }
@@ -24,30 +29,21 @@ namespace MultiHitechERP.API.DTOs.Request
         public decimal? InnerDiameter { get; set; }
         public decimal? OuterDiameter { get; set; }
         public decimal? Thickness { get; set; }
-        public decimal? Width { get; set; }
-        public decimal? Height { get; set; }
 
-        // Material & Process
-        public string? MaterialType { get; set; }
-        public string? MaterialGrade { get; set; }
-        public int? ProcessTemplateId { get; set; }
-        public string? ProcessTemplateName { get; set; }
+        [Required]
+        public string DimensionUnit { get; set; } = "mm";
 
-        // Estimates
-        public decimal? EstimatedCost { get; set; }
-        public int? EstimatedLeadTimeDays { get; set; }
-        public decimal? EstimatedWeight { get; set; }
+        // Manufacturing
+        public List<CreateChildPartTemplateMaterialRequirementRequest> MaterialRequirements { get; set; } = new();
+        public List<CreateChildPartTemplateProcessStepRequest> ProcessSteps { get; set; } = new();
+        public decimal TotalStandardTimeHours { get; set; }
 
-        // Status
-        public bool IsActive { get; set; }
-        public string? Status { get; set; }
-        public bool IsDefault { get; set; }
+        // Notes
+        public string? Description { get; set; }
+        public string? TechnicalNotes { get; set; }
+        public List<string> QualityCheckpoints { get; set; } = new();
 
-        // Approval
-        public string? ApprovedBy { get; set; }
-        public DateTime? ApprovalDate { get; set; }
-
-        public string? Remarks { get; set; }
-        public string? UpdatedBy { get; set; }
+        // Metadata
+        public bool IsActive { get; set; } = true;
     }
 }

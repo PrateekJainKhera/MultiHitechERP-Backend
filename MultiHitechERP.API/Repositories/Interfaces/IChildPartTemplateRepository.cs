@@ -12,6 +12,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     {
         // Basic CRUD Operations
         Task<ChildPartTemplate?> GetByIdAsync(int id);
+        Task<ChildPartTemplate?> GetByCodeAsync(string templateCode);
         Task<ChildPartTemplate?> GetByNameAsync(string templateName);
         Task<IEnumerable<ChildPartTemplate>> GetAllAsync();
         Task<IEnumerable<ChildPartTemplate>> GetActiveTemplatesAsync();
@@ -23,12 +24,17 @@ namespace MultiHitechERP.API.Repositories.Interfaces
 
         // Queries
         Task<IEnumerable<ChildPartTemplate>> GetByChildPartTypeAsync(string childPartType);
-        Task<IEnumerable<ChildPartTemplate>> GetByCategoryAsync(string category);
-        Task<IEnumerable<ChildPartTemplate>> GetByProcessTemplateIdAsync(int processTemplateId);
-        Task<IEnumerable<ChildPartTemplate>> GetDefaultTemplatesAsync();
+        Task<IEnumerable<ChildPartTemplate>> GetByRollerTypeAsync(string rollerType);
         Task<bool> ExistsAsync(string templateName);
 
-        // Approval
-        Task<bool> ApproveTemplateAsync(int id, string approvedBy);
+        // Material Requirements
+        Task<IEnumerable<ChildPartTemplateMaterialRequirement>> GetMaterialRequirementsByTemplateIdAsync(int templateId);
+        Task<bool> DeleteMaterialRequirementsByTemplateIdAsync(int templateId);
+        Task<bool> InsertMaterialRequirementsAsync(int templateId, IEnumerable<ChildPartTemplateMaterialRequirement> requirements);
+
+        // Process Steps
+        Task<IEnumerable<ChildPartTemplateProcessStep>> GetProcessStepsByTemplateIdAsync(int templateId);
+        Task<bool> DeleteProcessStepsByTemplateIdAsync(int templateId);
+        Task<bool> InsertProcessStepsAsync(int templateId, IEnumerable<ChildPartTemplateProcessStep> steps);
     }
 }

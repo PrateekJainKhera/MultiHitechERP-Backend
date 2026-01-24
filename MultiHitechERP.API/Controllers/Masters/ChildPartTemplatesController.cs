@@ -10,66 +10,59 @@ namespace MultiHitechERP.API.Controllers.Masters
     [Route("api/child-part-templates")]
     public class ChildPartTemplatesController : ControllerBase
     {
-        private readonly IChildPartTemplateService _productTemplateService;
+        private readonly IChildPartTemplateService _childPartTemplateService;
 
-        public ChildPartTemplatesController(IChildPartTemplateService productTemplateService)
+        public ChildPartTemplatesController(IChildPartTemplateService childPartTemplateService)
         {
-            _productTemplateService = productTemplateService;
+            _childPartTemplateService = childPartTemplateService;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _productTemplateService.GetAllAsync();
+            var result = await _childPartTemplateService.GetAllAsync();
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var result = await _productTemplateService.GetByIdAsync(id);
+            var result = await _childPartTemplateService.GetByIdAsync(id);
+            return result.Success ? Ok(result) : NotFound(result);
+        }
+
+        [HttpGet("by-code/{templateCode}")]
+        public async Task<IActionResult> GetByCode(string templateCode)
+        {
+            var result = await _childPartTemplateService.GetByCodeAsync(templateCode);
             return result.Success ? Ok(result) : NotFound(result);
         }
 
         [HttpGet("by-name/{templateName}")]
         public async Task<IActionResult> GetByName(string templateName)
         {
-            var result = await _productTemplateService.GetByNameAsync(templateName);
+            var result = await _childPartTemplateService.GetByNameAsync(templateName);
             return result.Success ? Ok(result) : NotFound(result);
         }
 
         [HttpGet("active")]
         public async Task<IActionResult> GetActiveTemplates()
         {
-            var result = await _productTemplateService.GetActiveTemplatesAsync();
+            var result = await _childPartTemplateService.GetActiveTemplatesAsync();
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        [HttpGet("default")]
-        public async Task<IActionResult> GetDefaultTemplates()
+        [HttpGet("by-child-part-type/{childPartType}")]
+        public async Task<IActionResult> GetByChildPartType(string childPartType)
         {
-            var result = await _productTemplateService.GetDefaultTemplatesAsync();
+            var result = await _childPartTemplateService.GetByChildPartTypeAsync(childPartType);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        [HttpGet("by-child-part-type/{productType}")]
-        public async Task<IActionResult> GetByChildPartType(string productType)
+        [HttpGet("by-roller-type/{rollerType}")]
+        public async Task<IActionResult> GetByRollerType(string rollerType)
         {
-            var result = await _productTemplateService.GetByChildPartTypeAsync(productType);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpGet("by-category/{category}")]
-        public async Task<IActionResult> GetByCategory(string category)
-        {
-            var result = await _productTemplateService.GetByCategoryAsync(category);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpGet("by-process-template/{processTemplateId:int}")]
-        public async Task<IActionResult> GetByProcessTemplateId(int processTemplateId)
-        {
-            var result = await _productTemplateService.GetByProcessTemplateIdAsync(processTemplateId);
+            var result = await _childPartTemplateService.GetByRollerTypeAsync(rollerType);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
@@ -79,7 +72,7 @@ namespace MultiHitechERP.API.Controllers.Masters
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _productTemplateService.CreateTemplateAsync(request);
+            var result = await _childPartTemplateService.CreateTemplateAsync(request);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
@@ -92,21 +85,14 @@ namespace MultiHitechERP.API.Controllers.Masters
             if (id != request.Id)
                 return BadRequest("ID mismatch");
 
-            var result = await _productTemplateService.UpdateTemplateAsync(request);
+            var result = await _childPartTemplateService.UpdateTemplateAsync(request);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _productTemplateService.DeleteTemplateAsync(id);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpPost("{id:int}/approve")]
-        public async Task<IActionResult> ApproveTemplate(int id, [FromBody] string approvedBy)
-        {
-            var result = await _productTemplateService.ApproveTemplateAsync(id, approvedBy);
+            var result = await _childPartTemplateService.DeleteTemplateAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
     }

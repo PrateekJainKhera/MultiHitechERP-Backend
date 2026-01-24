@@ -10,6 +10,9 @@ using MultiHitechERP.API.Services.Interfaces;
 
 namespace MultiHitechERP.API.Services.Implementations
 {
+    /// <summary>
+    /// Service implementation for Child Part Template business logic
+    /// </summary>
     public class ChildPartTemplateService : IChildPartTemplateService
     {
         private readonly IChildPartTemplateRepository _childPartTemplateRepository;
@@ -18,6 +21,8 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             _childPartTemplateRepository = childPartTemplateRepository;
         }
+
+        #region Template CRUD Operations
 
         public async Task<ApiResponse<ChildPartTemplateResponse>> GetByIdAsync(int id)
         {
@@ -29,7 +34,26 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<ChildPartTemplateResponse>.ErrorResponse($"Child part template with ID {id} not found");
                 }
 
-                var response = MapToResponse(template);
+                var response = MapToTemplateResponse(template);
+                return ApiResponse<ChildPartTemplateResponse>.SuccessResponse(response);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<ChildPartTemplateResponse>.ErrorResponse($"Error retrieving child part template: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<ChildPartTemplateResponse>> GetByCodeAsync(string templateCode)
+        {
+            try
+            {
+                var template = await _childPartTemplateRepository.GetByCodeAsync(templateCode);
+                if (template == null)
+                {
+                    return ApiResponse<ChildPartTemplateResponse>.ErrorResponse($"Child part template with code '{templateCode}' not found");
+                }
+
+                var response = MapToTemplateResponse(template);
                 return ApiResponse<ChildPartTemplateResponse>.SuccessResponse(response);
             }
             catch (Exception ex)
@@ -48,7 +72,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<ChildPartTemplateResponse>.ErrorResponse($"Child part template '{templateName}' not found");
                 }
 
-                var response = MapToResponse(template);
+                var response = MapToTemplateResponse(template);
                 return ApiResponse<ChildPartTemplateResponse>.SuccessResponse(response);
             }
             catch (Exception ex)
@@ -62,7 +86,7 @@ namespace MultiHitechERP.API.Services.Implementations
             try
             {
                 var templates = await _childPartTemplateRepository.GetAllAsync();
-                var responses = templates.Select(MapToResponse).ToList();
+                var responses = templates.Select(MapToTemplateResponse).ToList();
                 return ApiResponse<IEnumerable<ChildPartTemplateResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
@@ -76,7 +100,7 @@ namespace MultiHitechERP.API.Services.Implementations
             try
             {
                 var templates = await _childPartTemplateRepository.GetActiveTemplatesAsync();
-                var responses = templates.Select(MapToResponse).ToList();
+                var responses = templates.Select(MapToTemplateResponse).ToList();
                 return ApiResponse<IEnumerable<ChildPartTemplateResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
@@ -89,43 +113,75 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
+                // Business Rule: Validate template name is unique
                 var exists = await _childPartTemplateRepository.ExistsAsync(request.TemplateName);
                 if (exists)
                 {
-                    return ApiResponse<int>.ErrorResponse($"Child part template '{request.TemplateName}' already exists");
+                    return ApiResponse<int>.ErrorResponse($"Child part template with name '{request.TemplateName}' already exists");
                 }
 
+                // Create template entity
                 var template = new ChildPartTemplate
                 {
-                    TemplateName = request.TemplateName.Trim(),
-                    ChildPartType = request.ChildPartType.Trim(),
-                    Description = request.Description?.Trim(),
-                    Category = request.Category?.Trim(),
+                    TemplateCode = request.TemplateCode,
+                    TemplateName = request.TemplateName,
+                    ChildPartType = request.ChildPartType,
+                    RollerType = request.RollerType,
+                    DrawingNumber = request.DrawingNumber,
+                    DrawingRevision = request.DrawingRevision,
                     Length = request.Length,
                     Diameter = request.Diameter,
                     InnerDiameter = request.InnerDiameter,
                     OuterDiameter = request.OuterDiameter,
                     Thickness = request.Thickness,
-                    Width = request.Width,
-                    Height = request.Height,
-                    MaterialType = request.MaterialType?.Trim(),
-                    MaterialGrade = request.MaterialGrade?.Trim(),
-                    ProcessTemplateId = request.ProcessTemplateId,
-                    ProcessTemplateName = request.ProcessTemplateName?.Trim(),
-                    EstimatedCost = request.EstimatedCost,
-                    EstimatedLeadTimeDays = request.EstimatedLeadTimeDays,
-                    EstimatedWeight = request.EstimatedWeight,
+                    DimensionUnit = request.DimensionUnit,
+                    TotalStandardTimeHours = request.TotalStandardTimeHours,
+                    Description = request.Description,
+                    TechnicalNotes = request.TechnicalNotes,
+                    QualityCheckpoints = request.QualityCheckpoints,
                     IsActive = request.IsActive,
-                    Status = request.Status?.Trim() ?? "Active",
-                    IsDefault = request.IsDefault,
-                    ApprovedBy = request.ApprovedBy?.Trim(),
-                    ApprovalDate = request.ApprovalDate,
-                    Remarks = request.Remarks?.Trim(),
-                    CreatedBy = request.CreatedBy?.Trim() ?? "System"
+                    CreatedBy = request.CreatedBy
                 };
 
+                // Insert template
                 var templateId = await _childPartTemplateRepository.InsertAsync(template);
-                return ApiResponse<int>.SuccessResponse(templateId, $"Child part template '{request.TemplateName}' created successfully");
+
+                // Insert material requirements if any
+                if (request.MaterialRequirements != null && request.MaterialRequirements.Any())
+                {
+                    var materialRequirements = request.MaterialRequirements.Select(mr => new ChildPartTemplateMaterialRequirement
+                    {
+                        ChildPartTemplateId = templateId,
+                        RawMaterialId = mr.RawMaterialId,
+                        RawMaterialName = mr.RawMaterialName,
+                        MaterialGrade = mr.MaterialGrade,
+                        QuantityRequired = mr.QuantityRequired,
+                        Unit = mr.Unit,
+                        WastagePercent = mr.WastagePercent
+                    }).ToList();
+
+                    await _childPartTemplateRepository.InsertMaterialRequirementsAsync(templateId, materialRequirements);
+                }
+
+                // Insert process steps if any
+                if (request.ProcessSteps != null && request.ProcessSteps.Any())
+                {
+                    var processSteps = request.ProcessSteps.Select(ps => new ChildPartTemplateProcessStep
+                    {
+                        ChildPartTemplateId = templateId,
+                        ProcessId = ps.ProcessId,
+                        ProcessName = ps.ProcessName,
+                        StepNumber = ps.StepNumber,
+                        MachineName = ps.MachineName,
+                        StandardTimeHours = ps.StandardTimeHours,
+                        RestTimeHours = ps.RestTimeHours,
+                        Description = ps.Description
+                    }).ToList();
+
+                    await _childPartTemplateRepository.InsertProcessStepsAsync(templateId, processSteps);
+                }
+
+                return ApiResponse<int>.SuccessResponse(templateId, "Child part template created successfully");
             }
             catch (Exception ex)
             {
@@ -137,51 +193,85 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
+                // Verify template exists
                 var existingTemplate = await _childPartTemplateRepository.GetByIdAsync(request.Id);
                 if (existingTemplate == null)
                 {
-                    return ApiResponse<bool>.ErrorResponse("Child part template not found");
+                    return ApiResponse<bool>.ErrorResponse($"Child part template with ID {request.Id} not found");
                 }
 
-                if (existingTemplate.TemplateName != request.TemplateName)
+                // Update template entity
+                var template = new ChildPartTemplate
                 {
-                    var exists = await _childPartTemplateRepository.ExistsAsync(request.TemplateName);
-                    if (exists)
-                    {
-                        return ApiResponse<bool>.ErrorResponse($"Child part template '{request.TemplateName}' already exists");
-                    }
+                    Id = request.Id,
+                    TemplateCode = request.TemplateCode,
+                    TemplateName = request.TemplateName,
+                    ChildPartType = request.ChildPartType,
+                    RollerType = request.RollerType,
+                    DrawingNumber = request.DrawingNumber,
+                    DrawingRevision = request.DrawingRevision,
+                    Length = request.Length,
+                    Diameter = request.Diameter,
+                    InnerDiameter = request.InnerDiameter,
+                    OuterDiameter = request.OuterDiameter,
+                    Thickness = request.Thickness,
+                    DimensionUnit = request.DimensionUnit,
+                    TotalStandardTimeHours = request.TotalStandardTimeHours,
+                    Description = request.Description,
+                    TechnicalNotes = request.TechnicalNotes,
+                    QualityCheckpoints = request.QualityCheckpoints,
+                    IsActive = request.IsActive,
+                    CreatedAt = existingTemplate.CreatedAt,
+                    CreatedBy = existingTemplate.CreatedBy
+                };
+
+                // Update template
+                var success = await _childPartTemplateRepository.UpdateAsync(template);
+                if (!success)
+                {
+                    return ApiResponse<bool>.ErrorResponse("Failed to update child part template");
                 }
 
-                existingTemplate.TemplateName = request.TemplateName.Trim();
-                existingTemplate.ChildPartType = request.ChildPartType.Trim();
-                existingTemplate.Description = request.Description?.Trim();
-                existingTemplate.Category = request.Category?.Trim();
-                existingTemplate.Length = request.Length;
-                existingTemplate.Diameter = request.Diameter;
-                existingTemplate.InnerDiameter = request.InnerDiameter;
-                existingTemplate.OuterDiameter = request.OuterDiameter;
-                existingTemplate.Thickness = request.Thickness;
-                existingTemplate.Width = request.Width;
-                existingTemplate.Height = request.Height;
-                existingTemplate.MaterialType = request.MaterialType?.Trim();
-                existingTemplate.MaterialGrade = request.MaterialGrade?.Trim();
-                existingTemplate.ProcessTemplateId = request.ProcessTemplateId;
-                existingTemplate.ProcessTemplateName = request.ProcessTemplateName?.Trim();
-                existingTemplate.EstimatedCost = request.EstimatedCost;
-                existingTemplate.EstimatedLeadTimeDays = request.EstimatedLeadTimeDays;
-                existingTemplate.EstimatedWeight = request.EstimatedWeight;
-                existingTemplate.IsActive = request.IsActive;
-                existingTemplate.Status = request.Status?.Trim();
-                existingTemplate.IsDefault = request.IsDefault;
-                existingTemplate.ApprovedBy = request.ApprovedBy?.Trim();
-                existingTemplate.ApprovalDate = request.ApprovalDate;
-                existingTemplate.Remarks = request.Remarks?.Trim();
-                existingTemplate.UpdatedBy = request.UpdatedBy?.Trim() ?? "System";
+                // Update material requirements: Delete all and re-insert
+                await _childPartTemplateRepository.DeleteMaterialRequirementsByTemplateIdAsync(request.Id);
 
-                var success = await _childPartTemplateRepository.UpdateAsync(existingTemplate);
-                return success
-                    ? ApiResponse<bool>.SuccessResponse(true, $"Child part template '{request.TemplateName}' updated successfully")
-                    : ApiResponse<bool>.ErrorResponse("Failed to update child part template");
+                if (request.MaterialRequirements != null && request.MaterialRequirements.Any())
+                {
+                    var materialRequirements = request.MaterialRequirements.Select(mr => new ChildPartTemplateMaterialRequirement
+                    {
+                        ChildPartTemplateId = request.Id,
+                        RawMaterialId = mr.RawMaterialId,
+                        RawMaterialName = mr.RawMaterialName,
+                        MaterialGrade = mr.MaterialGrade,
+                        QuantityRequired = mr.QuantityRequired,
+                        Unit = mr.Unit,
+                        WastagePercent = mr.WastagePercent
+                    }).ToList();
+
+                    await _childPartTemplateRepository.InsertMaterialRequirementsAsync(request.Id, materialRequirements);
+                }
+
+                // Update process steps: Delete all and re-insert
+                await _childPartTemplateRepository.DeleteProcessStepsByTemplateIdAsync(request.Id);
+
+                if (request.ProcessSteps != null && request.ProcessSteps.Any())
+                {
+                    var processSteps = request.ProcessSteps.Select(ps => new ChildPartTemplateProcessStep
+                    {
+                        ChildPartTemplateId = request.Id,
+                        ProcessId = ps.ProcessId,
+                        ProcessName = ps.ProcessName,
+                        StepNumber = ps.StepNumber,
+                        MachineName = ps.MachineName,
+                        StandardTimeHours = ps.StandardTimeHours,
+                        RestTimeHours = ps.RestTimeHours,
+                        Description = ps.Description
+                    }).ToList();
+
+                    await _childPartTemplateRepository.InsertProcessStepsAsync(request.Id, processSteps);
+                }
+
+                return ApiResponse<bool>.SuccessResponse(true, "Child part template updated successfully");
             }
             catch (Exception ex)
             {
@@ -193,16 +283,21 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
+                // Verify template exists
                 var template = await _childPartTemplateRepository.GetByIdAsync(id);
                 if (template == null)
                 {
-                    return ApiResponse<bool>.ErrorResponse("Child part template not found");
+                    return ApiResponse<bool>.ErrorResponse($"Child part template with ID {id} not found");
                 }
 
+                // Delete template (material requirements and process steps will cascade)
                 var success = await _childPartTemplateRepository.DeleteAsync(id);
-                return success
-                    ? ApiResponse<bool>.SuccessResponse(true, "Child part template deleted successfully")
-                    : ApiResponse<bool>.ErrorResponse("Failed to delete child part template");
+                if (!success)
+                {
+                    return ApiResponse<bool>.ErrorResponse("Failed to delete child part template");
+                }
+
+                return ApiResponse<bool>.SuccessResponse(true, "Child part template deleted successfully");
             }
             catch (Exception ex)
             {
@@ -210,12 +305,16 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        #endregion
+
+        #region Business Queries
+
         public async Task<ApiResponse<IEnumerable<ChildPartTemplateResponse>>> GetByChildPartTypeAsync(string childPartType)
         {
             try
             {
                 var templates = await _childPartTemplateRepository.GetByChildPartTypeAsync(childPartType);
-                var responses = templates.Select(MapToResponse).ToList();
+                var responses = templates.Select(MapToTemplateResponse).ToList();
                 return ApiResponse<IEnumerable<ChildPartTemplateResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
@@ -224,103 +323,83 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ChildPartTemplateResponse>>> GetByCategoryAsync(string category)
+        public async Task<ApiResponse<IEnumerable<ChildPartTemplateResponse>>> GetByRollerTypeAsync(string rollerType)
         {
             try
             {
-                var templates = await _childPartTemplateRepository.GetByCategoryAsync(category);
-                var responses = templates.Select(MapToResponse).ToList();
+                var templates = await _childPartTemplateRepository.GetByRollerTypeAsync(rollerType);
+                var responses = templates.Select(MapToTemplateResponse).ToList();
                 return ApiResponse<IEnumerable<ChildPartTemplateResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
             {
-                return ApiResponse<IEnumerable<ChildPartTemplateResponse>>.ErrorResponse($"Error retrieving templates by category: {ex.Message}");
+                return ApiResponse<IEnumerable<ChildPartTemplateResponse>>.ErrorResponse($"Error retrieving templates by roller type: {ex.Message}");
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ChildPartTemplateResponse>>> GetByProcessTemplateIdAsync(int processTemplateId)
-        {
-            try
-            {
-                var templates = await _childPartTemplateRepository.GetByProcessTemplateIdAsync(processTemplateId);
-                var responses = templates.Select(MapToResponse).ToList();
-                return ApiResponse<IEnumerable<ChildPartTemplateResponse>>.SuccessResponse(responses);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<ChildPartTemplateResponse>>.ErrorResponse($"Error retrieving templates by process template: {ex.Message}");
-            }
-        }
+        #endregion
 
-        public async Task<ApiResponse<IEnumerable<ChildPartTemplateResponse>>> GetDefaultTemplatesAsync()
-        {
-            try
-            {
-                var templates = await _childPartTemplateRepository.GetDefaultTemplatesAsync();
-                var responses = templates.Select(MapToResponse).ToList();
-                return ApiResponse<IEnumerable<ChildPartTemplateResponse>>.SuccessResponse(responses);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<ChildPartTemplateResponse>>.ErrorResponse($"Error retrieving default templates: {ex.Message}");
-            }
-        }
+        #region Mapping Methods
 
-        public async Task<ApiResponse<bool>> ApproveTemplateAsync(int id, string approvedBy)
-        {
-            try
-            {
-                var template = await _childPartTemplateRepository.GetByIdAsync(id);
-                if (template == null)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Child part template not found");
-                }
-
-                var success = await _childPartTemplateRepository.ApproveTemplateAsync(id, approvedBy);
-                return success
-                    ? ApiResponse<bool>.SuccessResponse(true, $"Child part template approved by {approvedBy}")
-                    : ApiResponse<bool>.ErrorResponse("Failed to approve child part template");
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResponse($"Error approving template: {ex.Message}");
-            }
-        }
-
-        private static ChildPartTemplateResponse MapToResponse(ChildPartTemplate template)
+        private ChildPartTemplateResponse MapToTemplateResponse(ChildPartTemplate template)
         {
             return new ChildPartTemplateResponse
             {
                 Id = template.Id,
+                TemplateCode = template.TemplateCode,
                 TemplateName = template.TemplateName,
                 ChildPartType = template.ChildPartType,
-                Description = template.Description,
-                Category = template.Category,
+                RollerType = template.RollerType,
+                DrawingNumber = template.DrawingNumber,
+                DrawingRevision = template.DrawingRevision,
                 Length = template.Length,
                 Diameter = template.Diameter,
                 InnerDiameter = template.InnerDiameter,
                 OuterDiameter = template.OuterDiameter,
                 Thickness = template.Thickness,
-                Width = template.Width,
-                Height = template.Height,
-                MaterialType = template.MaterialType,
-                MaterialGrade = template.MaterialGrade,
-                ProcessTemplateId = template.ProcessTemplateId,
-                ProcessTemplateName = template.ProcessTemplateName,
-                EstimatedCost = template.EstimatedCost,
-                EstimatedLeadTimeDays = template.EstimatedLeadTimeDays,
-                EstimatedWeight = template.EstimatedWeight,
+                DimensionUnit = template.DimensionUnit,
+                TotalStandardTimeHours = template.TotalStandardTimeHours,
+                Description = template.Description,
+                TechnicalNotes = template.TechnicalNotes,
+                QualityCheckpoints = template.QualityCheckpoints ?? new List<string>(),
                 IsActive = template.IsActive,
-                Status = template.Status,
-                IsDefault = template.IsDefault,
-                ApprovedBy = template.ApprovedBy,
-                ApprovalDate = template.ApprovalDate,
-                Remarks = template.Remarks,
                 CreatedAt = template.CreatedAt,
-                CreatedBy = template.CreatedBy,
                 UpdatedAt = template.UpdatedAt,
-                UpdatedBy = template.UpdatedBy
+                CreatedBy = template.CreatedBy,
+                MaterialRequirements = template.MaterialRequirements?.Select(MapToMaterialRequirementResponse).ToList() ?? new List<ChildPartTemplateMaterialRequirementResponse>(),
+                ProcessSteps = template.ProcessSteps?.Select(MapToProcessStepResponse).ToList() ?? new List<ChildPartTemplateProcessStepResponse>()
             };
         }
+
+        private ChildPartTemplateMaterialRequirementResponse MapToMaterialRequirementResponse(ChildPartTemplateMaterialRequirement requirement)
+        {
+            return new ChildPartTemplateMaterialRequirementResponse
+            {
+                Id = requirement.Id,
+                RawMaterialId = requirement.RawMaterialId,
+                RawMaterialName = requirement.RawMaterialName,
+                MaterialGrade = requirement.MaterialGrade,
+                QuantityRequired = requirement.QuantityRequired,
+                Unit = requirement.Unit,
+                WastagePercent = requirement.WastagePercent
+            };
+        }
+
+        private ChildPartTemplateProcessStepResponse MapToProcessStepResponse(ChildPartTemplateProcessStep step)
+        {
+            return new ChildPartTemplateProcessStepResponse
+            {
+                Id = step.Id,
+                ProcessId = step.ProcessId,
+                ProcessName = step.ProcessName,
+                StepNumber = step.StepNumber,
+                MachineName = step.MachineName,
+                StandardTimeHours = step.StandardTimeHours,
+                RestTimeHours = step.RestTimeHours,
+                Description = step.Description
+            };
+        }
+
+        #endregion
     }
 }

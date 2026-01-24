@@ -1,19 +1,24 @@
-using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace MultiHitechERP.API.DTOs.Request
 {
     public class CreateChildPartTemplateRequest
     {
-        [Required(ErrorMessage = "Template name is required")]
+        [Required]
+        public string TemplateCode { get; set; } = string.Empty;
+
+        [Required]
         public string TemplateName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Child part type is required")]
+        [Required]
         public string ChildPartType { get; set; } = string.Empty;
 
-        // Description
-        public string? Description { get; set; }
-        public string? Category { get; set; }
+        [Required]
+        public string RollerType { get; set; } = string.Empty;
+
+        public string? DrawingNumber { get; set; }
+        public string? DrawingRevision { get; set; }
 
         // Dimensions
         public decimal? Length { get; set; }
@@ -21,30 +26,60 @@ namespace MultiHitechERP.API.DTOs.Request
         public decimal? InnerDiameter { get; set; }
         public decimal? OuterDiameter { get; set; }
         public decimal? Thickness { get; set; }
-        public decimal? Width { get; set; }
-        public decimal? Height { get; set; }
 
-        // Material & Process
-        public string? MaterialType { get; set; }
-        public string? MaterialGrade { get; set; }
-        public int? ProcessTemplateId { get; set; }
-        public string? ProcessTemplateName { get; set; }
+        [Required]
+        public string DimensionUnit { get; set; } = "mm";
 
-        // Estimates
-        public decimal? EstimatedCost { get; set; }
-        public int? EstimatedLeadTimeDays { get; set; }
-        public decimal? EstimatedWeight { get; set; }
+        // Manufacturing
+        public List<CreateChildPartTemplateMaterialRequirementRequest> MaterialRequirements { get; set; } = new();
+        public List<CreateChildPartTemplateProcessStepRequest> ProcessSteps { get; set; } = new();
+        public decimal TotalStandardTimeHours { get; set; }
 
-        // Status
+        // Notes
+        public string? Description { get; set; }
+        public string? TechnicalNotes { get; set; }
+        public List<string> QualityCheckpoints { get; set; } = new();
+
+        // Metadata
         public bool IsActive { get; set; } = true;
-        public string? Status { get; set; } = "Active";
-        public bool IsDefault { get; set; }
-
-        // Approval
-        public string? ApprovedBy { get; set; }
-        public DateTime? ApprovalDate { get; set; }
-
-        public string? Remarks { get; set; }
         public string? CreatedBy { get; set; }
+    }
+
+    public class CreateChildPartTemplateMaterialRequirementRequest
+    {
+        public int? RawMaterialId { get; set; }
+
+        [Required]
+        public string RawMaterialName { get; set; } = string.Empty;
+
+        [Required]
+        public string MaterialGrade { get; set; } = string.Empty;
+
+        [Required]
+        public decimal QuantityRequired { get; set; }
+
+        [Required]
+        public string Unit { get; set; } = string.Empty;
+
+        public decimal WastagePercent { get; set; } = 0;
+    }
+
+    public class CreateChildPartTemplateProcessStepRequest
+    {
+        public int? ProcessId { get; set; }
+
+        [Required]
+        public string ProcessName { get; set; } = string.Empty;
+
+        [Required]
+        public int StepNumber { get; set; }
+
+        public string? MachineName { get; set; }
+
+        [Required]
+        public decimal StandardTimeHours { get; set; }
+
+        public decimal? RestTimeHours { get; set; }
+        public string? Description { get; set; }
     }
 }
