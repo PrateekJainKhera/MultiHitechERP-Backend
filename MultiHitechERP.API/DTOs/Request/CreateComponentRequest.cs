@@ -1,0 +1,41 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace MultiHitechERP.API.DTOs.Request
+{
+    public class CreateComponentRequest
+    {
+        [Required(ErrorMessage = "Part number is required")]
+        [StringLength(100, ErrorMessage = "Part number cannot exceed 100 characters")]
+        public string PartNumber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Component name is required")]
+        [StringLength(200, ErrorMessage = "Component name cannot exceed 200 characters")]
+        public string ComponentName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Category is required")]
+        [StringLength(50, ErrorMessage = "Category cannot exceed 50 characters")]
+        public string Category { get; set; } = string.Empty;
+
+        [StringLength(200, ErrorMessage = "Manufacturer cannot exceed 200 characters")]
+        public string? Manufacturer { get; set; }
+
+        [StringLength(200, ErrorMessage = "Supplier name cannot exceed 200 characters")]
+        public string? SupplierName { get; set; }
+
+        public string? Specifications { get; set; }
+
+        [Required(ErrorMessage = "Unit cost is required")]
+        [Range(0, double.MaxValue, ErrorMessage = "Unit cost must be a positive value")]
+        public decimal UnitCost { get; set; }
+
+        [Required(ErrorMessage = "Lead time days is required")]
+        [Range(0, int.MaxValue, ErrorMessage = "Lead time days must be a positive value")]
+        public int LeadTimeDays { get; set; }
+
+        [Required(ErrorMessage = "Unit is required")]
+        [StringLength(20, ErrorMessage = "Unit cannot exceed 20 characters")]
+        public string Unit { get; set; } = string.Empty;
+
+        public string? Notes { get; set; }
+    }
+}

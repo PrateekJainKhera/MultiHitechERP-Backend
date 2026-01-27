@@ -62,10 +62,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 return ApiResponse<int>.ErrorResponse("Inventory record already exists for this material");
 
             // Set material details
-            inventory.MaterialCode = material.MaterialCode;
+            inventory.MaterialCode = null; // MaterialCode removed from Material master
             inventory.MaterialName = material.MaterialName;
-            inventory.MaterialCategory = material.Category;
-            inventory.UOM = material.PrimaryUOM ?? "KG";
+            inventory.MaterialCategory = material.Grade; // Use Grade as category reference
+            inventory.UOM = "KG"; // Default UOM
 
             // Initialize stock status
             inventory.IsOutOfStock = inventory.TotalQuantity == 0;
@@ -160,10 +160,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 inventory = new Inventory
                 {
                     MaterialId = materialId,
-                    MaterialCode = material.MaterialCode,
+                    MaterialCode = null, // MaterialCode removed from Material master
                     MaterialName = material.MaterialName,
-                    MaterialCategory = material.Category,
-                    UOM = material.PrimaryUOM ?? "KG",
+                    MaterialCategory = material.Grade, // Use Grade as category reference
+                    UOM = "KG", // Default UOM
                     TotalQuantity = quantity,
                     AvailableQuantity = quantity,
                     AllocatedQuantity = 0,

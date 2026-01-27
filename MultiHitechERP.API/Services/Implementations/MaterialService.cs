@@ -10,9 +10,6 @@ using MultiHitechERP.API.Services.Interfaces;
 
 namespace MultiHitechERP.API.Services.Implementations
 {
-    /// <summary>
-    /// Service implementation for Material business logic
-    /// </summary>
     public class MaterialService : IMaterialService
     {
         private readonly IMaterialRepository _materialRepository;
@@ -28,31 +25,9 @@ namespace MultiHitechERP.API.Services.Implementations
             {
                 var material = await _materialRepository.GetByIdAsync(id);
                 if (material == null)
-                {
                     return ApiResponse<MaterialResponse>.ErrorResponse($"Material with ID {id} not found");
-                }
 
-                var response = MapToResponse(material);
-                return ApiResponse<MaterialResponse>.SuccessResponse(response);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<MaterialResponse>.ErrorResponse($"Error retrieving material: {ex.Message}");
-            }
-        }
-
-        public async Task<ApiResponse<MaterialResponse>> GetByMaterialCodeAsync(string materialCode)
-        {
-            try
-            {
-                var material = await _materialRepository.GetByMaterialCodeAsync(materialCode);
-                if (material == null)
-                {
-                    return ApiResponse<MaterialResponse>.ErrorResponse($"Material {materialCode} not found");
-                }
-
-                var response = MapToResponse(material);
-                return ApiResponse<MaterialResponse>.SuccessResponse(response);
+                return ApiResponse<MaterialResponse>.SuccessResponse(MapToResponse(material));
             }
             catch (Exception ex)
             {
@@ -74,103 +49,39 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<MaterialResponse>>> GetActiveMaterialsAsync()
-        {
-            try
-            {
-                var materials = await _materialRepository.GetActiveMaterialsAsync();
-                var responses = materials.Select(MapToResponse).ToList();
-                return ApiResponse<IEnumerable<MaterialResponse>>.SuccessResponse(responses);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<MaterialResponse>>.ErrorResponse($"Error retrieving active materials: {ex.Message}");
-            }
-        }
-
         public async Task<ApiResponse<int>> CreateMaterialAsync(CreateMaterialRequest request)
         {
             try
             {
-                // Business Rule 1: Validate Material Code is unique
-                var exists = await _materialRepository.ExistsAsync(request.MaterialCode);
+                // Business validation: Check if material name already exists
+                var exists = await _materialRepository.ExistsByNameAsync(request.MaterialName);
                 if (exists)
-                {
-                    return ApiResponse<int>.ErrorResponse($"Material code '{request.MaterialCode}' already exists");
-                }
+                    return ApiResponse<int>.ErrorResponse($"Material '{request.MaterialName}' already exists");
 
-                // Business Rule 2: Validate required fields
-                if (string.IsNullOrWhiteSpace(request.MaterialName))
-                {
-                    return ApiResponse<int>.ErrorResponse("Material name is required");
-                }
+                // Business validation: Validate Grade
+                var validGrades = new[] { "EN8", "EN19", "SS304", "SS316", "Alloy Steel" };
+                if (!validGrades.Contains(request.Grade))
+                    return ApiResponse<int>.ErrorResponse($"Invalid grade. Must be one of: {string.Join(", ", validGrades)}");
 
-                // Business Rule 3: Validate stock levels
-                if (request.ReorderLevel.HasValue && request.MinStockLevel.HasValue)
-                {
-                    if (request.ReorderLevel < request.MinStockLevel)
-                    {
-                        return ApiResponse<int>.ErrorResponse("Reorder level cannot be less than minimum stock level");
-                    }
-                }
+                // Business validation: Validate Shape
+                var validShapes = new[] { "Rod", "Pipe", "Forged" };
+                if (!validShapes.Contains(request.Shape))
+                    return ApiResponse<int>.ErrorResponse($"Invalid shape. Must be one of: {string.Join(", ", validShapes)}");
 
-                if (request.MaxStockLevel.HasValue && request.MinStockLevel.HasValue)
-                {
-                    if (request.MaxStockLevel < request.MinStockLevel)
-                    {
-                        return ApiResponse<int>.ErrorResponse("Maximum stock level cannot be less than minimum stock level");
-                    }
-                }
-
-                // Business Rule 4: Validate HSN Code format if provided
-                if (!string.IsNullOrWhiteSpace(request.HSNCode) && (request.HSNCode.Length < 4 || request.HSNCode.Length > 8))
-                {
-                    return ApiResponse<int>.ErrorResponse("HSN Code must be between 4 and 8 digits");
-                }
-
-                // Create Material
+                // Create material entity
                 var material = new Material
                 {
-                    MaterialCode = request.MaterialCode.Trim().ToUpper(),
                     MaterialName = request.MaterialName.Trim(),
-                    Category = request.Category?.Trim(),
-                    SubCategory = request.SubCategory?.Trim(),
-                    MaterialType = request.MaterialType?.Trim(),
-                    Grade = request.Grade?.Trim(),
-                    Specification = request.Specification?.Trim(),
-                    Description = request.Description?.Trim(),
-                    HSNCode = request.HSNCode?.Trim(),
-                    StandardLength = request.StandardLength,
+                    Grade = request.Grade.Trim(),
+                    Shape = request.Shape.Trim(),
                     Diameter = request.Diameter,
-                    Thickness = request.Thickness,
-                    Width = request.Width,
-                    PrimaryUOM = request.PrimaryUOM?.Trim() ?? "KG",
-                    SecondaryUOM = request.SecondaryUOM?.Trim(),
-                    ConversionFactor = request.ConversionFactor,
-                    WeightPerMeter = request.WeightPerMeter,
-                    WeightPerPiece = request.WeightPerPiece,
+                    LengthInMM = request.LengthInMM,
                     Density = request.Density,
-                    StandardCost = request.StandardCost,
-                    LastPurchasePrice = request.LastPurchasePrice,
-                    LastPurchaseDate = request.LastPurchaseDate,
-                    MinStockLevel = request.MinStockLevel ?? 0,
-                    MaxStockLevel = request.MaxStockLevel,
-                    ReorderLevel = request.ReorderLevel,
-                    ReorderQuantity = request.ReorderQuantity,
-                    LeadTimeDays = request.LeadTimeDays ?? 7,
-                    PreferredSupplierId = request.PreferredSupplierId,
-                    PreferredSupplierName = request.PreferredSupplierName?.Trim(),
-                    StorageLocation = request.StorageLocation?.Trim(),
-                    StorageConditions = request.StorageConditions?.Trim(),
-                    IsActive = true,
-                    Status = "Active",
-                    Remarks = request.Remarks?.Trim(),
-                    CreatedBy = request.CreatedBy?.Trim() ?? "System"
+                    WeightKG = request.WeightKG
                 };
 
                 var materialId = await _materialRepository.InsertAsync(material);
-
-                return ApiResponse<int>.SuccessResponse(materialId, $"Material '{request.MaterialCode}' created successfully");
+                return ApiResponse<int>.SuccessResponse(materialId, $"Material '{request.MaterialName}' created successfully");
             }
             catch (Exception ex)
             {
@@ -182,76 +93,41 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                // Get existing material
+                // Verify material exists
                 var existingMaterial = await _materialRepository.GetByIdAsync(request.Id);
                 if (existingMaterial == null)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Material not found");
-                }
+                    return ApiResponse<bool>.ErrorResponse($"Material with ID {request.Id} not found");
 
-                // Business Rule 1: Validate Material Code uniqueness if changed
-                if (existingMaterial.MaterialCode != request.MaterialCode)
+                // Business validation: Check if material name changed and if new name already exists
+                if (existingMaterial.MaterialName != request.MaterialName)
                 {
-                    var exists = await _materialRepository.ExistsAsync(request.MaterialCode);
+                    var exists = await _materialRepository.ExistsByNameAsync(request.MaterialName);
                     if (exists)
-                    {
-                        return ApiResponse<bool>.ErrorResponse($"Material code '{request.MaterialCode}' already exists");
-                    }
+                        return ApiResponse<bool>.ErrorResponse($"Material '{request.MaterialName}' already exists");
                 }
 
-                // Business Rule 2: Validate stock levels
-                if (request.ReorderLevel.HasValue && request.MinStockLevel.HasValue)
-                {
-                    if (request.ReorderLevel < request.MinStockLevel)
-                    {
-                        return ApiResponse<bool>.ErrorResponse("Reorder level cannot be less than minimum stock level");
-                    }
-                }
+                // Business validation: Validate Grade
+                var validGrades = new[] { "EN8", "EN19", "SS304", "SS316", "Alloy Steel" };
+                if (!validGrades.Contains(request.Grade))
+                    return ApiResponse<bool>.ErrorResponse($"Invalid grade. Must be one of: {string.Join(", ", validGrades)}");
 
-                // Update material
-                existingMaterial.MaterialCode = request.MaterialCode.Trim().ToUpper();
+                // Business validation: Validate Shape
+                var validShapes = new[] { "Rod", "Pipe", "Forged" };
+                if (!validShapes.Contains(request.Shape))
+                    return ApiResponse<bool>.ErrorResponse($"Invalid shape. Must be one of: {string.Join(", ", validShapes)}");
+
+                // Update material entity
                 existingMaterial.MaterialName = request.MaterialName.Trim();
-                existingMaterial.Category = request.Category?.Trim();
-                existingMaterial.SubCategory = request.SubCategory?.Trim();
-                existingMaterial.MaterialType = request.MaterialType?.Trim();
-                existingMaterial.Grade = request.Grade?.Trim();
-                existingMaterial.Specification = request.Specification?.Trim();
-                existingMaterial.Description = request.Description?.Trim();
-                existingMaterial.HSNCode = request.HSNCode?.Trim();
-                existingMaterial.StandardLength = request.StandardLength;
+                existingMaterial.Grade = request.Grade.Trim();
+                existingMaterial.Shape = request.Shape.Trim();
                 existingMaterial.Diameter = request.Diameter;
-                existingMaterial.Thickness = request.Thickness;
-                existingMaterial.Width = request.Width;
-                existingMaterial.PrimaryUOM = request.PrimaryUOM?.Trim();
-                existingMaterial.SecondaryUOM = request.SecondaryUOM?.Trim();
-                existingMaterial.ConversionFactor = request.ConversionFactor;
-                existingMaterial.WeightPerMeter = request.WeightPerMeter;
-                existingMaterial.WeightPerPiece = request.WeightPerPiece;
+                existingMaterial.LengthInMM = request.LengthInMM;
                 existingMaterial.Density = request.Density;
-                existingMaterial.StandardCost = request.StandardCost;
-                existingMaterial.LastPurchasePrice = request.LastPurchasePrice;
-                existingMaterial.LastPurchaseDate = request.LastPurchaseDate;
-                existingMaterial.MinStockLevel = request.MinStockLevel;
-                existingMaterial.MaxStockLevel = request.MaxStockLevel;
-                existingMaterial.ReorderLevel = request.ReorderLevel;
-                existingMaterial.ReorderQuantity = request.ReorderQuantity;
-                existingMaterial.LeadTimeDays = request.LeadTimeDays;
-                existingMaterial.PreferredSupplierId = request.PreferredSupplierId;
-                existingMaterial.PreferredSupplierName = request.PreferredSupplierName?.Trim();
-                existingMaterial.StorageLocation = request.StorageLocation?.Trim();
-                existingMaterial.StorageConditions = request.StorageConditions?.Trim();
-                existingMaterial.IsActive = request.IsActive;
-                existingMaterial.Status = request.Status;
-                existingMaterial.Remarks = request.Remarks?.Trim();
-                existingMaterial.UpdatedBy = request.UpdatedBy?.Trim() ?? "System";
-                existingMaterial.UpdatedAt = DateTime.UtcNow;
+                existingMaterial.WeightKG = request.WeightKG;
 
                 var success = await _materialRepository.UpdateAsync(existingMaterial);
-
                 if (!success)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Failed to update material. Please try again.");
-                }
+                    return ApiResponse<bool>.ErrorResponse("Failed to update material");
 
                 return ApiResponse<bool>.SuccessResponse(true, "Material updated successfully");
             }
@@ -267,19 +143,11 @@ namespace MultiHitechERP.API.Services.Implementations
             {
                 var material = await _materialRepository.GetByIdAsync(id);
                 if (material == null)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Material not found");
-                }
-
-                // Business Rule: For now, allow deletion. In production, check if material is used in products
-                // TODO: Add check for existing products before deletion
+                    return ApiResponse<bool>.ErrorResponse($"Material with ID {id} not found");
 
                 var success = await _materialRepository.DeleteAsync(id);
-
                 if (!success)
-                {
                     return ApiResponse<bool>.ErrorResponse("Failed to delete material");
-                }
 
                 return ApiResponse<bool>.SuccessResponse(true, "Material deleted successfully");
             }
@@ -289,77 +157,20 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> ActivateMaterialAsync(int id)
+        public async Task<ApiResponse<IEnumerable<MaterialResponse>>> SearchByNameAsync(string searchTerm)
         {
             try
             {
-                var material = await _materialRepository.GetByIdAsync(id);
-                if (material == null)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Material not found");
-                }
+                if (string.IsNullOrWhiteSpace(searchTerm))
+                    return ApiResponse<IEnumerable<MaterialResponse>>.ErrorResponse("Search term is required");
 
-                if (material.IsActive)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Material is already active");
-                }
-
-                var success = await _materialRepository.ActivateAsync(id);
-
-                if (!success)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Failed to activate material");
-                }
-
-                return ApiResponse<bool>.SuccessResponse(true, "Material activated successfully");
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResponse($"Error activating material: {ex.Message}");
-            }
-        }
-
-        public async Task<ApiResponse<bool>> DeactivateMaterialAsync(int id)
-        {
-            try
-            {
-                var material = await _materialRepository.GetByIdAsync(id);
-                if (material == null)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Material not found");
-                }
-
-                if (!material.IsActive)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Material is already inactive");
-                }
-
-                var success = await _materialRepository.DeactivateAsync(id);
-
-                if (!success)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Failed to deactivate material");
-                }
-
-                return ApiResponse<bool>.SuccessResponse(true, "Material deactivated successfully");
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResponse($"Error deactivating material: {ex.Message}");
-            }
-        }
-
-        public async Task<ApiResponse<IEnumerable<MaterialResponse>>> GetByCategoryAsync(string category)
-        {
-            try
-            {
-                var materials = await _materialRepository.GetByCategoryAsync(category);
+                var materials = await _materialRepository.SearchByNameAsync(searchTerm);
                 var responses = materials.Select(MapToResponse).ToList();
                 return ApiResponse<IEnumerable<MaterialResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
             {
-                return ApiResponse<IEnumerable<MaterialResponse>>.ErrorResponse($"Error retrieving materials: {ex.Message}");
+                return ApiResponse<IEnumerable<MaterialResponse>>.ErrorResponse($"Error searching materials: {ex.Message}");
             }
         }
 
@@ -373,102 +184,38 @@ namespace MultiHitechERP.API.Services.Implementations
             }
             catch (Exception ex)
             {
-                return ApiResponse<IEnumerable<MaterialResponse>>.ErrorResponse($"Error retrieving materials: {ex.Message}");
+                return ApiResponse<IEnumerable<MaterialResponse>>.ErrorResponse($"Error retrieving materials by grade: {ex.Message}");
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<MaterialResponse>>> GetByMaterialTypeAsync(string materialType)
+        public async Task<ApiResponse<IEnumerable<MaterialResponse>>> GetByShapeAsync(string shape)
         {
             try
             {
-                var materials = await _materialRepository.GetByMaterialTypeAsync(materialType);
+                var materials = await _materialRepository.GetByShapeAsync(shape);
                 var responses = materials.Select(MapToResponse).ToList();
                 return ApiResponse<IEnumerable<MaterialResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
             {
-                return ApiResponse<IEnumerable<MaterialResponse>>.ErrorResponse($"Error retrieving materials: {ex.Message}");
+                return ApiResponse<IEnumerable<MaterialResponse>>.ErrorResponse($"Error retrieving materials by shape: {ex.Message}");
             }
         }
-
-        public async Task<ApiResponse<IEnumerable<MaterialResponse>>> GetLowStockMaterialsAsync()
-        {
-            try
-            {
-                var materials = await _materialRepository.GetLowStockMaterialsAsync();
-                var responses = materials.Select(MapToResponse).ToList();
-                return ApiResponse<IEnumerable<MaterialResponse>>.SuccessResponse(responses);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<MaterialResponse>>.ErrorResponse($"Error retrieving low stock materials: {ex.Message}");
-            }
-        }
-
-        public async Task<ApiResponse<IEnumerable<MaterialResponse>>> SearchByNameAsync(string searchTerm)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(searchTerm))
-                {
-                    return ApiResponse<IEnumerable<MaterialResponse>>.ErrorResponse("Search term is required");
-                }
-
-                var materials = await _materialRepository.SearchByNameAsync(searchTerm);
-                var responses = materials.Select(MapToResponse).ToList();
-                return ApiResponse<IEnumerable<MaterialResponse>>.SuccessResponse(responses);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<MaterialResponse>>.ErrorResponse($"Error searching materials: {ex.Message}");
-            }
-        }
-
-        // Helper Methods
 
         private static MaterialResponse MapToResponse(Material material)
         {
             return new MaterialResponse
             {
                 Id = material.Id,
-                MaterialCode = material.MaterialCode,
                 MaterialName = material.MaterialName,
-                Category = material.Category,
-                SubCategory = material.SubCategory,
-                MaterialType = material.MaterialType,
                 Grade = material.Grade,
-                Specification = material.Specification,
-                Description = material.Description,
-                HSNCode = material.HSNCode,
-                StandardLength = material.StandardLength,
+                Shape = material.Shape,
                 Diameter = material.Diameter,
-                Thickness = material.Thickness,
-                Width = material.Width,
-                PrimaryUOM = material.PrimaryUOM,
-                SecondaryUOM = material.SecondaryUOM,
-                ConversionFactor = material.ConversionFactor,
-                WeightPerMeter = material.WeightPerMeter,
-                WeightPerPiece = material.WeightPerPiece,
+                LengthInMM = material.LengthInMM,
                 Density = material.Density,
-                StandardCost = material.StandardCost,
-                LastPurchasePrice = material.LastPurchasePrice,
-                LastPurchaseDate = material.LastPurchaseDate,
-                MinStockLevel = material.MinStockLevel,
-                MaxStockLevel = material.MaxStockLevel,
-                ReorderLevel = material.ReorderLevel,
-                ReorderQuantity = material.ReorderQuantity,
-                LeadTimeDays = material.LeadTimeDays,
-                PreferredSupplierId = material.PreferredSupplierId,
-                PreferredSupplierName = material.PreferredSupplierName,
-                StorageLocation = material.StorageLocation,
-                StorageConditions = material.StorageConditions,
-                IsActive = material.IsActive,
-                Status = material.Status,
-                Remarks = material.Remarks,
+                WeightKG = material.WeightKG,
                 CreatedAt = material.CreatedAt,
-                CreatedBy = material.CreatedBy,
-                UpdatedAt = material.UpdatedAt,
-                UpdatedBy = material.UpdatedBy
+                UpdatedAt = material.UpdatedAt
             };
         }
     }

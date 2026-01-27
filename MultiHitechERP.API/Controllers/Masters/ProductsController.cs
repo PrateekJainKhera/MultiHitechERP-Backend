@@ -31,18 +31,11 @@ namespace MultiHitechERP.API.Controllers.Masters
             return result.Success ? Ok(result) : NotFound(result);
         }
 
-        [HttpGet("by-code/{productCode}")]
-        public async Task<IActionResult> GetByProductCode(string productCode)
+        [HttpGet("by-code/{partCode}")]
+        public async Task<IActionResult> GetByPartCode(string partCode)
         {
-            var result = await _productService.GetByPartCodeAsync(productCode);
+            var result = await _productService.GetByPartCodeAsync(partCode);
             return result.Success ? Ok(result) : NotFound(result);
-        }
-
-        [HttpGet("active")]
-        public async Task<IActionResult> GetActiveProducts()
-        {
-            var result = await _productService.GetActiveProductsAsync();
-            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpGet("search")]
@@ -52,17 +45,10 @@ namespace MultiHitechERP.API.Controllers.Masters
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        [HttpGet("by-category/{category}")]
-        public async Task<IActionResult> GetByCategory(string category)
+        [HttpGet("by-roller-type/{rollerType}")]
+        public async Task<IActionResult> GetByRollerType(string rollerType)
         {
-            var result = await _productService.GetByCategoryAsync(category);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpGet("by-type/{productType}")]
-        public async Task<IActionResult> GetByProductType(string productType)
-        {
-            var result = await _productService.GetByProductTypeAsync(productType);
+            var result = await _productService.GetByRollerTypeAsync(rollerType);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
@@ -93,20 +79,6 @@ namespace MultiHitechERP.API.Controllers.Masters
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _productService.DeleteProductAsync(id);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpPost("{id}/activate")]
-        public async Task<IActionResult> Activate(int id)
-        {
-            var result = await _productService.ActivateProductAsync(id);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpPost("{id}/deactivate")]
-        public async Task<IActionResult> Deactivate(int id)
-        {
-            var result = await _productService.DeactivateProductAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
     }

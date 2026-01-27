@@ -142,15 +142,11 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<int>.ErrorResponse("Customer is inactive");
                 }
 
-                // Business Rule 2: Validate Product exists and is active
+                // Business Rule 2: Validate Product exists
                 var product = await _productRepository.GetByIdAsync(request.ProductId);
                 if (product == null)
                 {
                     return ApiResponse<int>.ErrorResponse("Product not found");
-                }
-                if (!product.IsActive)
-                {
-                    return ApiResponse<int>.ErrorResponse("Product is inactive");
                 }
 
                 // Business Rule 3: Validate Due Date is in future
@@ -225,9 +221,9 @@ namespace MultiHitechERP.API.Services.Implementations
                 }
 
                 var product = await _productRepository.GetByIdAsync(request.ProductId);
-                if (product == null || !product.IsActive)
+                if (product == null)
                 {
-                    return ApiResponse<bool>.ErrorResponse("Invalid or inactive product");
+                    return ApiResponse<bool>.ErrorResponse("Invalid product");
                 }
 
                 // Update order

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using MultiHitechERP.API.Data;
@@ -32,13 +31,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await reader.ReadAsync() ? MapToProduct(reader) : null;
         }
 
-        public async Task<Product?> GetByPartCodeAsync(string productCode)
+        public async Task<Product?> GetByPartCodeAsync(string partCode)
         {
             const string query = "SELECT * FROM Masters_Products WHERE PartCode = @PartCode";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@PartCode", productCode);
+            command.Parameters.AddWithValue("@PartCode", partCode);
 
             await connection.OpenAsync();
             using var reader = await command.ExecuteReaderAsync();
@@ -65,48 +64,45 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return products;
         }
 
-        public async Task<IEnumerable<Product>> GetActiveProductsAsync()
-        {
-            const string query = "SELECT * FROM Masters_Products WHERE IsActive = 1 ORDER BY ModelName";
-            var products = new List<Product>();
-
-            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
-            using var command = new SqlCommand(query, connection);
-
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                products.Add(MapToProduct(reader));
-            }
-
-            return products;
-        }
-
         public async Task<int> InsertAsync(Product product)
         {
             const string query = @"
-                INSERT INTO Masters_Products
-                (PartCode, CustomerId, CustomerName, ModelName, RollerType, Diameter, Length, Weight,
-                 MaterialGrade, SurfaceFinish, Hardness, DrawingNo, RevisionNo, DrawingId,
-                 ProcessTemplateId, ProductTemplateId, StandardCost, SellingPrice, StandardLeadTimeDays,
-                 MinOrderQuantity, Category, ProductType, Description, HSNCode, UOM, Remarks,
-                 IsActive, CreatedAt, CreatedBy)
-                VALUES
-                (@PartCode, @CustomerId, @CustomerName, @ModelName, @RollerType, @Diameter, @Length, @Weight,
-                 @MaterialGrade, @SurfaceFinish, @Hardness, @DrawingNo, @RevisionNo, @DrawingId,
-                 @ProcessTemplateId, @ProductTemplateId, @StandardCost, @SellingPrice, @StandardLeadTimeDays,
-                 @MinOrderQuantity, @Category, @ProductType, @Description, @HSNCode, @UOM, @Remarks,
-                 @IsActive, @CreatedAt, @CreatedBy);
+                INSERT INTO Masters_Products (
+                    PartCode, CustomerName, ModelName, RollerType,
+                    Diameter, Length, MaterialGrade, SurfaceFinish, Hardness,
+                    DrawingNo, RevisionNo, RevisionDate, NumberOfTeeth,
+                    ProcessTemplateId, CreatedAt, CreatedBy, UpdatedAt
+                ) VALUES (
+                    @PartCode, @CustomerName, @ModelName, @RollerType,
+                    @Diameter, @Length, @MaterialGrade, @SurfaceFinish, @Hardness,
+                    @DrawingNo, @RevisionNo, @RevisionDate, @NumberOfTeeth,
+                    @ProcessTemplateId, @CreatedAt, @CreatedBy, @UpdatedAt
+                );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
-
-            product.CreatedAt = DateTime.UtcNow;
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            AddProductParameters(command, product);
+            product.CreatedAt = DateTime.UtcNow;
+            product.UpdatedAt = DateTime.UtcNow;
+
+            command.Parameters.AddWithValue("@PartCode", product.PartCode);
+            command.Parameters.AddWithValue("@CustomerName", (object?)product.CustomerName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ModelName", product.ModelName);
+            command.Parameters.AddWithValue("@RollerType", product.RollerType);
+            command.Parameters.AddWithValue("@Diameter", product.Diameter);
+            command.Parameters.AddWithValue("@Length", product.Length);
+            command.Parameters.AddWithValue("@MaterialGrade", (object?)product.MaterialGrade ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SurfaceFinish", (object?)product.SurfaceFinish ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Hardness", (object?)product.Hardness ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingNo", (object?)product.DrawingNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@RevisionNo", (object?)product.RevisionNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@RevisionDate", (object?)product.RevisionDate ?? DBNull.Value);
+            command.Parameters.AddWithValue("@NumberOfTeeth", (object?)product.NumberOfTeeth ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProcessTemplateId", product.ProcessTemplateId);
+            command.Parameters.AddWithValue("@CreatedAt", product.CreatedAt);
+            command.Parameters.AddWithValue("@CreatedBy", product.CreatedBy);
+            command.Parameters.AddWithValue("@UpdatedAt", product.UpdatedAt);
 
             await connection.OpenAsync();
             var productId = (int)await command.ExecuteScalarAsync();
@@ -120,47 +116,46 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 UPDATE Masters_Products SET
                     PartCode = @PartCode,
-                    CustomerId = @CustomerId,
                     CustomerName = @CustomerName,
                     ModelName = @ModelName,
                     RollerType = @RollerType,
                     Diameter = @Diameter,
                     Length = @Length,
-                    Weight = @Weight,
                     MaterialGrade = @MaterialGrade,
                     SurfaceFinish = @SurfaceFinish,
                     Hardness = @Hardness,
                     DrawingNo = @DrawingNo,
                     RevisionNo = @RevisionNo,
-                    DrawingId = @DrawingId,
+                    RevisionDate = @RevisionDate,
+                    NumberOfTeeth = @NumberOfTeeth,
                     ProcessTemplateId = @ProcessTemplateId,
-                    ProductTemplateId = @ProductTemplateId,
-                    StandardCost = @StandardCost,
-                    SellingPrice = @SellingPrice,
-                    StandardLeadTimeDays = @StandardLeadTimeDays,
-                    MinOrderQuantity = @MinOrderQuantity,
-                    Category = @Category,
-                    ProductType = @ProductType,
-                    Description = @Description,
-                    HSNCode = @HSNCode,
-                    UOM = @UOM,
-                    Remarks = @Remarks,
-                    IsActive = @IsActive,
-                    UpdatedAt = @UpdatedAt,
-                    UpdatedBy = @UpdatedBy
+                    UpdatedAt = @UpdatedAt
                 WHERE Id = @Id";
-
-            product.UpdatedAt = DateTime.UtcNow;
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            AddProductParameters(command, product);
+            product.UpdatedAt = DateTime.UtcNow;
+
+            command.Parameters.AddWithValue("@Id", product.Id);
+            command.Parameters.AddWithValue("@PartCode", product.PartCode);
+            command.Parameters.AddWithValue("@CustomerName", (object?)product.CustomerName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ModelName", product.ModelName);
+            command.Parameters.AddWithValue("@RollerType", product.RollerType);
+            command.Parameters.AddWithValue("@Diameter", product.Diameter);
+            command.Parameters.AddWithValue("@Length", product.Length);
+            command.Parameters.AddWithValue("@MaterialGrade", (object?)product.MaterialGrade ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SurfaceFinish", (object?)product.SurfaceFinish ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Hardness", (object?)product.Hardness ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingNo", (object?)product.DrawingNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@RevisionNo", (object?)product.RevisionNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@RevisionDate", (object?)product.RevisionDate ?? DBNull.Value);
+            command.Parameters.AddWithValue("@NumberOfTeeth", (object?)product.NumberOfTeeth ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProcessTemplateId", product.ProcessTemplateId);
+            command.Parameters.AddWithValue("@UpdatedAt", product.UpdatedAt);
 
             await connection.OpenAsync();
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-
-            return rowsAffected > 0;
+            return await command.ExecuteNonQueryAsync() > 0;
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -172,49 +167,23 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Id", id);
 
             await connection.OpenAsync();
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-
-            return rowsAffected > 0;
-        }
-
-        public async Task<bool> ActivateAsync(int id)
-        {
-            const string query = "UPDATE Masters_Products SET IsActive = 1, Status = 'Active', UpdatedAt = @UpdatedAt WHERE Id = @Id";
-
-            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
-            using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@Id", id);
-            command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
-
-            await connection.OpenAsync();
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-
-            return rowsAffected > 0;
-        }
-
-        public async Task<bool> DeactivateAsync(int id)
-        {
-            const string query = "UPDATE Masters_Products SET IsActive = 0, Status = 'Inactive', UpdatedAt = @UpdatedAt WHERE Id = @Id";
-
-            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
-            using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@Id", id);
-            command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
-
-            await connection.OpenAsync();
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-
-            return rowsAffected > 0;
+            return await command.ExecuteNonQueryAsync() > 0;
         }
 
         public async Task<IEnumerable<Product>> SearchByNameAsync(string name)
         {
-            const string query = "SELECT * FROM Masters_Products WHERE ModelName LIKE @Name ORDER BY ModelName";
+            const string query = @"
+                SELECT * FROM Masters_Products
+                WHERE ModelName LIKE '%' + @Name + '%'
+                   OR PartCode LIKE '%' + @Name + '%'
+                   OR CustomerName LIKE '%' + @Name + '%'
+                ORDER BY ModelName";
+
             var products = new List<Product>();
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@Name", $"%{name}%");
+            command.Parameters.AddWithValue("@Name", name);
 
             await connection.OpenAsync();
             using var reader = await command.ExecuteReaderAsync();
@@ -227,14 +196,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return products;
         }
 
-        public async Task<IEnumerable<Product>> GetByCategoryAsync(string category)
+        public async Task<IEnumerable<Product>> GetByRollerTypeAsync(string rollerType)
         {
-            const string query = "SELECT * FROM Masters_Products WHERE Category = @Category ORDER BY ModelName";
+            const string query = "SELECT * FROM Masters_Products WHERE RollerType = @RollerType ORDER BY ModelName";
             var products = new List<Product>();
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@Category", category);
+            command.Parameters.AddWithValue("@RollerType", rollerType);
 
             await connection.OpenAsync();
             using var reader = await command.ExecuteReaderAsync();
@@ -247,133 +216,41 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return products;
         }
 
-        public async Task<IEnumerable<Product>> GetByProductTypeAsync(string productType)
-        {
-            const string query = "SELECT * FROM Masters_Products WHERE ProductType = @ProductType ORDER BY ModelName";
-            var products = new List<Product>();
-
-            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
-            using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@ProductType", productType);
-
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                products.Add(MapToProduct(reader));
-            }
-
-            return products;
-        }
-
-        public async Task<IEnumerable<Product>> GetByDrawingIdAsync(int drawingId)
-        {
-            const string query = "SELECT * FROM Masters_Products WHERE DrawingId = @DrawingId ORDER BY ModelName";
-            var products = new List<Product>();
-
-            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
-            using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@DrawingId", drawingId);
-
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                products.Add(MapToProduct(reader));
-            }
-
-            return products;
-        }
-
-        public async Task<bool> ExistsAsync(string productCode)
+        public async Task<bool> ExistsAsync(string partCode)
         {
             const string query = "SELECT COUNT(1) FROM Masters_Products WHERE PartCode = @PartCode";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@PartCode", productCode);
+            command.Parameters.AddWithValue("@PartCode", partCode);
 
             await connection.OpenAsync();
-            var count = (int)await command.ExecuteScalarAsync();
-
-            return count > 0;
+            return (int)await command.ExecuteScalarAsync() > 0;
         }
 
-        private static Product MapToProduct(SqlDataReader reader)
+        private Product MapToProduct(SqlDataReader reader)
         {
             return new Product
             {
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 PartCode = reader.GetString(reader.GetOrdinal("PartCode")),
-                CustomerId = reader.IsDBNull(reader.GetOrdinal("CustomerId")) ? null : reader.GetInt32(reader.GetOrdinal("CustomerId")),
                 CustomerName = reader.IsDBNull(reader.GetOrdinal("CustomerName")) ? null : reader.GetString(reader.GetOrdinal("CustomerName")),
                 ModelName = reader.GetString(reader.GetOrdinal("ModelName")),
                 RollerType = reader.GetString(reader.GetOrdinal("RollerType")),
-                Diameter = reader.IsDBNull(reader.GetOrdinal("Diameter")) ? null : reader.GetDecimal(reader.GetOrdinal("Diameter")),
-                Length = reader.IsDBNull(reader.GetOrdinal("Length")) ? null : reader.GetDecimal(reader.GetOrdinal("Length")),
-                Weight = reader.IsDBNull(reader.GetOrdinal("Weight")) ? null : reader.GetDecimal(reader.GetOrdinal("Weight")),
+                Diameter = reader.GetDecimal(reader.GetOrdinal("Diameter")),
+                Length = reader.GetDecimal(reader.GetOrdinal("Length")),
                 MaterialGrade = reader.IsDBNull(reader.GetOrdinal("MaterialGrade")) ? null : reader.GetString(reader.GetOrdinal("MaterialGrade")),
                 SurfaceFinish = reader.IsDBNull(reader.GetOrdinal("SurfaceFinish")) ? null : reader.GetString(reader.GetOrdinal("SurfaceFinish")),
                 Hardness = reader.IsDBNull(reader.GetOrdinal("Hardness")) ? null : reader.GetString(reader.GetOrdinal("Hardness")),
                 DrawingNo = reader.IsDBNull(reader.GetOrdinal("DrawingNo")) ? null : reader.GetString(reader.GetOrdinal("DrawingNo")),
                 RevisionNo = reader.IsDBNull(reader.GetOrdinal("RevisionNo")) ? null : reader.GetString(reader.GetOrdinal("RevisionNo")),
-                DrawingId = reader.IsDBNull(reader.GetOrdinal("DrawingId")) ? null : reader.GetInt32(reader.GetOrdinal("DrawingId")),
-                ProcessTemplateId = reader.IsDBNull(reader.GetOrdinal("ProcessTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ProcessTemplateId")),
-                ProductTemplateId = reader.IsDBNull(reader.GetOrdinal("ProductTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ProductTemplateId")),
-                StandardCost = reader.IsDBNull(reader.GetOrdinal("StandardCost")) ? null : reader.GetDecimal(reader.GetOrdinal("StandardCost")),
-                SellingPrice = reader.IsDBNull(reader.GetOrdinal("SellingPrice")) ? null : reader.GetDecimal(reader.GetOrdinal("SellingPrice")),
-                StandardLeadTimeDays = reader.IsDBNull(reader.GetOrdinal("StandardLeadTimeDays")) ? null : reader.GetInt32(reader.GetOrdinal("StandardLeadTimeDays")),
-                MinOrderQuantity = reader.IsDBNull(reader.GetOrdinal("MinOrderQuantity")) ? null : reader.GetInt32(reader.GetOrdinal("MinOrderQuantity")),
-                Category = reader.IsDBNull(reader.GetOrdinal("Category")) ? null : reader.GetString(reader.GetOrdinal("Category")),
-                ProductType = reader.IsDBNull(reader.GetOrdinal("ProductType")) ? null : reader.GetString(reader.GetOrdinal("ProductType")),
-                Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
-                HSNCode = reader.IsDBNull(reader.GetOrdinal("HSNCode")) ? null : reader.GetString(reader.GetOrdinal("HSNCode")),
-                UOM = reader.IsDBNull(reader.GetOrdinal("UOM")) ? null : reader.GetString(reader.GetOrdinal("UOM")),
-                Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
-                IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
+                RevisionDate = reader.IsDBNull(reader.GetOrdinal("RevisionDate")) ? null : reader.GetString(reader.GetOrdinal("RevisionDate")),
+                NumberOfTeeth = reader.IsDBNull(reader.GetOrdinal("NumberOfTeeth")) ? null : reader.GetInt32(reader.GetOrdinal("NumberOfTeeth")),
+                ProcessTemplateId = reader.GetInt32(reader.GetOrdinal("ProcessTemplateId")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
-                CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
-                UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
-                UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy"))
+                UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
+                CreatedBy = reader.GetString(reader.GetOrdinal("CreatedBy"))
             };
-        }
-
-        private static void AddProductParameters(SqlCommand command, Product product)
-        {
-            command.Parameters.AddWithValue("@Id", product.Id);
-            command.Parameters.AddWithValue("@PartCode", product.PartCode);
-            command.Parameters.AddWithValue("@CustomerId", (object?)product.CustomerId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CustomerName", (object?)product.CustomerName ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ModelName", product.ModelName);
-            command.Parameters.AddWithValue("@RollerType", product.RollerType);
-            command.Parameters.AddWithValue("@Diameter", (object?)product.Diameter ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Length", (object?)product.Length ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Weight", (object?)product.Weight ?? DBNull.Value);
-            command.Parameters.AddWithValue("@MaterialGrade", (object?)product.MaterialGrade ?? DBNull.Value);
-            command.Parameters.AddWithValue("@SurfaceFinish", (object?)product.SurfaceFinish ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Hardness", (object?)product.Hardness ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DrawingNo", (object?)product.DrawingNo ?? DBNull.Value);
-            command.Parameters.AddWithValue("@RevisionNo", (object?)product.RevisionNo ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DrawingId", (object?)product.DrawingId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ProcessTemplateId", (object?)product.ProcessTemplateId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ProductTemplateId", (object?)product.ProductTemplateId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@StandardCost", (object?)product.StandardCost ?? DBNull.Value);
-            command.Parameters.AddWithValue("@SellingPrice", (object?)product.SellingPrice ?? DBNull.Value);
-            command.Parameters.AddWithValue("@StandardLeadTimeDays", (object?)product.StandardLeadTimeDays ?? DBNull.Value);
-            command.Parameters.AddWithValue("@MinOrderQuantity", (object?)product.MinOrderQuantity ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Category", (object?)product.Category ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ProductType", (object?)product.ProductType ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Description", (object?)product.Description ?? DBNull.Value);
-            command.Parameters.AddWithValue("@HSNCode", (object?)product.HSNCode ?? DBNull.Value);
-            command.Parameters.AddWithValue("@UOM", (object?)product.UOM ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Remarks", (object?)product.Remarks ?? DBNull.Value);
-            command.Parameters.AddWithValue("@IsActive", product.IsActive);
-            command.Parameters.AddWithValue("@CreatedAt", product.CreatedAt);
-            command.Parameters.AddWithValue("@CreatedBy", (object?)product.CreatedBy ?? DBNull.Value);
-            command.Parameters.AddWithValue("@UpdatedAt", (object?)product.UpdatedAt ?? DBNull.Value);
-            command.Parameters.AddWithValue("@UpdatedBy", (object?)product.UpdatedBy ?? DBNull.Value);
         }
     }
 }

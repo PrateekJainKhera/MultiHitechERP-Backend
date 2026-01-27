@@ -41,42 +41,12 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         /// <summary>
-        /// Get material by material code
-        /// </summary>
-        [HttpGet("by-code/{materialCode}")]
-        public async Task<IActionResult> GetByMaterialCode(string materialCode)
-        {
-            var result = await _materialService.GetByMaterialCodeAsync(materialCode);
-            return result.Success ? Ok(result) : NotFound(result);
-        }
-
-        /// <summary>
-        /// Get all active materials
-        /// </summary>
-        [HttpGet("active")]
-        public async Task<IActionResult> GetActiveMaterials()
-        {
-            var result = await _materialService.GetActiveMaterialsAsync();
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        /// <summary>
         /// Search materials by name
         /// </summary>
         [HttpGet("search")]
         public async Task<IActionResult> SearchByName([FromQuery] string searchTerm)
         {
             var result = await _materialService.SearchByNameAsync(searchTerm);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        /// <summary>
-        /// Get materials by category
-        /// </summary>
-        [HttpGet("by-category/{category}")]
-        public async Task<IActionResult> GetByCategory(string category)
-        {
-            var result = await _materialService.GetByCategoryAsync(category);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
@@ -91,22 +61,12 @@ namespace MultiHitechERP.API.Controllers.Masters
         }
 
         /// <summary>
-        /// Get materials by type
+        /// Get materials by shape
         /// </summary>
-        [HttpGet("by-type/{materialType}")]
-        public async Task<IActionResult> GetByMaterialType(string materialType)
+        [HttpGet("by-shape/{shape}")]
+        public async Task<IActionResult> GetByShape(string shape)
         {
-            var result = await _materialService.GetByMaterialTypeAsync(materialType);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        /// <summary>
-        /// Get low stock materials
-        /// </summary>
-        [HttpGet("low-stock")]
-        public async Task<IActionResult> GetLowStockMaterials()
-        {
-            var result = await _materialService.GetLowStockMaterialsAsync();
+            var result = await _materialService.GetByShapeAsync(shape);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
@@ -152,26 +112,6 @@ namespace MultiHitechERP.API.Controllers.Masters
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _materialService.DeleteMaterialAsync(id);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        /// <summary>
-        /// Activate material
-        /// </summary>
-        [HttpPost("{id}/activate")]
-        public async Task<IActionResult> Activate(int id)
-        {
-            var result = await _materialService.ActivateMaterialAsync(id);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        /// <summary>
-        /// Deactivate material
-        /// </summary>
-        [HttpPost("{id}/deactivate")]
-        public async Task<IActionResult> Deactivate(int id)
-        {
-            var result = await _materialService.DeactivateMaterialAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
     }
