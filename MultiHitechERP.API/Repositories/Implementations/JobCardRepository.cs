@@ -285,8 +285,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Planning_JobCards
-                (Id, JobCardNo, CreationType, OrderId, OrderNo, DrawingId, DrawingNumber, DrawingRevision, DrawingSelectionType,
-                 ChildPartId, ChildPartName, ChildPartTemplateId, ProcessId, ProcessName, StepNo, ProcessTemplateId,
+                (JobCardNo, CreationType, OrderId, OrderNo, DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
+                 ChildPartId, ChildPartName, ChildPartTemplateId, ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
+                 WorkInstructions, QualityCheckpoints, SpecialNotes,
                  Quantity, CompletedQty, RejectedQty, ReworkQty, InProgressQty, Status,
                  AssignedMachineId, AssignedMachineName, AssignedOperatorId, AssignedOperatorName,
                  EstimatedSetupTimeMin, EstimatedCycleTimeMin, EstimatedTotalTimeMin, ActualStartTime, ActualEndTime, ActualTimeMin,
@@ -294,17 +295,17 @@ namespace MultiHitechERP.API.Repositories.Implementations
                  ScheduleStatus, ScheduledStartDate, ScheduledEndDate, IsRework, ReworkOrderId, ParentJobCardId,
                  CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version)
                 VALUES
-                (@Id, @JobCardNo, @CreationType, @OrderId, @OrderNo, @DrawingId, @DrawingNumber, @DrawingRevision, @DrawingSelectionType,
-                 @ChildPartId, @ChildPartName, @ChildPartTemplateId, @ProcessId, @ProcessName, @StepNo, @ProcessTemplateId,
+                (@JobCardNo, @CreationType, @OrderId, @OrderNo, @DrawingId, @DrawingNumber, @DrawingRevision, @DrawingName, @DrawingSelectionType,
+                 @ChildPartId, @ChildPartName, @ChildPartTemplateId, @ProcessId, @ProcessName, @ProcessCode, @StepNo, @ProcessTemplateId,
+                 @WorkInstructions, @QualityCheckpoints, @SpecialNotes,
                  @Quantity, @CompletedQty, @RejectedQty, @ReworkQty, @InProgressQty, @Status,
                  @AssignedMachineId, @AssignedMachineName, @AssignedOperatorId, @AssignedOperatorName,
                  @EstimatedSetupTimeMin, @EstimatedCycleTimeMin, @EstimatedTotalTimeMin, @ActualStartTime, @ActualEndTime, @ActualTimeMin,
                  @MaterialStatus, @MaterialStatusUpdatedAt, @ManufacturingDimensions, @Priority,
                  @ScheduleStatus, @ScheduledStartDate, @ScheduledEndDate, @IsRework, @ReworkOrderId, @ParentJobCardId,
-                 @CreatedAt, @CreatedBy, @UpdatedAt, @UpdatedBy, @Version)";
+                 @CreatedAt, @CreatedBy, @UpdatedAt, @UpdatedBy, @Version);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
-            var jobCardId = 0;
-            jobCard.Id = jobCardId;
             jobCard.CreatedAt = DateTime.UtcNow;
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -313,7 +314,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             AddJobCardParameters(command, jobCard);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            var result = await command.ExecuteScalarAsync();
+            var jobCardId = result != null ? Convert.ToInt32(result) : 0;
 
             return jobCardId;
         }
@@ -329,14 +331,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     DrawingId = @DrawingId,
                     DrawingNumber = @DrawingNumber,
                     DrawingRevision = @DrawingRevision,
+                    DrawingName = @DrawingName,
                     DrawingSelectionType = @DrawingSelectionType,
                     ChildPartId = @ChildPartId,
                     ChildPartName = @ChildPartName,
                     ChildPartTemplateId = @ChildPartTemplateId,
                     ProcessId = @ProcessId,
                     ProcessName = @ProcessName,
+                    ProcessCode = @ProcessCode,
                     StepNo = @StepNo,
                     ProcessTemplateId = @ProcessTemplateId,
+                    WorkInstructions = @WorkInstructions,
+                    QualityCheckpoints = @QualityCheckpoints,
+                    SpecialNotes = @SpecialNotes,
                     Quantity = @Quantity,
                     CompletedQty = @CompletedQty,
                     RejectedQty = @RejectedQty,
@@ -683,14 +690,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 DrawingId = reader.IsDBNull(reader.GetOrdinal("DrawingId")) ? null : reader.GetInt32(reader.GetOrdinal("DrawingId")),
                 DrawingNumber = reader.IsDBNull(reader.GetOrdinal("DrawingNumber")) ? null : reader.GetString(reader.GetOrdinal("DrawingNumber")),
                 DrawingRevision = reader.IsDBNull(reader.GetOrdinal("DrawingRevision")) ? null : reader.GetString(reader.GetOrdinal("DrawingRevision")),
+                DrawingName = reader.IsDBNull(reader.GetOrdinal("DrawingName")) ? null : reader.GetString(reader.GetOrdinal("DrawingName")),
                 DrawingSelectionType = reader.GetString(reader.GetOrdinal("DrawingSelectionType")),
                 ChildPartId = reader.IsDBNull(reader.GetOrdinal("ChildPartId")) ? null : reader.GetInt32(reader.GetOrdinal("ChildPartId")),
                 ChildPartName = reader.IsDBNull(reader.GetOrdinal("ChildPartName")) ? null : reader.GetString(reader.GetOrdinal("ChildPartName")),
                 ChildPartTemplateId = reader.IsDBNull(reader.GetOrdinal("ChildPartTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ChildPartTemplateId")),
                 ProcessId = reader.GetInt32(reader.GetOrdinal("ProcessId")),
                 ProcessName = reader.IsDBNull(reader.GetOrdinal("ProcessName")) ? null : reader.GetString(reader.GetOrdinal("ProcessName")),
+                ProcessCode = reader.IsDBNull(reader.GetOrdinal("ProcessCode")) ? null : reader.GetString(reader.GetOrdinal("ProcessCode")),
                 StepNo = reader.IsDBNull(reader.GetOrdinal("StepNo")) ? null : reader.GetInt32(reader.GetOrdinal("StepNo")),
                 ProcessTemplateId = reader.IsDBNull(reader.GetOrdinal("ProcessTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ProcessTemplateId")),
+                WorkInstructions = reader.IsDBNull(reader.GetOrdinal("WorkInstructions")) ? null : reader.GetString(reader.GetOrdinal("WorkInstructions")),
+                QualityCheckpoints = reader.IsDBNull(reader.GetOrdinal("QualityCheckpoints")) ? null : reader.GetString(reader.GetOrdinal("QualityCheckpoints")),
+                SpecialNotes = reader.IsDBNull(reader.GetOrdinal("SpecialNotes")) ? null : reader.GetString(reader.GetOrdinal("SpecialNotes")),
                 Quantity = reader.GetInt32(reader.GetOrdinal("Quantity")),
                 CompletedQty = reader.GetInt32(reader.GetOrdinal("CompletedQty")),
                 RejectedQty = reader.GetInt32(reader.GetOrdinal("RejectedQty")),
@@ -735,14 +747,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@DrawingId", (object?)jobCard.DrawingId ?? DBNull.Value);
             command.Parameters.AddWithValue("@DrawingNumber", (object?)jobCard.DrawingNumber ?? DBNull.Value);
             command.Parameters.AddWithValue("@DrawingRevision", (object?)jobCard.DrawingRevision ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingName", (object?)jobCard.DrawingName ?? DBNull.Value);
             command.Parameters.AddWithValue("@DrawingSelectionType", jobCard.DrawingSelectionType);
             command.Parameters.AddWithValue("@ChildPartId", (object?)jobCard.ChildPartId ?? DBNull.Value);
             command.Parameters.AddWithValue("@ChildPartName", (object?)jobCard.ChildPartName ?? DBNull.Value);
             command.Parameters.AddWithValue("@ChildPartTemplateId", (object?)jobCard.ChildPartTemplateId ?? DBNull.Value);
             command.Parameters.AddWithValue("@ProcessId", jobCard.ProcessId);
             command.Parameters.AddWithValue("@ProcessName", (object?)jobCard.ProcessName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProcessCode", (object?)jobCard.ProcessCode ?? DBNull.Value);
             command.Parameters.AddWithValue("@StepNo", (object?)jobCard.StepNo ?? DBNull.Value);
             command.Parameters.AddWithValue("@ProcessTemplateId", (object?)jobCard.ProcessTemplateId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@WorkInstructions", (object?)jobCard.WorkInstructions ?? DBNull.Value);
+            command.Parameters.AddWithValue("@QualityCheckpoints", (object?)jobCard.QualityCheckpoints ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SpecialNotes", (object?)jobCard.SpecialNotes ?? DBNull.Value);
             command.Parameters.AddWithValue("@Quantity", jobCard.Quantity);
             command.Parameters.AddWithValue("@CompletedQty", jobCard.CompletedQty);
             command.Parameters.AddWithValue("@RejectedQty", jobCard.RejectedQty);

@@ -20,6 +20,7 @@ namespace MultiHitechERP.API.Models.Planning
         public int? DrawingId { get; set; }
         public string? DrawingNumber { get; set; }
         public string? DrawingRevision { get; set; }
+        public string? DrawingName { get; set; }
         public string DrawingSelectionType { get; set; } = "auto";
 
         // Child Part
@@ -30,8 +31,14 @@ namespace MultiHitechERP.API.Models.Planning
         // Process
         public int ProcessId { get; set; }
         public string? ProcessName { get; set; }
+        public string? ProcessCode { get; set; }
         public int? StepNo { get; set; }
         public int? ProcessTemplateId { get; set; }
+
+        // Instructions (from process template)
+        public string? WorkInstructions { get; set; }
+        public string? QualityCheckpoints { get; set; }
+        public string? SpecialNotes { get; set; }
 
         // Quantities
         public int Quantity { get; set; }
