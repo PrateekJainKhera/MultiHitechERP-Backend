@@ -166,11 +166,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Orders (
-                    Id, OrderNo, OrderDate, DueDate, AdjustedDueDate,
+                    OrderNo, OrderDate, DueDate, AdjustedDueDate,
                     CustomerId, ProductId, Quantity, OriginalQuantity,
                     QtyCompleted, QtyRejected, QtyInProgress, QtyScrap,
                     Status, Priority, PlanningStatus,
+                    OrderSource, AgentCustomerId, AgentCommission, SchedulingStrategy,
                     DrawingReviewStatus, DrawingReviewedBy, DrawingReviewedAt, DrawingReviewNotes,
+                    PrimaryDrawingId, DrawingSource, LinkedProductTemplateId,
+                    CustomerMachine, MaterialGradeRemark,
                     CurrentProcess, CurrentMachine, CurrentOperator,
                     ProductionStartDate, ProductionEndDate,
                     DelayReason, RescheduleCount,
@@ -178,18 +181,22 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     OrderValue, AdvancePayment, BalancePayment,
                     CreatedAt, CreatedBy, Version
                 ) VALUES (
-                    @Id, @OrderNo, @OrderDate, @DueDate, @AdjustedDueDate,
+                    @OrderNo, @OrderDate, @DueDate, @AdjustedDueDate,
                     @CustomerId, @ProductId, @Quantity, @OriginalQuantity,
                     @QtyCompleted, @QtyRejected, @QtyInProgress, @QtyScrap,
                     @Status, @Priority, @PlanningStatus,
+                    @OrderSource, @AgentCustomerId, @AgentCommission, @SchedulingStrategy,
                     @DrawingReviewStatus, @DrawingReviewedBy, @DrawingReviewedAt, @DrawingReviewNotes,
+                    @PrimaryDrawingId, @DrawingSource, @LinkedProductTemplateId,
+                    @CustomerMachine, @MaterialGradeRemark,
                     @CurrentProcess, @CurrentMachine, @CurrentOperator,
                     @ProductionStartDate, @ProductionEndDate,
                     @DelayReason, @RescheduleCount,
                     @MaterialGradeApproved, @MaterialGradeApprovalDate, @MaterialGradeApprovedBy,
                     @OrderValue, @AdvancePayment, @BalancePayment,
                     @CreatedAt, @CreatedBy, @Version
-                )";
+                );
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
@@ -200,9 +207,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
             AddOrderParameters(command, order);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            var result = await command.ExecuteScalarAsync();
+            var orderId = result != null ? Convert.ToInt32(result) : 0;
 
-            return order.Id;
+            return orderId;
         }
 
         public async Task<bool> UpdateAsync(Order order)
@@ -223,10 +231,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     Status = @Status,
                     Priority = @Priority,
                     PlanningStatus = @PlanningStatus,
+                    OrderSource = @OrderSource,
+                    AgentCustomerId = @AgentCustomerId,
+                    AgentCommission = @AgentCommission,
+                    SchedulingStrategy = @SchedulingStrategy,
                     DrawingReviewStatus = @DrawingReviewStatus,
                     DrawingReviewedBy = @DrawingReviewedBy,
                     DrawingReviewedAt = @DrawingReviewedAt,
                     DrawingReviewNotes = @DrawingReviewNotes,
+                    PrimaryDrawingId = @PrimaryDrawingId,
+                    DrawingSource = @DrawingSource,
+                    LinkedProductTemplateId = @LinkedProductTemplateId,
+                    CustomerMachine = @CustomerMachine,
+                    MaterialGradeRemark = @MaterialGradeRemark,
                     CurrentProcess = @CurrentProcess,
                     CurrentMachine = @CurrentMachine,
                     CurrentOperator = @CurrentOperator,
@@ -542,6 +559,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 Priority = reader.GetString(reader.GetOrdinal("Priority")),
                 PlanningStatus = reader.GetString(reader.GetOrdinal("PlanningStatus")),
 
+                OrderSource = reader.GetString(reader.GetOrdinal("OrderSource")),
+                AgentCustomerId = reader.IsDBNull(reader.GetOrdinal("AgentCustomerId"))
+                    ? null : reader.GetInt32(reader.GetOrdinal("AgentCustomerId")),
+                AgentCommission = reader.IsDBNull(reader.GetOrdinal("AgentCommission"))
+                    ? null : reader.GetDecimal(reader.GetOrdinal("AgentCommission")),
+                SchedulingStrategy = reader.GetString(reader.GetOrdinal("SchedulingStrategy")),
+
                 DrawingReviewStatus = reader.GetString(reader.GetOrdinal("DrawingReviewStatus")),
                 DrawingReviewedBy = reader.IsDBNull(reader.GetOrdinal("DrawingReviewedBy"))
                     ? null : reader.GetString(reader.GetOrdinal("DrawingReviewedBy")),
@@ -549,6 +573,18 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     ? null : reader.GetDateTime(reader.GetOrdinal("DrawingReviewedAt")),
                 DrawingReviewNotes = reader.IsDBNull(reader.GetOrdinal("DrawingReviewNotes"))
                     ? null : reader.GetString(reader.GetOrdinal("DrawingReviewNotes")),
+
+                PrimaryDrawingId = reader.IsDBNull(reader.GetOrdinal("PrimaryDrawingId"))
+                    ? null : reader.GetInt32(reader.GetOrdinal("PrimaryDrawingId")),
+                DrawingSource = reader.IsDBNull(reader.GetOrdinal("DrawingSource"))
+                    ? null : reader.GetString(reader.GetOrdinal("DrawingSource")),
+                LinkedProductTemplateId = reader.IsDBNull(reader.GetOrdinal("LinkedProductTemplateId"))
+                    ? null : reader.GetInt32(reader.GetOrdinal("LinkedProductTemplateId")),
+
+                CustomerMachine = reader.IsDBNull(reader.GetOrdinal("CustomerMachine"))
+                    ? null : reader.GetString(reader.GetOrdinal("CustomerMachine")),
+                MaterialGradeRemark = reader.IsDBNull(reader.GetOrdinal("MaterialGradeRemark"))
+                    ? null : reader.GetString(reader.GetOrdinal("MaterialGradeRemark")),
 
                 CurrentProcess = reader.IsDBNull(reader.GetOrdinal("CurrentProcess"))
                     ? null : reader.GetString(reader.GetOrdinal("CurrentProcess")),
@@ -612,10 +648,22 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Priority", order.Priority);
             command.Parameters.AddWithValue("@PlanningStatus", order.PlanningStatus);
 
+            command.Parameters.AddWithValue("@OrderSource", order.OrderSource);
+            command.Parameters.AddWithValue("@AgentCustomerId", (object?)order.AgentCustomerId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@AgentCommission", (object?)order.AgentCommission ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SchedulingStrategy", order.SchedulingStrategy);
+
             command.Parameters.AddWithValue("@DrawingReviewStatus", order.DrawingReviewStatus);
             command.Parameters.AddWithValue("@DrawingReviewedBy", (object?)order.DrawingReviewedBy ?? DBNull.Value);
             command.Parameters.AddWithValue("@DrawingReviewedAt", (object?)order.DrawingReviewedAt ?? DBNull.Value);
             command.Parameters.AddWithValue("@DrawingReviewNotes", (object?)order.DrawingReviewNotes ?? DBNull.Value);
+
+            command.Parameters.AddWithValue("@PrimaryDrawingId", (object?)order.PrimaryDrawingId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingSource", (object?)order.DrawingSource ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LinkedProductTemplateId", (object?)order.LinkedProductTemplateId ?? DBNull.Value);
+
+            command.Parameters.AddWithValue("@CustomerMachine", (object?)order.CustomerMachine ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MaterialGradeRemark", (object?)order.MaterialGradeRemark ?? DBNull.Value);
 
             command.Parameters.AddWithValue("@CurrentProcess", (object?)order.CurrentProcess ?? DBNull.Value);
             command.Parameters.AddWithValue("@CurrentMachine", (object?)order.CurrentMachine ?? DBNull.Value);

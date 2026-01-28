@@ -35,11 +35,28 @@ namespace MultiHitechERP.API.DTOs.Response
         public string Priority { get; set; } = string.Empty;
         public string PlanningStatus { get; set; } = string.Empty;
 
+        // Order Source & Agent
+        public string OrderSource { get; set; } = string.Empty;
+        public int? AgentCustomerId { get; set; }
+        public decimal? AgentCommission { get; set; }
+
+        // Scheduling Strategy
+        public string SchedulingStrategy { get; set; } = string.Empty;
+
         // Drawing Review (GATE)
         public string DrawingReviewStatus { get; set; } = string.Empty;
         public string? DrawingReviewedBy { get; set; }
         public DateTime? DrawingReviewedAt { get; set; }
         public string? DrawingReviewNotes { get; set; }
+
+        // Drawing & Template Linkage
+        public int? PrimaryDrawingId { get; set; }
+        public string? DrawingSource { get; set; }
+        public int? LinkedProductTemplateId { get; set; }
+
+        // Customer Requirements
+        public string? CustomerMachine { get; set; }
+        public string? MaterialGradeRemark { get; set; }
 
         // Current Production Info
         public string? CurrentProcess { get; set; }

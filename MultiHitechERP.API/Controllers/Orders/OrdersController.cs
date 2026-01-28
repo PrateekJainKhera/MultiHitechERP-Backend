@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MultiHitechERP.API.DTOs.Request;
@@ -327,7 +328,8 @@ namespace MultiHitechERP.API.Controllers.Orders
             var response = await _orderService.ApproveDrawingReviewAsync(
                 id,
                 request.ReviewedBy,
-                request.Notes
+                request.Notes,
+                request.LinkedProductTemplateId
             );
 
             if (!response.Success)
@@ -406,8 +408,13 @@ namespace MultiHitechERP.API.Controllers.Orders
     // Helper DTOs for specific actions
     public class ApproveDrawingReviewRequest
     {
+        [Required(ErrorMessage = "ReviewedBy is required")]
         public string ReviewedBy { get; set; } = string.Empty;
         public string? Notes { get; set; }
+
+        // Business Rule: Product template must be linked before approval
+        [Required(ErrorMessage = "LinkedProductTemplateId is required for approval")]
+        public int LinkedProductTemplateId { get; set; }
     }
 
     public class RejectDrawingReviewRequest

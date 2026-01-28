@@ -161,6 +161,44 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<int>.ErrorResponse("Quantity must be greater than 0");
                 }
 
+                // Business Rule 5: Validate Order Source
+                var validOrderSources = new[] { "Direct", "Agent", "Dealer", "Distributor" };
+                if (!validOrderSources.Contains(request.OrderSource))
+                {
+                    return ApiResponse<int>.ErrorResponse($"Invalid order source. Must be one of: {string.Join(", ", validOrderSources)}");
+                }
+
+                // Business Rule 6: Validate Agent Customer if provided (optional for future use)
+                if (request.AgentCustomerId.HasValue)
+                {
+                    var agentCustomer = await _customerRepository.GetByIdAsync(request.AgentCustomerId.Value);
+                    if (agentCustomer == null)
+                    {
+                        return ApiResponse<int>.ErrorResponse("Agent customer not found");
+                    }
+                    if (agentCustomer.CustomerType != "Agent")
+                    {
+                        return ApiResponse<int>.ErrorResponse("Selected customer is not an agent");
+                    }
+                }
+
+                // Business Rule 7: Validate Scheduling Strategy
+                var validStrategies = new[] { "Due Date", "Priority Flag", "Customer Importance", "Resource Availability" };
+                if (!validStrategies.Contains(request.SchedulingStrategy))
+                {
+                    return ApiResponse<int>.ErrorResponse($"Invalid scheduling strategy. Must be one of: {string.Join(", ", validStrategies)}");
+                }
+
+                // Business Rule 8: Validate Drawing Source if provided
+                if (!string.IsNullOrEmpty(request.DrawingSource))
+                {
+                    var validDrawingSources = new[] { "customer", "company" };
+                    if (!validDrawingSources.Contains(request.DrawingSource))
+                    {
+                        return ApiResponse<int>.ErrorResponse($"Invalid drawing source. Must be one of: {string.Join(", ", validDrawingSources)}");
+                    }
+                }
+
                 // Generate Order Number
                 var orderNo = await GenerateOrderNoInternalAsync();
 
@@ -168,7 +206,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 var order = new Order
                 {
                     OrderNo = orderNo,
-                    OrderDate = request.OrderDate,
+                    OrderDate = request.OrderDate ?? DateTime.UtcNow, // Default to current date if not provided
                     DueDate = request.DueDate,
                     CustomerId = request.CustomerId,
                     ProductId = request.ProductId,
@@ -178,9 +216,31 @@ namespace MultiHitechERP.API.Services.Implementations
                     Priority = request.Priority,
                     PlanningStatus = "Not Planned",
                     DrawingReviewStatus = "Pending",
+
+                    // Order Source & Agent
+                    OrderSource = request.OrderSource,
+                    AgentCustomerId = request.AgentCustomerId,
+                    AgentCommission = request.AgentCommission,
+                    SchedulingStrategy = request.SchedulingStrategy,
+
+                    // Drawing Linkage
+                    PrimaryDrawingId = request.PrimaryDrawingId,
+                    DrawingSource = request.DrawingSource,
+                    DrawingReviewNotes = request.DrawingNotes,
+
+                    // Template Linkage
+                    LinkedProductTemplateId = request.LinkedProductTemplateId,
+
+                    // Customer Requirements
+                    CustomerMachine = request.CustomerMachine,
+                    MaterialGradeRemark = request.MaterialGradeRemark,
+
+                    // Financial (Optional - for future use)
                     OrderValue = request.OrderValue,
                     AdvancePayment = request.AdvancePayment,
-                    BalancePayment = request.OrderValue - (request.AdvancePayment ?? 0),
+                    BalancePayment = request.OrderValue.HasValue ? request.OrderValue - (request.AdvancePayment ?? 0) : null,
+
+                    // Audit
                     CreatedBy = request.CreatedBy,
                     Version = 1
                 };
@@ -299,8 +359,8 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse("Order not found");
                 }
 
-                // Validate status
-                var validStatuses = new[] { "Pending", "Under Review", "Approved", "Rejected", "Revision Required" };
+                // Validate status (must match frontend enum: Pending, In Review, Approved, Needs Revision)
+                var validStatuses = new[] { "Pending", "In Review", "Approved", "Needs Revision" };
                 if (!validStatuses.Contains(request.Status))
                 {
                     return ApiResponse<bool>.ErrorResponse($"Invalid drawing review status: {request.Status}");
@@ -326,17 +386,43 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<bool>> ApproveDrawingReviewAsync(int orderId, string reviewedBy, string? notes)
+        public async Task<ApiResponse<bool>> ApproveDrawingReviewAsync(int orderId, string reviewedBy, string? notes, int linkedProductTemplateId)
         {
-            var request = new UpdateDrawingReviewRequest
+            try
             {
-                OrderId = orderId,
-                Status = "Approved",
-                ReviewedBy = reviewedBy,
-                Notes = notes
-            };
+                var order = await _orderRepository.GetByIdAsync(orderId);
+                if (order == null)
+                {
+                    return ApiResponse<bool>.ErrorResponse("Order not found");
+                }
 
-            return await UpdateDrawingReviewStatusAsync(request);
+                // Business Rule: Cannot approve if already approved
+                if (order.DrawingReviewStatus == "Approved")
+                {
+                    return ApiResponse<bool>.ErrorResponse("Drawing review is already approved");
+                }
+
+                // Link the product template
+                order.LinkedProductTemplateId = linkedProductTemplateId;
+                order.DrawingReviewStatus = "Approved";
+                order.DrawingReviewedBy = reviewedBy;
+                order.DrawingReviewedAt = DateTime.UtcNow;
+                order.DrawingReviewNotes = notes;
+                order.UpdatedAt = DateTime.UtcNow;
+
+                var success = await _orderRepository.UpdateAsync(order);
+
+                if (!success)
+                {
+                    return ApiResponse<bool>.ErrorResponse("Failed to approve drawing review");
+                }
+
+                return ApiResponse<bool>.SuccessResponse(true, "Drawing review approved and product template linked successfully");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResponse($"Error approving drawing review: {ex.Message}");
+            }
         }
 
         public async Task<ApiResponse<bool>> RejectDrawingReviewAsync(int orderId, string reviewedBy, string reason)
@@ -344,7 +430,7 @@ namespace MultiHitechERP.API.Services.Implementations
             var request = new UpdateDrawingReviewRequest
             {
                 OrderId = orderId,
-                Status = "Rejected",
+                Status = "Needs Revision",
                 ReviewedBy = reviewedBy,
                 Notes = reason
             };
@@ -564,10 +650,22 @@ namespace MultiHitechERP.API.Services.Implementations
                 Priority = order.Priority,
                 PlanningStatus = order.PlanningStatus,
 
+                OrderSource = order.OrderSource,
+                AgentCustomerId = order.AgentCustomerId,
+                AgentCommission = order.AgentCommission,
+                SchedulingStrategy = order.SchedulingStrategy,
+
                 DrawingReviewStatus = order.DrawingReviewStatus,
                 DrawingReviewedBy = order.DrawingReviewedBy,
                 DrawingReviewedAt = order.DrawingReviewedAt,
                 DrawingReviewNotes = order.DrawingReviewNotes,
+
+                PrimaryDrawingId = order.PrimaryDrawingId,
+                DrawingSource = order.DrawingSource,
+                LinkedProductTemplateId = order.LinkedProductTemplateId,
+
+                CustomerMachine = order.CustomerMachine,
+                MaterialGradeRemark = order.MaterialGradeRemark,
 
                 CurrentProcess = order.CurrentProcess,
                 CurrentMachine = order.CurrentMachine,

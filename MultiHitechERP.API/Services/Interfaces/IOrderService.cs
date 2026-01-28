@@ -24,7 +24,7 @@ namespace MultiHitechERP.API.Services.Interfaces
 
         // Business Operations
         Task<ApiResponse<bool>> UpdateDrawingReviewStatusAsync(UpdateDrawingReviewRequest request);
-        Task<ApiResponse<bool>> ApproveDrawingReviewAsync(int orderId, string reviewedBy, string? notes);
+        Task<ApiResponse<bool>> ApproveDrawingReviewAsync(int orderId, string reviewedBy, string? notes, int linkedProductTemplateId);
         Task<ApiResponse<bool>> RejectDrawingReviewAsync(int orderId, string reviewedBy, string reason);
 
         Task<ApiResponse<bool>> UpdateOrderStatusAsync(int orderId, string status);

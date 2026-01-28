@@ -31,11 +31,30 @@ namespace MultiHitechERP.API.Models.Orders
         public string Priority { get; set; } = "Medium";
         public string PlanningStatus { get; set; } = "Not Planned";
 
+        // Order Source & Agent
+        public string OrderSource { get; set; } = "Direct"; // Direct, Agent, Dealer, Distributor
+        public int? AgentCustomerId { get; set; } // FK to Customers (for agent orders)
+        public decimal? AgentCommission { get; set; }
+
+        // Scheduling
+        public string SchedulingStrategy { get; set; } = "Due Date"; // Due Date, Priority Flag, Customer Importance, Resource Availability
+
         // Drawing Review (GATE)
         public string DrawingReviewStatus { get; set; } = "Pending";
         public string? DrawingReviewedBy { get; set; }
         public DateTime? DrawingReviewedAt { get; set; }
         public string? DrawingReviewNotes { get; set; }
+
+        // Drawing Linkage
+        public int? PrimaryDrawingId { get; set; } // FK to Drawings
+        public string? DrawingSource { get; set; } // 'customer' or 'company'
+
+        // Template Linkage
+        public int? LinkedProductTemplateId { get; set; } // FK to ProductTemplates
+
+        // Customer Requirements
+        public string? CustomerMachine { get; set; } // e.g., "Flexo 8-Color"
+        public string? MaterialGradeRemark { get; set; } // e.g., "A Grade", "B Grade"
 
         // Production Tracking
         public string? CurrentProcess { get; set; }

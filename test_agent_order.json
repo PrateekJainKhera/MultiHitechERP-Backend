@@ -1,0 +1,18 @@
+{
+  "orderDate": "2026-01-28T11:00:00Z",
+  "dueDate": "2026-03-15T10:00:00Z",
+  "customerId": 2,
+  "productId": 2,
+  "quantity": 100,
+  "priority": "High",
+  "orderSource": "Agent",
+  "agentCustomerId": 7,
+  "agentCommission": 5000.00,
+  "schedulingStrategy": "Priority Flag",
+  "drawingSource": "customer",
+  "customerMachine": "Rotogravure 6-Color",
+  "materialGradeRemark": "B Grade",
+  "orderValue": 250000.00,
+  "advancePayment": 100000.00,
+  "createdBy": "sales-manager"
+}
