@@ -143,25 +143,32 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Planning_JobCardDependencies
-                (Id, DependentJobCardId, DependentJobCardNo, PrerequisiteJobCardId, PrerequisiteJobCardNo,
+                (DependentJobCardId, DependentJobCardNo, PrerequisiteJobCardId, PrerequisiteJobCardNo,
                  DependencyType, IsResolved, ResolvedAt, LagTimeMinutes, CreatedAt)
                 VALUES
-                (@Id, @DependentJobCardId, @DependentJobCardNo, @PrerequisiteJobCardId, @PrerequisiteJobCardNo,
-                 @DependencyType, @IsResolved, @ResolvedAt, @LagTimeMinutes, @CreatedAt)";
+                (@DependentJobCardId, @DependentJobCardNo, @PrerequisiteJobCardId, @PrerequisiteJobCardNo,
+                 @DependencyType, @IsResolved, @ResolvedAt, @LagTimeMinutes, @CreatedAt);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
-            var dependencyId = 0;
-            dependency.Id = dependencyId;
             dependency.CreatedAt = DateTime.UtcNow;
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            AddDependencyParameters(command, dependency);
+            command.Parameters.AddWithValue("@DependentJobCardId", dependency.DependentJobCardId);
+            command.Parameters.AddWithValue("@DependentJobCardNo", (object?)dependency.DependentJobCardNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@PrerequisiteJobCardId", dependency.PrerequisiteJobCardId);
+            command.Parameters.AddWithValue("@PrerequisiteJobCardNo", (object?)dependency.PrerequisiteJobCardNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DependencyType", dependency.DependencyType);
+            command.Parameters.AddWithValue("@IsResolved", dependency.IsResolved);
+            command.Parameters.AddWithValue("@ResolvedAt", (object?)dependency.ResolvedAt ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LagTimeMinutes", (object?)dependency.LagTimeMinutes ?? DBNull.Value);
+            command.Parameters.AddWithValue("@CreatedAt", dependency.CreatedAt);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            var result = await command.ExecuteScalarAsync();
 
-            return dependencyId;
+            return result != null ? Convert.ToInt32(result) : 0;
         }
 
         public async Task<bool> DeleteAsync(int id)

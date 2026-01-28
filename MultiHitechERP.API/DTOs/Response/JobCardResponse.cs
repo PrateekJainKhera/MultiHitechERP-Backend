@@ -16,6 +16,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public int? DrawingId { get; set; }
         public string? DrawingNumber { get; set; }
         public string? DrawingRevision { get; set; }
+        public string? DrawingName { get; set; }
         public string DrawingSelectionType { get; set; } = "auto";
 
         // Child Part
@@ -26,50 +27,26 @@ namespace MultiHitechERP.API.DTOs.Response
         // Process
         public int ProcessId { get; set; }
         public string? ProcessName { get; set; }
+        public string? ProcessCode { get; set; }
         public int? StepNo { get; set; }
         public int? ProcessTemplateId { get; set; }
 
-        // Quantities
-        public int Quantity { get; set; }
-        public int CompletedQty { get; set; }
-        public int RejectedQty { get; set; }
-        public int ReworkQty { get; set; }
-        public int InProgressQty { get; set; }
+        // Instructions
+        public string? WorkInstructions { get; set; }
+        public string? QualityCheckpoints { get; set; }
+        public string? SpecialNotes { get; set; }
 
-        // Status
+        // Quantity (target)
+        public int Quantity { get; set; }
+
+        // Status (Planning: Pending | Planned | Released)
         public string Status { get; set; } = "Pending";
 
-        // Assignments
-        public int? AssignedMachineId { get; set; }
-        public string? AssignedMachineName { get; set; }
-        public int? AssignedOperatorId { get; set; }
-        public string? AssignedOperatorName { get; set; }
-
-        // Time Tracking
-        public int? EstimatedSetupTimeMin { get; set; }
-        public int? EstimatedCycleTimeMin { get; set; }
-        public int? EstimatedTotalTimeMin { get; set; }
-        public DateTime? ActualStartTime { get; set; }
-        public DateTime? ActualEndTime { get; set; }
-        public int? ActualTimeMin { get; set; }
-
-        // Material
-        public string MaterialStatus { get; set; } = "Pending";
-        public DateTime? MaterialStatusUpdatedAt { get; set; }
+        // Priority
+        public string Priority { get; set; } = "Medium";
 
         // Manufacturing Dimensions
         public string? ManufacturingDimensions { get; set; }
-
-        // Priority & Scheduling
-        public string Priority { get; set; } = "Medium";
-        public string ScheduleStatus { get; set; } = "Not Scheduled";
-        public DateTime? ScheduledStartDate { get; set; }
-        public DateTime? ScheduledEndDate { get; set; }
-
-        // Rework
-        public bool IsRework { get; set; }
-        public int? ReworkOrderId { get; set; }
-        public int? ParentJobCardId { get; set; }
 
         // Audit
         public DateTime CreatedAt { get; set; }

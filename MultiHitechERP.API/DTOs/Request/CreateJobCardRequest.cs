@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace MultiHitechERP.API.DTOs.Request
@@ -15,13 +16,14 @@ namespace MultiHitechERP.API.DTOs.Request
         public int OrderId { get; set; }
         public string? OrderNo { get; set; }
 
-        // Drawing (REQUIRED for manufacturing)
+        // Drawing
         public int? DrawingId { get; set; }
         public string? DrawingNumber { get; set; }
         public string? DrawingRevision { get; set; }
+        public string? DrawingName { get; set; }
         public string DrawingSelectionType { get; set; } = "auto";
 
-        // Child Part (optional - for assemblies)
+        // Child Part
         public int? ChildPartId { get; set; }
         public string? ChildPartName { get; set; }
         public int? ChildPartTemplateId { get; set; }
@@ -30,43 +32,25 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required(ErrorMessage = "Process ID is required")]
         public int ProcessId { get; set; }
         public string? ProcessName { get; set; }
+        public string? ProcessCode { get; set; }
         public int? StepNo { get; set; }
         public int? ProcessTemplateId { get; set; }
+
+        // Instructions (from process template)
+        public string? WorkInstructions { get; set; }
+        public string? QualityCheckpoints { get; set; }
+        public string? SpecialNotes { get; set; }
 
         // Quantity
         [Required(ErrorMessage = "Quantity is required")]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
         public int Quantity { get; set; }
 
-        // Optional Assignments
-        public int? AssignedMachineId { get; set; }
-        public string? AssignedMachineName { get; set; }
-        public int? AssignedOperatorId { get; set; }
-        public string? AssignedOperatorName { get; set; }
-
-        // Time Estimates
-        public int? EstimatedSetupTimeMin { get; set; }
-        public int? EstimatedCycleTimeMin { get; set; }
-        public int? EstimatedTotalTimeMin { get; set; }
-
-        // Material Status
-        public string MaterialStatus { get; set; } = "Pending";
-
-        // Manufacturing Dimensions (JSON string)
-        public string? ManufacturingDimensions { get; set; }
-
         // Priority
         public string Priority { get; set; } = "Medium";
 
-        // Scheduling
-        public string ScheduleStatus { get; set; } = "Not Scheduled";
-        public DateTime? ScheduledStartDate { get; set; }
-        public DateTime? ScheduledEndDate { get; set; }
-
-        // Rework
-        public bool IsRework { get; set; }
-        public int? ReworkOrderId { get; set; }
-        public int? ParentJobCardId { get; set; }
+        // Manufacturing Dimensions (JSON string)
+        public string? ManufacturingDimensions { get; set; }
 
         public string? CreatedBy { get; set; }
 

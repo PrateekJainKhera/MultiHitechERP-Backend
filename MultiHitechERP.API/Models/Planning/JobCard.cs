@@ -3,7 +3,8 @@ using System;
 namespace MultiHitechERP.API.Models.Planning
 {
     /// <summary>
-    /// Represents a job card for production execution
+    /// Represents a job card for planning — core manufacturing operation record.
+    /// Scheduling and Production fields live in their own tables.
     /// </summary>
     public class JobCard
     {
@@ -16,7 +17,7 @@ namespace MultiHitechERP.API.Models.Planning
         public int OrderId { get; set; }
         public string? OrderNo { get; set; }
 
-        // Drawing (REQUIRED)
+        // Drawing
         public int? DrawingId { get; set; }
         public string? DrawingNumber { get; set; }
         public string? DrawingRevision { get; set; }
@@ -40,49 +41,17 @@ namespace MultiHitechERP.API.Models.Planning
         public string? QualityCheckpoints { get; set; }
         public string? SpecialNotes { get; set; }
 
-        // Quantities
+        // Quantity (target — execution tracked in Production)
         public int Quantity { get; set; }
-        public int CompletedQty { get; set; }
-        public int RejectedQty { get; set; }
-        public int ReworkQty { get; set; }
-        public int InProgressQty { get; set; }
 
-        // Status
+        // Status (Planning lifecycle: Pending → Planned → Released)
         public string Status { get; set; } = "Pending";
-
-        // Machine & Operator Assignment
-        public int? AssignedMachineId { get; set; }
-        public string? AssignedMachineName { get; set; }
-        public int? AssignedOperatorId { get; set; }
-        public string? AssignedOperatorName { get; set; }
-
-        // Time Tracking
-        public int? EstimatedSetupTimeMin { get; set; }
-        public int? EstimatedCycleTimeMin { get; set; }
-        public int? EstimatedTotalTimeMin { get; set; }
-        public DateTime? ActualStartTime { get; set; }
-        public DateTime? ActualEndTime { get; set; }
-        public int? ActualTimeMin { get; set; }
-
-        // Material
-        public string MaterialStatus { get; set; } = "Pending";
-        public DateTime? MaterialStatusUpdatedAt { get; set; }
-
-        // Manufacturing Dimensions (JSON string)
-        public string? ManufacturingDimensions { get; set; }
 
         // Priority
         public string Priority { get; set; } = "Medium";
 
-        // Scheduling
-        public string ScheduleStatus { get; set; } = "Not Scheduled";
-        public DateTime? ScheduledStartDate { get; set; }
-        public DateTime? ScheduledEndDate { get; set; }
-
-        // Rework
-        public bool IsRework { get; set; }
-        public int? ReworkOrderId { get; set; }
-        public int? ParentJobCardId { get; set; }
+        // Manufacturing Dimensions (JSON from drawing)
+        public string? ManufacturingDimensions { get; set; }
 
         // Audit
         public DateTime CreatedAt { get; set; }
