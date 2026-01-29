@@ -69,11 +69,6 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                // Business validation: Check if part code already exists
-                var exists = await _productRepository.ExistsAsync(request.PartCode);
-                if (exists)
-                    return ApiResponse<int>.ErrorResponse($"Product with part code '{request.PartCode}' already exists");
-
                 // Business validation: Validate required fields
                 if (string.IsNullOrWhiteSpace(request.ModelName))
                     return ApiResponse<int>.ErrorResponse("Model name is required");
@@ -90,10 +85,15 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (request.Length <= 0)
                     return ApiResponse<int>.ErrorResponse("Length must be greater than 0");
 
+                // Auto-generate PartCode based on roller type
+                string partCodePrefix = request.RollerType == "Magnetic Roller" ? "MAG" : "PRT";
+                int nextSequence = await _productRepository.GetNextSequenceNumberAsync(request.RollerType);
+                string generatedPartCode = $"{partCodePrefix}-{nextSequence:D4}";
+
                 // Create product entity
                 var product = new Product
                 {
-                    PartCode = request.PartCode.Trim().ToUpper(),
+                    PartCode = generatedPartCode,
                     CustomerName = request.CustomerName?.Trim(),
                     ModelName = request.ModelName.Trim(),
                     RollerType = request.RollerType.Trim(),
@@ -111,7 +111,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 };
 
                 var productId = await _productRepository.InsertAsync(product);
-                return ApiResponse<int>.SuccessResponse(productId, $"Product '{request.PartCode}' created successfully");
+                return ApiResponse<int>.SuccessResponse(productId, $"Product '{generatedPartCode}' created successfully");
             }
             catch (Exception ex)
             {

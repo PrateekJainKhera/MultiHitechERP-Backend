@@ -14,5 +14,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<bool> UpdateAsync(int id, MaterialCategory category);
         Task<bool> DeleteAsync(int id);
         Task<bool> CategoryCodeExistsAsync(string categoryCode, int? excludeId = null);
+
+        // Code Generation
+        Task<int> GetNextSequenceNumberAsync(string materialType);
     }
 }

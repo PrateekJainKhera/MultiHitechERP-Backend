@@ -4,8 +4,7 @@ namespace MultiHitechERP.API.DTOs.Request
 {
     public class CreateProductRequest
     {
-        [Required]
-        public string PartCode { get; set; } = string.Empty;
+        // PartCode is auto-generated based on RollerType
 
         public string? CustomerName { get; set; }
 

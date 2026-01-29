@@ -24,11 +24,13 @@ namespace MultiHitechERP.API.Models.Masters
         public string? MachineType { get; set; }
         public int? DefaultMachineId { get; set; }
         public string? DefaultMachineName { get; set; }
+        public string? DefaultMachine { get; set; }
 
         // Time Standards
         public int? StandardSetupTimeMin { get; set; }
         public int? StandardCycleTimeMin { get; set; }
         public decimal? StandardCycleTimePerPiece { get; set; }
+        public decimal? RestTimeHours { get; set; }
 
         // Skill Requirements
         public string? SkillLevel { get; set; }

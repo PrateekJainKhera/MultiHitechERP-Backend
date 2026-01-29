@@ -231,6 +231,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return count > 0;
         }
 
+        public async Task<int> GetNextSequenceNumberAsync(string materialType)
+        {
+            const string query = "SELECT COUNT(1) FROM Masters_MaterialCategories WHERE MaterialType = @MaterialType";
+
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@MaterialType", materialType);
+
+            await connection.OpenAsync();
+            var count = (int)(await command.ExecuteScalarAsync() ?? 0);
+            return count + 1;
+        }
+
         private MaterialCategory MapToMaterialCategory(SqlDataReader reader)
         {
             return new MaterialCategory

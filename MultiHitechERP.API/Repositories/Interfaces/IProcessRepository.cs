@@ -31,5 +31,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<Process>> GetByMachineTypeAsync(string machineType);
         Task<IEnumerable<Process>> GetOutsourcedProcessesAsync();
         Task<bool> ExistsAsync(string processCode);
+
+        // Code Generation
+        Task<int> GetNextSequenceNumberAsync(string category);
     }
 }

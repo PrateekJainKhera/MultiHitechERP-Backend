@@ -82,44 +82,39 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                var exists = await _processRepository.ExistsAsync(request.ProcessCode);
-                if (exists)
-                    return ApiResponse<int>.ErrorResponse($"Process code '{request.ProcessCode}' already exists");
-
                 if (string.IsNullOrWhiteSpace(request.ProcessName))
                     return ApiResponse<int>.ErrorResponse("Process name is required");
 
+                if (string.IsNullOrWhiteSpace(request.Category))
+                    return ApiResponse<int>.ErrorResponse("Category is required");
+
+                // Auto-generate ProcessCode: Use first 3 letters of ProcessName + sequence
+                string processNamePrefix = request.ProcessName.Length >= 3
+                    ? request.ProcessName.Substring(0, 3).ToUpper()
+                    : request.ProcessName.ToUpper();
+
+                // Get next sequence number for this category
+                int nextSequence = await _processRepository.GetNextSequenceNumberAsync(request.Category);
+                string generatedCode = $"{processNamePrefix}-{nextSequence:D3}";
+
                 var process = new Models.Masters.Process
                 {
-                    ProcessCode = request.ProcessCode.Trim().ToUpper(),
+                    ProcessCode = generatedCode,
                     ProcessName = request.ProcessName.Trim(),
-                    ProcessType = request.ProcessType?.Trim(),
-                    Category = request.Category?.Trim(),
-                    Department = request.Department?.Trim(),
+                    Category = request.Category.Trim(),
+                    DefaultMachine = request.DefaultMachine?.Trim(),
+                    StandardSetupTimeMin = request.StandardSetupTimeMin,
+                    RestTimeHours = request.RestTimeHours,
                     Description = request.Description?.Trim(),
-                    ProcessDetails = request.ProcessDetails?.Trim(),
-                    MachineType = request.MachineType?.Trim(),
-                    DefaultMachineId = request.DefaultMachineId,
-                    DefaultMachineName = request.DefaultMachineName?.Trim(),
-                    StandardSetupTimeMin = request.StandardSetupTimeMin ?? 0,
-                    StandardCycleTimeMin = request.StandardCycleTimeMin ?? 0,
-                    StandardCycleTimePerPiece = request.StandardCycleTimePerPiece,
-                    SkillLevel = request.SkillLevel ?? "Medium",
-                    OperatorsRequired = request.OperatorsRequired ?? 1,
-                    HourlyRate = request.HourlyRate ?? 0,
-                    StandardCostPerPiece = request.StandardCostPerPiece,
-                    RequiresQC = request.RequiresQC,
-                    QCCheckpoints = request.QCCheckpoints?.Trim(),
                     IsOutsourced = request.IsOutsourced,
-                    PreferredVendor = request.PreferredVendor?.Trim(),
                     IsActive = true,
                     Status = "Active",
-                    Remarks = request.Remarks?.Trim(),
+                    CreatedAt = DateTime.UtcNow,
                     CreatedBy = request.CreatedBy?.Trim() ?? "System"
                 };
 
                 var processId = await _processRepository.InsertAsync(process);
-                return ApiResponse<int>.SuccessResponse(processId, $"Process '{request.ProcessCode}' created successfully");
+                return ApiResponse<int>.SuccessResponse(processId, $"Process '{generatedCode}' created successfully");
             }
             catch (Exception ex)
             {
@@ -316,9 +311,11 @@ namespace MultiHitechERP.API.Services.Implementations
                 MachineType = process.MachineType,
                 DefaultMachineId = process.DefaultMachineId,
                 DefaultMachineName = process.DefaultMachineName,
+                DefaultMachine = process.DefaultMachine,
                 StandardSetupTimeMin = process.StandardSetupTimeMin,
                 StandardCycleTimeMin = process.StandardCycleTimeMin,
                 StandardCycleTimePerPiece = process.StandardCycleTimePerPiece,
+                RestTimeHours = process.RestTimeHours,
                 SkillLevel = process.SkillLevel,
                 OperatorsRequired = process.OperatorsRequired,
                 HourlyRate = process.HourlyRate,

@@ -121,13 +121,14 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (!validTypes.Contains(request.MaterialType))
                     return ApiResponse<int>.ErrorResponse($"Invalid material type. Must be one of: {string.Join(", ", validTypes)}");
 
-                // Check for duplicate category code
-                if (await _categoryRepository.CategoryCodeExistsAsync(request.CategoryCode))
-                    return ApiResponse<int>.ErrorResponse($"Category code '{request.CategoryCode}' already exists");
+                // Auto-generate CategoryCode based on material type
+                string codePrefix = request.MaterialType == "raw_material" ? "MAT" : "COMP";
+                int nextSequence = await _categoryRepository.GetNextSequenceNumberAsync(request.MaterialType);
+                string generatedCode = $"{codePrefix}-{nextSequence:D4}";
 
                 var category = new MaterialCategory
                 {
-                    CategoryCode = request.CategoryCode,
+                    CategoryCode = generatedCode,
                     CategoryName = request.CategoryName,
                     Quality = request.Quality,
                     Description = request.Description,
@@ -139,7 +140,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 };
 
                 var id = await _categoryRepository.CreateAsync(category);
-                return ApiResponse<int>.SuccessResponse(id, "Material category created successfully");
+                return ApiResponse<int>.SuccessResponse(id, $"Material category created successfully with code '{generatedCode}'");
             }
             catch (Exception ex)
             {

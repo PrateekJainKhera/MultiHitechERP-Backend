@@ -228,6 +228,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return (int)await command.ExecuteScalarAsync() > 0;
         }
 
+        public async Task<int> GetNextSequenceNumberAsync(string rollerType)
+        {
+            const string query = "SELECT COUNT(1) FROM Masters_Products WHERE RollerType = @RollerType";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@RollerType", rollerType);
+
+            await connection.OpenAsync();
+            var count = (int)await command.ExecuteScalarAsync();
+            return count + 1;
+        }
+
         private Product MapToProduct(SqlDataReader reader)
         {
             return new Product

@@ -146,7 +146,7 @@ namespace MultiHitechERP.API.Services.Implementations
             var executionId = await _executionRepository.InsertAsync(execution);
 
             // Update job card status to In Progress
-            await _jobCardRepository.StartExecutionAsync(jobCardId, DateTime.UtcNow);
+            await _jobCardRepository.UpdateStatusAsync(jobCardId, "In Progress");
 
             // Mark machine and operator as unavailable
             await _machineRepository.AssignToJobCardAsync(machineId, jobCard.JobCardNo);
@@ -218,8 +218,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 // If all quantity completed, mark job card as completed
                 if (totalCompleted >= jobCard.Quantity)
                 {
-                    var totalTime = await _executionRepository.GetTotalExecutionTimeForJobCardAsync(execution.JobCardId);
-                    await _jobCardRepository.CompleteExecutionAsync(execution.JobCardId, DateTime.UtcNow, totalTime);
+                    await _jobCardRepository.UpdateStatusAsync(execution.JobCardId, "Completed");
                 }
             }
 

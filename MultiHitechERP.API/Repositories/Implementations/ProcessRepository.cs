@@ -269,6 +269,20 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return count > 0;
         }
 
+        public async Task<int> GetNextSequenceNumberAsync(string category)
+        {
+            const string query = "SELECT COUNT(1) FROM Masters_Processes WHERE Category = @Category";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Category", category);
+
+            await connection.OpenAsync();
+            var count = (int)await command.ExecuteScalarAsync();
+
+            return count + 1;
+        }
+
         private static Process MapToProcess(SqlDataReader reader)
         {
             return new Process

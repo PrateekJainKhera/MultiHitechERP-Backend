@@ -4,9 +4,7 @@ namespace MultiHitechERP.API.DTOs.Request
 {
     public class CreateMaterialCategoryRequest
     {
-        [Required(ErrorMessage = "Category code is required")]
-        [StringLength(50, ErrorMessage = "Category code cannot exceed 50 characters")]
-        public string CategoryCode { get; set; } = string.Empty;
+        // CategoryCode is auto-generated based on MaterialType
 
         [Required(ErrorMessage = "Category name is required")]
         [StringLength(200, ErrorMessage = "Category name cannot exceed 200 characters")]

@@ -24,5 +24,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<Product>> SearchByNameAsync(string name);
         Task<IEnumerable<Product>> GetByRollerTypeAsync(string rollerType);
         Task<bool> ExistsAsync(string partCode);
+
+        // Code Generation
+        Task<int> GetNextSequenceNumberAsync(string rollerType);
     }
 }
