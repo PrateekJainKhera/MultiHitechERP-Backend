@@ -9,6 +9,7 @@ namespace MultiHitechERP.API.Models.Masters
     public class Material
     {
         public int Id { get; set; }
+        public string MaterialCode { get; set; } = string.Empty; // Auto-generated
         public string MaterialName { get; set; } = string.Empty;
 
         // Material Properties
@@ -23,8 +24,13 @@ namespace MultiHitechERP.API.Models.Masters
         public decimal Density { get; set; } // Density in g/cm³
         public decimal WeightKG { get; set; } // Weight in KG
 
+        // Status
+        public bool IsActive { get; set; } = true;
+
         // Audit
         public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string? UpdatedBy { get; set; }
     }
 }

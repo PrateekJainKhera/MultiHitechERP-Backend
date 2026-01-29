@@ -24,5 +24,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<Material>> GetByGradeAsync(string grade);
         Task<IEnumerable<Material>> GetByShapeAsync(string shape);
         Task<bool> ExistsByNameAsync(string materialName);
+
+        // Code Generation
+        Task<int> GetNextSequenceNumberAsync(string grade, string shape, decimal diameter);
     }
 }

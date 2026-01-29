@@ -92,35 +92,40 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                // Business Rule 1: Validate Customer Code is unique
-                var exists = await _customerRepository.ExistsAsync(request.CustomerCode);
-                if (exists)
-                {
-                    return ApiResponse<int>.ErrorResponse($"Customer code '{request.CustomerCode}' already exists");
-                }
-
-                // Business Rule 2: Validate required fields
+                // Business Rule 1: Validate required fields
                 if (string.IsNullOrWhiteSpace(request.CustomerName))
                 {
                     return ApiResponse<int>.ErrorResponse("Customer name is required");
                 }
 
-                // Business Rule 3: Validate credit limit if credit days are specified
+                // Business Rule 2: Validate credit limit if credit days are specified
                 if (request.CreditDays.HasValue && request.CreditDays.Value > 0 && !request.CreditLimit.HasValue)
                 {
                     return ApiResponse<int>.ErrorResponse("Credit limit is required when credit days are specified");
                 }
 
-                // Business Rule 4: Validate GST format if provided
+                // Business Rule 3: Validate GST format if provided
                 if (!string.IsNullOrWhiteSpace(request.GSTNo) && request.GSTNo.Length != 15)
                 {
                     return ApiResponse<int>.ErrorResponse("GST number must be 15 characters long");
                 }
 
+                // Auto-generate CustomerCode based on CustomerType
+                string prefix = request.CustomerType switch
+                {
+                    "Direct" => "CUST",
+                    "Agent" => "AGNT",
+                    "Dealer" => "DLIR",
+                    _ => "CUST"
+                };
+
+                int nextSequence = await _customerRepository.GetNextSequenceNumberAsync(request.CustomerType);
+                string generatedCode = $"{prefix}-{nextSequence:D4}";
+
                 // Create Customer
                 var customer = new Customer
                 {
-                    CustomerCode = request.CustomerCode.Trim().ToUpper(),
+                    CustomerCode = generatedCode,
                     CustomerName = request.CustomerName.Trim(),
                     CustomerType = request.CustomerType.Trim(),
                     ContactPerson = request.ContactPerson?.Trim(),
@@ -142,7 +147,7 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 var customerId = await _customerRepository.InsertAsync(customer);
 
-                return ApiResponse<int>.SuccessResponse(customerId, $"Customer '{request.CustomerCode}' created successfully");
+                return ApiResponse<int>.SuccessResponse(customerId, $"Customer '{generatedCode}' created successfully");
             }
             catch (Exception ex)
             {

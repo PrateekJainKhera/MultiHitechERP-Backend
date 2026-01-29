@@ -4,8 +4,7 @@ namespace MultiHitechERP.API.DTOs.Request
 {
     public class CreateCustomerRequest
     {
-        [Required(ErrorMessage = "Customer code is required")]
-        public string CustomerCode { get; set; } = string.Empty;
+        // CustomerCode is auto-generated based on CustomerType
 
         [Required(ErrorMessage = "Customer name is required")]
         public string CustomerName { get; set; } = string.Empty;

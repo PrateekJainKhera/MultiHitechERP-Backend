@@ -31,5 +31,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<Customer>> GetByCityAsync(string city);
         Task<IEnumerable<Customer>> GetByStateAsync(string state);
         Task<bool> ExistsAsync(string customerCode);
+
+        // Code Generation
+        Task<int> GetNextSequenceNumberAsync(string customerType);
     }
 }

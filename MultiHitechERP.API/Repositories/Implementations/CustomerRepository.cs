@@ -340,6 +340,24 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return count > 0;
         }
 
+        public async Task<int> GetNextSequenceNumberAsync(string customerType)
+        {
+            const string query = @"
+                SELECT ISNULL(MAX(CAST(SUBSTRING(CustomerCode, CHARINDEX('-', CustomerCode) + 1, LEN(CustomerCode)) AS INT)), 0) + 1
+                FROM Masters_Customers
+                WHERE CustomerType = @CustomerType";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+
+            command.Parameters.AddWithValue("@CustomerType", customerType);
+
+            await connection.OpenAsync();
+            var nextSequence = (int)await command.ExecuteScalarAsync();
+
+            return nextSequence;
+        }
+
         // Helper Methods
 
         private static Customer MapToCustomer(SqlDataReader reader)

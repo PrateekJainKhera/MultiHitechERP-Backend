@@ -68,20 +68,31 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (!validShapes.Contains(request.Shape))
                     return ApiResponse<int>.ErrorResponse($"Invalid shape. Must be one of: {string.Join(", ", validShapes)}");
 
+                // Auto-generate MaterialCode
+                // Format: GRADE-SHAPE-DIAMETER-SEQ (e.g., EN8-ROD-050-001)
+                string grade = request.Grade.Replace(" ", "");
+                string shape = request.Shape.ToUpper().Substring(0, 3);
+                string diameter = ((int)request.Diameter).ToString("D3");
+                int sequence = await _materialRepository.GetNextSequenceNumberAsync(request.Grade, request.Shape, request.Diameter);
+                string materialCode = $"{grade}-{shape}-{diameter}-{sequence:D3}";
+
                 // Create material entity
                 var material = new Material
                 {
+                    MaterialCode = materialCode,
                     MaterialName = request.MaterialName.Trim(),
                     Grade = request.Grade.Trim(),
                     Shape = request.Shape.Trim(),
                     Diameter = request.Diameter,
                     LengthInMM = request.LengthInMM,
                     Density = request.Density,
-                    WeightKG = request.WeightKG
+                    WeightKG = request.WeightKG,
+                    IsActive = request.IsActive,
+                    CreatedBy = request.CreatedBy?.Trim() ?? "System"
                 };
 
                 var materialId = await _materialRepository.InsertAsync(material);
-                return ApiResponse<int>.SuccessResponse(materialId, $"Material '{request.MaterialName}' created successfully");
+                return ApiResponse<int>.SuccessResponse(materialId, $"Material '{materialCode}' created successfully");
             }
             catch (Exception ex)
             {
@@ -207,6 +218,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return new MaterialResponse
             {
                 Id = material.Id,
+                MaterialCode = material.MaterialCode,
                 MaterialName = material.MaterialName,
                 Grade = material.Grade,
                 Shape = material.Shape,
@@ -214,8 +226,11 @@ namespace MultiHitechERP.API.Services.Implementations
                 LengthInMM = material.LengthInMM,
                 Density = material.Density,
                 WeightKG = material.WeightKG,
+                IsActive = material.IsActive,
                 CreatedAt = material.CreatedAt,
-                UpdatedAt = material.UpdatedAt
+                CreatedBy = material.CreatedBy,
+                UpdatedAt = material.UpdatedAt,
+                UpdatedBy = material.UpdatedBy
             };
         }
     }

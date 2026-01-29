@@ -4,6 +4,8 @@ namespace MultiHitechERP.API.DTOs.Request
 {
     public class CreateMaterialRequest
     {
+        // MaterialCode is auto-generated based on Grade-Shape-Diameter
+
         [Required(ErrorMessage = "Material name is required")]
         public string MaterialName { get; set; } = string.Empty;
 
@@ -28,5 +30,8 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required]
         [Range(0, double.MaxValue, ErrorMessage = "Weight must be positive")]
         public decimal WeightKG { get; set; }
+
+        public bool IsActive { get; set; } = true;
+        public string? CreatedBy { get; set; }
     }
 }

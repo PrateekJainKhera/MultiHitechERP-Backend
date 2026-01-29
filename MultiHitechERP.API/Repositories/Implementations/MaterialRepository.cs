@@ -52,11 +52,11 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Materials (
-                    MaterialName, Grade, Shape, Diameter, LengthInMM,
-                    Density, WeightKG, CreatedAt, UpdatedAt
+                    MaterialCode, MaterialName, Grade, Shape, Diameter, LengthInMM,
+                    Density, WeightKG, IsActive, CreatedAt, CreatedBy, UpdatedAt
                 ) VALUES (
-                    @MaterialName, @Grade, @Shape, @Diameter, @LengthInMM,
-                    @Density, @WeightKG, @CreatedAt, @UpdatedAt
+                    @MaterialCode, @MaterialName, @Grade, @Shape, @Diameter, @LengthInMM,
+                    @Density, @WeightKG, @IsActive, @CreatedAt, @CreatedBy, @UpdatedAt
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -65,7 +65,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
             material.CreatedAt = DateTime.UtcNow;
             material.UpdatedAt = DateTime.UtcNow;
+            material.IsActive = true;
 
+            command.Parameters.AddWithValue("@MaterialCode", material.MaterialCode);
             command.Parameters.AddWithValue("@MaterialName", material.MaterialName);
             command.Parameters.AddWithValue("@Grade", material.Grade);
             command.Parameters.AddWithValue("@Shape", material.Shape);
@@ -73,7 +75,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LengthInMM", material.LengthInMM);
             command.Parameters.AddWithValue("@Density", material.Density);
             command.Parameters.AddWithValue("@WeightKG", material.WeightKG);
+            command.Parameters.AddWithValue("@IsActive", material.IsActive);
             command.Parameters.AddWithValue("@CreatedAt", material.CreatedAt);
+            command.Parameters.AddWithValue("@CreatedBy", (object?)material.CreatedBy ?? DBNull.Value);
             command.Parameters.AddWithValue("@UpdatedAt", material.UpdatedAt);
 
             await connection.OpenAsync();
@@ -198,11 +202,33 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return (int)await command.ExecuteScalarAsync() > 0;
         }
 
+        public async Task<int> GetNextSequenceNumberAsync(string grade, string shape, decimal diameter)
+        {
+            // MaterialCode format: GRADE-SHAPE-DIAMETER-SEQ
+            // Example: EN8-ROD-050-001, EN8-ROD-050-002
+            string prefix = $"{grade.Replace(" ", "")}-{shape.ToUpper().Substring(0, 3)}-{((int)diameter):D3}";
+
+            const string query = @"
+                SELECT ISNULL(MAX(CAST(RIGHT(MaterialCode, 3) AS INT)), 0) + 1
+                FROM Masters_Materials
+                WHERE MaterialCode LIKE @Prefix + '%'";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Prefix", prefix);
+
+            await connection.OpenAsync();
+            var nextSequence = (int)await command.ExecuteScalarAsync();
+
+            return nextSequence;
+        }
+
         private Material MapToMaterial(SqlDataReader reader)
         {
             return new Material
             {
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                MaterialCode = reader.GetString(reader.GetOrdinal("MaterialCode")),
                 MaterialName = reader.GetString(reader.GetOrdinal("MaterialName")),
                 Grade = reader.GetString(reader.GetOrdinal("Grade")),
                 Shape = reader.GetString(reader.GetOrdinal("Shape")),
@@ -210,8 +236,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 LengthInMM = reader.GetDecimal(reader.GetOrdinal("LengthInMM")),
                 Density = reader.GetDecimal(reader.GetOrdinal("Density")),
                 WeightKG = reader.GetDecimal(reader.GetOrdinal("WeightKG")),
+                IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
-                UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt"))
+                CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy"))
+                    ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
+                UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt"))
+                    ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
+                UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy"))
+                    ? null : reader.GetString(reader.GetOrdinal("UpdatedBy"))
             };
         }
     }
