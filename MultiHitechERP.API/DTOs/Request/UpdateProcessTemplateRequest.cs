@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace MultiHitechERP.API.DTOs.Request
@@ -11,31 +11,14 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required(ErrorMessage = "Template name is required")]
         public string TemplateName { get; set; } = string.Empty;
 
-        // Product Reference
-        public int? ProductId { get; set; }
-        public string? ProductCode { get; set; }
-        public string? ProductName { get; set; }
-
-        // Child Part Reference
-        public int? ChildPartId { get; set; }
-        public string? ChildPartName { get; set; }
-
-        // Description
         public string? Description { get; set; }
 
-        // Type
-        public string? TemplateType { get; set; }
+        [Required(ErrorMessage = "At least one roller type is required")]
+        public List<string> ApplicableTypes { get; set; } = new(); // PRINTING, MAGNETIC
 
-        // Status
-        public bool IsActive { get; set; }
-        public string? Status { get; set; }
-        public bool IsDefault { get; set; }
+        public List<CreateProcessTemplateStepRequest> Steps { get; set; } = new();
 
-        // Approval
-        public string? ApprovedBy { get; set; }
-        public DateTime? ApprovalDate { get; set; }
-
-        public string? Remarks { get; set; }
-        public string? UpdatedBy { get; set; }
+        // System fields
+        public bool IsActive { get; set; } = true;
     }
 }

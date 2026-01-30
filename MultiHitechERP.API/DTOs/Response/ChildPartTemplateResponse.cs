@@ -29,7 +29,6 @@ namespace MultiHitechERP.API.DTOs.Response
         // Notes
         public string? Description { get; set; }
         public string? TechnicalNotes { get; set; }
-        public List<string> QualityCheckpoints { get; set; } = new();
 
         // Metadata
         public bool IsActive { get; set; }

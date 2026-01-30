@@ -6,9 +6,6 @@ namespace MultiHitechERP.API.DTOs.Request
     public class CreateChildPartTemplateRequest
     {
         [Required]
-        public string TemplateCode { get; set; } = string.Empty;
-
-        [Required]
         public string TemplateName { get; set; } = string.Empty;
 
         [Required]
@@ -33,12 +30,10 @@ namespace MultiHitechERP.API.DTOs.Request
         // Manufacturing
         public List<CreateChildPartTemplateMaterialRequirementRequest> MaterialRequirements { get; set; } = new();
         public List<CreateChildPartTemplateProcessStepRequest> ProcessSteps { get; set; } = new();
-        public decimal TotalStandardTimeHours { get; set; }
 
         // Notes
         public string? Description { get; set; }
         public string? TechnicalNotes { get; set; }
-        public List<string> QualityCheckpoints { get; set; } = new();
 
         // Metadata
         public bool IsActive { get; set; } = true;

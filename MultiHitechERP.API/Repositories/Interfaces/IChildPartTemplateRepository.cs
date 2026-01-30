@@ -26,6 +26,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<ChildPartTemplate>> GetByChildPartTypeAsync(string childPartType);
         Task<IEnumerable<ChildPartTemplate>> GetByRollerTypeAsync(string rollerType);
         Task<bool> ExistsAsync(string templateName);
+        Task<int> GetNextSequenceNumberAsync();
 
         // Material Requirements
         Task<IEnumerable<ChildPartTemplateMaterialRequirement>> GetMaterialRequirementsByTemplateIdAsync(int templateId);

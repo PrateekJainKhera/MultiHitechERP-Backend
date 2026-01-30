@@ -10,9 +10,6 @@ namespace MultiHitechERP.API.DTOs.Request
         public int Id { get; set; }
 
         [Required]
-        public string TemplateCode { get; set; } = string.Empty;
-
-        [Required]
         public string TemplateName { get; set; } = string.Empty;
 
         public string? Description { get; set; }
@@ -25,6 +22,6 @@ namespace MultiHitechERP.API.DTOs.Request
 
         public List<CreateProductTemplateChildPartRequest> ChildParts { get; set; } = new();
 
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 }

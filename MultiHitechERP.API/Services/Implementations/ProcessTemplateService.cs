@@ -94,17 +94,17 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                // Business Rule 1: Validate template name is unique
+                // Validate template name is unique
                 var exists = await _processTemplateRepository.ExistsAsync(request.TemplateName);
                 if (exists)
                 {
                     return ApiResponse<int>.ErrorResponse($"Process template '{request.TemplateName}' already exists");
                 }
 
-                // Business Rule 2: Validate required fields
-                if (string.IsNullOrWhiteSpace(request.TemplateName))
+                // Validate at least one applicable type
+                if (request.ApplicableTypes == null || !request.ApplicableTypes.Any())
                 {
-                    return ApiResponse<int>.ErrorResponse("Template name is required");
+                    return ApiResponse<int>.ErrorResponse("At least one applicable roller type is required");
                 }
 
                 // Create Template
@@ -112,22 +112,30 @@ namespace MultiHitechERP.API.Services.Implementations
                 {
                     TemplateName = request.TemplateName.Trim(),
                     Description = request.Description?.Trim(),
-                    ProductId = request.ProductId,
-                    ProductCode = request.ProductCode?.Trim(),
-                    ProductName = request.ProductName?.Trim(),
-                    ChildPartId = request.ChildPartId,
-                    ChildPartName = request.ChildPartName?.Trim(),
-                    TemplateType = request.TemplateType?.Trim() ?? "Standard",
+                    ApplicableTypes = request.ApplicableTypes,
                     IsActive = request.IsActive,
-                    Status = request.Status?.Trim() ?? "Active",
-                    IsDefault = request.IsDefault,
-                    ApprovedBy = request.ApprovedBy?.Trim(),
-                    ApprovalDate = request.ApprovalDate,
-                    Remarks = request.Remarks?.Trim(),
-                    CreatedBy = request.CreatedBy?.Trim() ?? "System"
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = request.CreatedBy?.Trim() ?? "System",
+                    UpdatedAt = DateTime.UtcNow
                 };
 
                 var templateId = await _processTemplateRepository.InsertAsync(template);
+
+                // Insert steps if any
+                if (request.Steps != null && request.Steps.Any())
+                {
+                    var steps = request.Steps.Select(s => new ProcessTemplateStep
+                    {
+                        TemplateId = templateId,
+                        StepNo = s.StepNo,
+                        ProcessId = s.ProcessId,
+                        ProcessName = s.ProcessName,
+                        IsMandatory = s.IsMandatory,
+                        CanBeParallel = s.CanBeParallel
+                    }).ToList();
+
+                    await _processTemplateRepository.InsertStepsAsync(templateId, steps);
+                }
 
                 return ApiResponse<int>.SuccessResponse(templateId, $"Process template '{request.TemplateName}' created successfully");
             }
@@ -148,7 +156,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse("Process template not found");
                 }
 
-                // Business Rule 1: Validate template name uniqueness if changed
+                // Validate template name uniqueness if changed
                 if (existingTemplate.TemplateName != request.TemplateName)
                 {
                     var exists = await _processTemplateRepository.ExistsAsync(request.TemplateName);
@@ -158,28 +166,50 @@ namespace MultiHitechERP.API.Services.Implementations
                     }
                 }
 
+                // Validate at least one applicable type
+                if (request.ApplicableTypes == null || !request.ApplicableTypes.Any())
+                {
+                    return ApiResponse<bool>.ErrorResponse("At least one applicable roller type is required");
+                }
+
                 // Update template
-                existingTemplate.TemplateName = request.TemplateName.Trim();
-                existingTemplate.Description = request.Description?.Trim();
-                existingTemplate.ProductId = request.ProductId;
-                existingTemplate.ProductCode = request.ProductCode?.Trim();
-                existingTemplate.ProductName = request.ProductName?.Trim();
-                existingTemplate.ChildPartId = request.ChildPartId;
-                existingTemplate.ChildPartName = request.ChildPartName?.Trim();
-                existingTemplate.TemplateType = request.TemplateType?.Trim();
-                existingTemplate.IsActive = request.IsActive;
-                existingTemplate.Status = request.Status?.Trim();
-                existingTemplate.IsDefault = request.IsDefault;
-                existingTemplate.ApprovedBy = request.ApprovedBy?.Trim();
-                existingTemplate.ApprovalDate = request.ApprovalDate;
-                existingTemplate.Remarks = request.Remarks?.Trim();
-                existingTemplate.UpdatedBy = request.UpdatedBy?.Trim() ?? "System";
+                var template = new ProcessTemplate
+                {
+                    Id = request.Id,
+                    TemplateName = request.TemplateName.Trim(),
+                    Description = request.Description?.Trim(),
+                    ApplicableTypes = request.ApplicableTypes,
+                    IsActive = request.IsActive,
+                    CreatedAt = existingTemplate.CreatedAt,
+                    CreatedBy = existingTemplate.CreatedBy,
+                    UpdatedAt = DateTime.UtcNow
+                };
 
-                var success = await _processTemplateRepository.UpdateAsync(existingTemplate);
+                var success = await _processTemplateRepository.UpdateAsync(template);
+                if (!success)
+                {
+                    return ApiResponse<bool>.ErrorResponse("Failed to update process template");
+                }
 
-                return success
-                    ? ApiResponse<bool>.SuccessResponse(true, $"Process template '{request.TemplateName}' updated successfully")
-                    : ApiResponse<bool>.ErrorResponse("Failed to update process template");
+                // Update steps: Delete all and re-insert
+                await _processTemplateRepository.DeleteStepsByTemplateIdAsync(request.Id);
+
+                if (request.Steps != null && request.Steps.Any())
+                {
+                    var steps = request.Steps.Select(s => new ProcessTemplateStep
+                    {
+                        TemplateId = request.Id,
+                        StepNo = s.StepNo,
+                        ProcessId = s.ProcessId,
+                        ProcessName = s.ProcessName,
+                        IsMandatory = s.IsMandatory,
+                        CanBeParallel = s.CanBeParallel
+                    }).ToList();
+
+                    await _processTemplateRepository.InsertStepsAsync(request.Id, steps);
+                }
+
+                return ApiResponse<bool>.SuccessResponse(true, $"Process template '{request.TemplateName}' updated successfully");
             }
             catch (Exception ex)
             {
@@ -497,22 +527,11 @@ namespace MultiHitechERP.API.Services.Implementations
                 Id = template.Id,
                 TemplateName = template.TemplateName,
                 Description = template.Description,
-                ProductId = template.ProductId,
-                ProductCode = template.ProductCode,
-                ProductName = template.ProductName,
-                ChildPartId = template.ChildPartId,
-                ChildPartName = template.ChildPartName,
-                TemplateType = template.TemplateType,
+                ApplicableTypes = template.ApplicableTypes ?? new List<string>(),
                 IsActive = template.IsActive,
-                Status = template.Status,
-                IsDefault = template.IsDefault,
-                ApprovedBy = template.ApprovedBy,
-                ApprovalDate = template.ApprovalDate,
-                Remarks = template.Remarks,
                 CreatedAt = template.CreatedAt,
                 CreatedBy = template.CreatedBy,
-                UpdatedAt = template.UpdatedAt,
-                UpdatedBy = template.UpdatedBy
+                UpdatedAt = template.UpdatedAt
             };
         }
 
@@ -524,24 +543,9 @@ namespace MultiHitechERP.API.Services.Implementations
                 TemplateId = step.TemplateId,
                 StepNo = step.StepNo,
                 ProcessId = step.ProcessId,
-                ProcessCode = step.ProcessCode,
                 ProcessName = step.ProcessName,
-                DefaultMachineId = step.DefaultMachineId,
-                DefaultMachineName = step.DefaultMachineName,
-                MachineType = step.MachineType,
-                SetupTimeMin = step.SetupTimeMin,
-                CycleTimeMin = step.CycleTimeMin,
-                CycleTimePerPiece = step.CycleTimePerPiece,
-                IsParallel = step.IsParallel,
-                ParallelGroupNo = step.ParallelGroupNo,
-                DependsOnSteps = step.DependsOnSteps,
-                RequiresQC = step.RequiresQC,
-                QCCheckpoints = step.QCCheckpoints,
-                WorkInstructions = step.WorkInstructions,
-                SafetyInstructions = step.SafetyInstructions,
-                ToolingRequired = step.ToolingRequired,
-                Remarks = step.Remarks,
-                CreatedAt = step.CreatedAt
+                IsMandatory = step.IsMandatory,
+                CanBeParallel = step.CanBeParallel
             };
         }
 

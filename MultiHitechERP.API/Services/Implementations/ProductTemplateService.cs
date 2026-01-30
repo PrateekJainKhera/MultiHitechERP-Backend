@@ -178,11 +178,11 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse($"Product template with ID {request.Id} not found");
                 }
 
-                // Update template entity
+                // Update template entity (preserve TemplateCode - it's immutable)
                 var template = new ProductTemplate
                 {
                     Id = request.Id,
-                    TemplateCode = request.TemplateCode,
+                    TemplateCode = existingTemplate.TemplateCode, // Preserve original code
                     TemplateName = request.TemplateName,
                     Description = request.Description,
                     RollerType = request.RollerType,
@@ -190,7 +190,8 @@ namespace MultiHitechERP.API.Services.Implementations
                     IsActive = request.IsActive,
                     CreatedAt = existingTemplate.CreatedAt,
                     CreatedBy = existingTemplate.CreatedBy,
-                    UpdatedBy = request.UpdatedBy?.Trim() ?? "System"
+                    UpdatedAt = DateTime.UtcNow,
+                    UpdatedBy = "System"
                 };
 
                 // Update template

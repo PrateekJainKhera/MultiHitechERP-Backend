@@ -33,7 +33,6 @@ namespace MultiHitechERP.API.Models.Masters
         // Notes
         public string? Description { get; set; }
         public string? TechnicalNotes { get; set; }
-        public List<string>? QualityCheckpoints { get; set; }
 
         // Metadata
         public bool IsActive { get; set; }

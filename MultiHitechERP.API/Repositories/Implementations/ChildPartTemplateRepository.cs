@@ -346,6 +346,17 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return (int)await command.ExecuteScalarAsync() > 0;
         }
 
+        public async Task<int> GetNextSequenceNumberAsync()
+        {
+            const string query = "SELECT ISNULL(MAX(Id), 0) + 1 FROM Masters_ChildPartTemplates";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+
+            await connection.OpenAsync();
+            return (int)await command.ExecuteScalarAsync();
+        }
+
         #endregion
 
         #region Material Requirements Operations

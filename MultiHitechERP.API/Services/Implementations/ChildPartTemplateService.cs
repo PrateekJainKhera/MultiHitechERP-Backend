@@ -120,10 +120,21 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<int>.ErrorResponse($"Child part template with name '{request.TemplateName}' already exists");
                 }
 
+                // Auto-generate TemplateCode (Format: CPT-0001, CPT-0002, etc.)
+                int sequence = await _childPartTemplateRepository.GetNextSequenceNumberAsync();
+                string templateCode = $"CPT-{sequence:D4}";
+
+                // Calculate TotalStandardTimeHours from process steps
+                decimal totalStandardTimeHours = 0;
+                if (request.ProcessSteps != null && request.ProcessSteps.Any())
+                {
+                    totalStandardTimeHours = request.ProcessSteps.Sum(ps => ps.StandardTimeHours);
+                }
+
                 // Create template entity
                 var template = new ChildPartTemplate
                 {
-                    TemplateCode = request.TemplateCode,
+                    TemplateCode = templateCode,
                     TemplateName = request.TemplateName,
                     ChildPartType = request.ChildPartType,
                     RollerType = request.RollerType,
@@ -135,10 +146,9 @@ namespace MultiHitechERP.API.Services.Implementations
                     OuterDiameter = request.OuterDiameter,
                     Thickness = request.Thickness,
                     DimensionUnit = request.DimensionUnit,
-                    TotalStandardTimeHours = request.TotalStandardTimeHours,
+                    TotalStandardTimeHours = totalStandardTimeHours,
                     Description = request.Description,
                     TechnicalNotes = request.TechnicalNotes,
-                    QualityCheckpoints = request.QualityCheckpoints,
                     IsActive = request.IsActive,
                     CreatedBy = request.CreatedBy
                 };
@@ -181,7 +191,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     await _childPartTemplateRepository.InsertProcessStepsAsync(templateId, processSteps);
                 }
 
-                return ApiResponse<int>.SuccessResponse(templateId, "Child part template created successfully");
+                return ApiResponse<int>.SuccessResponse(templateId, $"Child part template '{templateCode}' created successfully");
             }
             catch (Exception ex)
             {
@@ -200,11 +210,18 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse($"Child part template with ID {request.Id} not found");
                 }
 
-                // Update template entity
+                // Calculate TotalStandardTimeHours from process steps
+                decimal totalStandardTimeHours = 0;
+                if (request.ProcessSteps != null && request.ProcessSteps.Any())
+                {
+                    totalStandardTimeHours = request.ProcessSteps.Sum(ps => ps.StandardTimeHours);
+                }
+
+                // Update template entity (preserve TemplateCode - it's immutable)
                 var template = new ChildPartTemplate
                 {
                     Id = request.Id,
-                    TemplateCode = request.TemplateCode,
+                    TemplateCode = existingTemplate.TemplateCode, // Preserve original code (immutable)
                     TemplateName = request.TemplateName,
                     ChildPartType = request.ChildPartType,
                     RollerType = request.RollerType,
@@ -216,10 +233,9 @@ namespace MultiHitechERP.API.Services.Implementations
                     OuterDiameter = request.OuterDiameter,
                     Thickness = request.Thickness,
                     DimensionUnit = request.DimensionUnit,
-                    TotalStandardTimeHours = request.TotalStandardTimeHours,
+                    TotalStandardTimeHours = totalStandardTimeHours,
                     Description = request.Description,
                     TechnicalNotes = request.TechnicalNotes,
-                    QualityCheckpoints = request.QualityCheckpoints,
                     IsActive = request.IsActive,
                     CreatedAt = existingTemplate.CreatedAt,
                     CreatedBy = existingTemplate.CreatedBy
@@ -361,7 +377,6 @@ namespace MultiHitechERP.API.Services.Implementations
                 TotalStandardTimeHours = template.TotalStandardTimeHours,
                 Description = template.Description,
                 TechnicalNotes = template.TechnicalNotes,
-                QualityCheckpoints = template.QualityCheckpoints ?? new List<string>(),
                 IsActive = template.IsActive,
                 CreatedAt = template.CreatedAt,
                 UpdatedAt = template.UpdatedAt,
