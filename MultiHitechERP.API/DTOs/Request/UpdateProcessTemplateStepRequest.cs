@@ -20,6 +20,10 @@ namespace MultiHitechERP.API.DTOs.Request
         public string? ProcessCode { get; set; }
         public string? ProcessName { get; set; }
 
+        // Step Control
+        public bool IsMandatory { get; set; } = true;
+        public bool CanBeParallel { get; set; } = false;
+
         // Machine Requirement
         public int? DefaultMachineId { get; set; }
         public string? DefaultMachineName { get; set; }

@@ -32,12 +32,6 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<bool>> DeleteStepAsync(int stepId);
 
         // Business Queries
-        Task<ApiResponse<IEnumerable<ProcessTemplateResponse>>> GetByProductIdAsync(int productId);
-        Task<ApiResponse<IEnumerable<ProcessTemplateResponse>>> GetByChildPartIdAsync(int childPartId);
-        Task<ApiResponse<IEnumerable<ProcessTemplateResponse>>> GetByTemplateTypeAsync(string templateType);
-        Task<ApiResponse<IEnumerable<ProcessTemplateResponse>>> GetDefaultTemplatesAsync();
-
-        // Approval
-        Task<ApiResponse<bool>> ApproveTemplateAsync(int id, string approvedBy);
+        Task<ApiResponse<IEnumerable<ProcessTemplateResponse>>> GetByApplicableTypeAsync(string applicableType);
     }
 }

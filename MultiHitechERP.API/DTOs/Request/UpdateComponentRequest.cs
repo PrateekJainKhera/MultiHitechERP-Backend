@@ -24,10 +24,6 @@ namespace MultiHitechERP.API.DTOs.Request
 
         public string? Specifications { get; set; }
 
-        [Required(ErrorMessage = "Unit cost is required")]
-        [Range(0, double.MaxValue, ErrorMessage = "Unit cost must be a positive value")]
-        public decimal UnitCost { get; set; }
-
         [Required(ErrorMessage = "Lead time days is required")]
         [Range(0, int.MaxValue, ErrorMessage = "Lead time days must be a positive value")]
         public int LeadTimeDays { get; set; }

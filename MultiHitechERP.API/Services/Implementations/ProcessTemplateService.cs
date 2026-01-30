@@ -124,17 +124,19 @@ namespace MultiHitechERP.API.Services.Implementations
                 // Insert steps if any
                 if (request.Steps != null && request.Steps.Any())
                 {
-                    var steps = request.Steps.Select(s => new ProcessTemplateStep
+                    foreach (var stepRequest in request.Steps)
                     {
-                        TemplateId = templateId,
-                        StepNo = s.StepNo,
-                        ProcessId = s.ProcessId,
-                        ProcessName = s.ProcessName,
-                        IsMandatory = s.IsMandatory,
-                        CanBeParallel = s.CanBeParallel
-                    }).ToList();
-
-                    await _processTemplateRepository.InsertStepsAsync(templateId, steps);
+                        var step = new ProcessTemplateStep
+                        {
+                            TemplateId = templateId,
+                            StepNo = stepRequest.StepNo,
+                            ProcessId = stepRequest.ProcessId,
+                            ProcessName = stepRequest.ProcessName,
+                            IsMandatory = stepRequest.IsMandatory,
+                            CanBeParallel = stepRequest.CanBeParallel
+                        };
+                        await _processTemplateRepository.InsertStepAsync(step);
+                    }
                 }
 
                 return ApiResponse<int>.SuccessResponse(templateId, $"Process template '{request.TemplateName}' created successfully");
@@ -192,21 +194,23 @@ namespace MultiHitechERP.API.Services.Implementations
                 }
 
                 // Update steps: Delete all and re-insert
-                await _processTemplateRepository.DeleteStepsByTemplateIdAsync(request.Id);
+                await _processTemplateRepository.DeleteAllStepsAsync(request.Id);
 
                 if (request.Steps != null && request.Steps.Any())
                 {
-                    var steps = request.Steps.Select(s => new ProcessTemplateStep
+                    foreach (var stepRequest in request.Steps)
                     {
-                        TemplateId = request.Id,
-                        StepNo = s.StepNo,
-                        ProcessId = s.ProcessId,
-                        ProcessName = s.ProcessName,
-                        IsMandatory = s.IsMandatory,
-                        CanBeParallel = s.CanBeParallel
-                    }).ToList();
-
-                    await _processTemplateRepository.InsertStepsAsync(request.Id, steps);
+                        var step = new ProcessTemplateStep
+                        {
+                            TemplateId = request.Id,
+                            StepNo = stepRequest.StepNo,
+                            ProcessId = stepRequest.ProcessId,
+                            ProcessName = stepRequest.ProcessName,
+                            IsMandatory = stepRequest.IsMandatory,
+                            CanBeParallel = stepRequest.CanBeParallel
+                        };
+                        await _processTemplateRepository.InsertStepAsync(step);
+                    }
                 }
 
                 return ApiResponse<bool>.SuccessResponse(true, $"Process template '{request.TemplateName}' updated successfully");
@@ -338,23 +342,9 @@ namespace MultiHitechERP.API.Services.Implementations
                     TemplateId = request.TemplateId,
                     StepNo = request.StepNo,
                     ProcessId = request.ProcessId,
-                    ProcessCode = request.ProcessCode?.Trim(),
                     ProcessName = request.ProcessName?.Trim(),
-                    DefaultMachineId = request.DefaultMachineId,
-                    DefaultMachineName = request.DefaultMachineName?.Trim(),
-                    MachineType = request.MachineType?.Trim(),
-                    SetupTimeMin = request.SetupTimeMin,
-                    CycleTimeMin = request.CycleTimeMin,
-                    CycleTimePerPiece = request.CycleTimePerPiece,
-                    IsParallel = request.IsParallel,
-                    ParallelGroupNo = request.ParallelGroupNo,
-                    DependsOnSteps = request.DependsOnSteps?.Trim(),
-                    RequiresQC = request.RequiresQC,
-                    QCCheckpoints = request.QCCheckpoints?.Trim(),
-                    WorkInstructions = request.WorkInstructions?.Trim(),
-                    SafetyInstructions = request.SafetyInstructions?.Trim(),
-                    ToolingRequired = request.ToolingRequired?.Trim(),
-                    Remarks = request.Remarks?.Trim()
+                    IsMandatory = request.IsMandatory,
+                    CanBeParallel = request.CanBeParallel
                 };
 
                 var stepId = await _processTemplateRepository.InsertStepAsync(step);
@@ -382,23 +372,9 @@ namespace MultiHitechERP.API.Services.Implementations
                 existingStep.TemplateId = request.TemplateId;
                 existingStep.StepNo = request.StepNo;
                 existingStep.ProcessId = request.ProcessId;
-                existingStep.ProcessCode = request.ProcessCode?.Trim();
                 existingStep.ProcessName = request.ProcessName?.Trim();
-                existingStep.DefaultMachineId = request.DefaultMachineId;
-                existingStep.DefaultMachineName = request.DefaultMachineName?.Trim();
-                existingStep.MachineType = request.MachineType?.Trim();
-                existingStep.SetupTimeMin = request.SetupTimeMin;
-                existingStep.CycleTimeMin = request.CycleTimeMin;
-                existingStep.CycleTimePerPiece = request.CycleTimePerPiece;
-                existingStep.IsParallel = request.IsParallel;
-                existingStep.ParallelGroupNo = request.ParallelGroupNo;
-                existingStep.DependsOnSteps = request.DependsOnSteps?.Trim();
-                existingStep.RequiresQC = request.RequiresQC;
-                existingStep.QCCheckpoints = request.QCCheckpoints?.Trim();
-                existingStep.WorkInstructions = request.WorkInstructions?.Trim();
-                existingStep.SafetyInstructions = request.SafetyInstructions?.Trim();
-                existingStep.ToolingRequired = request.ToolingRequired?.Trim();
-                existingStep.Remarks = request.Remarks?.Trim();
+                existingStep.IsMandatory = request.IsMandatory;
+                existingStep.CanBeParallel = request.CanBeParallel;
 
                 var success = await _processTemplateRepository.UpdateStepAsync(existingStep);
 
@@ -438,81 +414,17 @@ namespace MultiHitechERP.API.Services.Implementations
 
         #region Business Queries
 
-        public async Task<ApiResponse<IEnumerable<ProcessTemplateResponse>>> GetByProductIdAsync(int productId)
+        public async Task<ApiResponse<IEnumerable<ProcessTemplateResponse>>> GetByApplicableTypeAsync(string applicableType)
         {
             try
             {
-                var templates = await _processTemplateRepository.GetByProductIdAsync(productId);
+                var templates = await _processTemplateRepository.GetByApplicableTypeAsync(applicableType);
                 var responses = templates.Select(MapToTemplateResponse).ToList();
                 return ApiResponse<IEnumerable<ProcessTemplateResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
             {
-                return ApiResponse<IEnumerable<ProcessTemplateResponse>>.ErrorResponse($"Error retrieving templates by product: {ex.Message}");
-            }
-        }
-
-        public async Task<ApiResponse<IEnumerable<ProcessTemplateResponse>>> GetByChildPartIdAsync(int childPartId)
-        {
-            try
-            {
-                var templates = await _processTemplateRepository.GetByChildPartIdAsync(childPartId);
-                var responses = templates.Select(MapToTemplateResponse).ToList();
-                return ApiResponse<IEnumerable<ProcessTemplateResponse>>.SuccessResponse(responses);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<ProcessTemplateResponse>>.ErrorResponse($"Error retrieving templates by child part: {ex.Message}");
-            }
-        }
-
-        public async Task<ApiResponse<IEnumerable<ProcessTemplateResponse>>> GetByTemplateTypeAsync(string templateType)
-        {
-            try
-            {
-                var templates = await _processTemplateRepository.GetByTemplateTypeAsync(templateType);
-                var responses = templates.Select(MapToTemplateResponse).ToList();
-                return ApiResponse<IEnumerable<ProcessTemplateResponse>>.SuccessResponse(responses);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<ProcessTemplateResponse>>.ErrorResponse($"Error retrieving templates by type: {ex.Message}");
-            }
-        }
-
-        public async Task<ApiResponse<IEnumerable<ProcessTemplateResponse>>> GetDefaultTemplatesAsync()
-        {
-            try
-            {
-                var templates = await _processTemplateRepository.GetDefaultTemplatesAsync();
-                var responses = templates.Select(MapToTemplateResponse).ToList();
-                return ApiResponse<IEnumerable<ProcessTemplateResponse>>.SuccessResponse(responses);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<IEnumerable<ProcessTemplateResponse>>.ErrorResponse($"Error retrieving default templates: {ex.Message}");
-            }
-        }
-
-        public async Task<ApiResponse<bool>> ApproveTemplateAsync(int id, string approvedBy)
-        {
-            try
-            {
-                var template = await _processTemplateRepository.GetByIdAsync(id);
-                if (template == null)
-                {
-                    return ApiResponse<bool>.ErrorResponse("Process template not found");
-                }
-
-                var success = await _processTemplateRepository.ApproveTemplateAsync(id, approvedBy);
-
-                return success
-                    ? ApiResponse<bool>.SuccessResponse(true, $"Process template approved by {approvedBy}")
-                    : ApiResponse<bool>.ErrorResponse("Failed to approve process template");
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<bool>.ErrorResponse($"Error approving template: {ex.Message}");
+                return ApiResponse<IEnumerable<ProcessTemplateResponse>>.ErrorResponse($"Error retrieving templates by applicable type: {ex.Message}");
             }
         }
 

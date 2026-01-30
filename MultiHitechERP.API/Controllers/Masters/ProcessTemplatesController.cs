@@ -47,31 +47,16 @@ namespace MultiHitechERP.API.Controllers.Masters
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        [HttpGet("default")]
-        public async Task<IActionResult> GetDefaultTemplates()
-        {
-            var result = await _processTemplateService.GetDefaultTemplatesAsync();
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
+        // Old endpoints removed - replaced with GetByApplicableType
+        // [HttpGet("default")]
+        // [HttpGet("by-product/{productId:int}")]
+        // [HttpGet("by-child-part/{childPartId:int}")]
+        // [HttpGet("by-type/{templateType}")]
 
-        [HttpGet("by-product/{productId:int}")]
-        public async Task<IActionResult> GetByProductId(int productId)
+        [HttpGet("by-applicable-type/{applicableType}")]
+        public async Task<IActionResult> GetByApplicableType(string applicableType)
         {
-            var result = await _processTemplateService.GetByProductIdAsync(productId);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpGet("by-child-part/{childPartId:int}")]
-        public async Task<IActionResult> GetByChildPartId(int childPartId)
-        {
-            var result = await _processTemplateService.GetByChildPartIdAsync(childPartId);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpGet("by-type/{templateType}")]
-        public async Task<IActionResult> GetByTemplateType(string templateType)
-        {
-            var result = await _processTemplateService.GetByTemplateTypeAsync(templateType);
+            var result = await _processTemplateService.GetByApplicableTypeAsync(applicableType);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
@@ -105,12 +90,8 @@ namespace MultiHitechERP.API.Controllers.Masters
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        [HttpPost("{id:int}/approve")]
-        public async Task<IActionResult> ApproveTemplate(int id, [FromBody] string approvedBy)
-        {
-            var result = await _processTemplateService.ApproveTemplateAsync(id, approvedBy);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
+        // Approval endpoint removed in simplified version
+        // [HttpPost("{id:int}/approve")]
 
         #endregion
 

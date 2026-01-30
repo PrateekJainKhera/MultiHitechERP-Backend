@@ -158,13 +158,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     DrawingNumber, DrawingRevision, Length, Diameter,
                     InnerDiameter, OuterDiameter, Thickness, DimensionUnit,
                     TotalStandardTimeHours, Description, TechnicalNotes,
-                    QualityCheckpoints, IsActive, CreatedAt, UpdatedAt, CreatedBy
+                    IsActive, CreatedAt, UpdatedAt, CreatedBy
                 ) VALUES (
                     @TemplateCode, @TemplateName, @ChildPartType, @RollerType,
                     @DrawingNumber, @DrawingRevision, @Length, @Diameter,
                     @InnerDiameter, @OuterDiameter, @Thickness, @DimensionUnit,
                     @TotalStandardTimeHours, @Description, @TechnicalNotes,
-                    @QualityCheckpoints, @IsActive, @CreatedAt, @UpdatedAt, @CreatedBy
+                    @IsActive, @CreatedAt, @UpdatedAt, @CreatedBy
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -189,8 +189,6 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@TotalStandardTimeHours", template.TotalStandardTimeHours);
             command.Parameters.AddWithValue("@Description", (object?)template.Description ?? DBNull.Value);
             command.Parameters.AddWithValue("@TechnicalNotes", (object?)template.TechnicalNotes ?? DBNull.Value);
-            command.Parameters.AddWithValue("@QualityCheckpoints",
-                template.QualityCheckpoints != null ? JsonSerializer.Serialize(template.QualityCheckpoints) : DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", template.IsActive);
             command.Parameters.AddWithValue("@CreatedAt", template.CreatedAt);
             command.Parameters.AddWithValue("@UpdatedAt", template.UpdatedAt);
@@ -222,7 +220,6 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     TotalStandardTimeHours = @TotalStandardTimeHours,
                     Description = @Description,
                     TechnicalNotes = @TechnicalNotes,
-                    QualityCheckpoints = @QualityCheckpoints,
                     IsActive = @IsActive,
                     UpdatedAt = @UpdatedAt
                 WHERE Id = @Id";
@@ -248,8 +245,6 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@TotalStandardTimeHours", template.TotalStandardTimeHours);
             command.Parameters.AddWithValue("@Description", (object?)template.Description ?? DBNull.Value);
             command.Parameters.AddWithValue("@TechnicalNotes", (object?)template.TechnicalNotes ?? DBNull.Value);
-            command.Parameters.AddWithValue("@QualityCheckpoints",
-                template.QualityCheckpoints != null ? JsonSerializer.Serialize(template.QualityCheckpoints) : DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", template.IsActive);
             command.Parameters.AddWithValue("@UpdatedAt", template.UpdatedAt);
 
@@ -510,10 +505,6 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         private ChildPartTemplate MapToChildPartTemplate(SqlDataReader reader)
         {
-            var qualityCheckpointsJson = reader.IsDBNull(reader.GetOrdinal("QualityCheckpoints"))
-                ? null
-                : reader.GetString(reader.GetOrdinal("QualityCheckpoints"));
-
             return new ChildPartTemplate
             {
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
@@ -532,7 +523,6 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 TotalStandardTimeHours = reader.GetDecimal(reader.GetOrdinal("TotalStandardTimeHours")),
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                 TechnicalNotes = reader.IsDBNull(reader.GetOrdinal("TechnicalNotes")) ? null : reader.GetString(reader.GetOrdinal("TechnicalNotes")),
-                QualityCheckpoints = qualityCheckpointsJson != null ? JsonSerializer.Deserialize<List<string>>(qualityCheckpointsJson) : null,
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),

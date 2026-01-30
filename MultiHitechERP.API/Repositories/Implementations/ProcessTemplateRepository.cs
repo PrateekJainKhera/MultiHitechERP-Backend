@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using MultiHitechERP.API.Data;
@@ -85,13 +87,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_ProcessTemplates (
-                    TemplateName, Description, ProductId, ProductCode, ProductName,
-                    ChildPartId, ChildPartName, TemplateType, IsActive, Status,
-                    IsDefault, ApprovedBy, ApprovalDate, Remarks, CreatedAt, CreatedBy
+                    TemplateName, Description, ApplicableTypes, IsActive, CreatedAt, CreatedBy, UpdatedAt
                 ) VALUES (
-                    @TemplateName, @Description, @ProductId, @ProductCode, @ProductName,
-                    @ChildPartId, @ChildPartName, @TemplateType, @IsActive, @Status,
-                    @IsDefault, @ApprovedBy, @ApprovalDate, @Remarks, @CreatedAt, @CreatedBy
+                    @TemplateName, @Description, @ApplicableTypes, @IsActive, @CreatedAt, @CreatedBy, @UpdatedAt
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -99,6 +97,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var command = new SqlCommand(query, connection);
 
             template.CreatedAt = DateTime.UtcNow;
+            template.UpdatedAt = DateTime.UtcNow;
             AddTemplateParameters(command, template);
 
             await connection.OpenAsync();
@@ -113,11 +112,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 UPDATE Masters_ProcessTemplates SET
                     TemplateName = @TemplateName, Description = @Description,
-                    ProductId = @ProductId, ProductCode = @ProductCode, ProductName = @ProductName,
-                    ChildPartId = @ChildPartId, ChildPartName = @ChildPartName,
-                    TemplateType = @TemplateType, IsActive = @IsActive, Status = @Status,
-                    IsDefault = @IsDefault, ApprovedBy = @ApprovedBy, ApprovalDate = @ApprovalDate,
-                    Remarks = @Remarks, UpdatedAt = @UpdatedAt, UpdatedBy = @UpdatedBy
+                    ApplicableTypes = @ApplicableTypes, IsActive = @IsActive,
+                    UpdatedAt = @UpdatedAt, UpdatedBy = @UpdatedBy
                 WHERE Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -185,26 +181,15 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_ProcessTemplateSteps (
-                    TemplateId, StepNo, ProcessId, ProcessCode, ProcessName,
-                    DefaultMachineId, DefaultMachineName, MachineType,
-                    SetupTimeMin, CycleTimeMin, CycleTimePerPiece,
-                    IsParallel, ParallelGroupNo, DependsOnSteps,
-                    RequiresQC, QCCheckpoints, WorkInstructions, SafetyInstructions,
-                    ToolingRequired, Remarks, CreatedAt
+                    TemplateId, StepNo, ProcessId, ProcessName, IsMandatory, CanBeParallel
                 ) VALUES (
-                    @TemplateId, @StepNo, @ProcessId, @ProcessCode, @ProcessName,
-                    @DefaultMachineId, @DefaultMachineName, @MachineType,
-                    @SetupTimeMin, @CycleTimeMin, @CycleTimePerPiece,
-                    @IsParallel, @ParallelGroupNo, @DependsOnSteps,
-                    @RequiresQC, @QCCheckpoints, @WorkInstructions, @SafetyInstructions,
-                    @ToolingRequired, @Remarks, @CreatedAt
+                    @TemplateId, @StepNo, @ProcessId, @ProcessName, @IsMandatory, @CanBeParallel
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            step.CreatedAt = DateTime.UtcNow;
             AddStepParameters(command, step);
 
             await connection.OpenAsync();
@@ -219,13 +204,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 UPDATE Masters_ProcessTemplateSteps SET
                     TemplateId = @TemplateId, StepNo = @StepNo,
-                    ProcessId = @ProcessId, ProcessCode = @ProcessCode, ProcessName = @ProcessName,
-                    DefaultMachineId = @DefaultMachineId, DefaultMachineName = @DefaultMachineName, MachineType = @MachineType,
-                    SetupTimeMin = @SetupTimeMin, CycleTimeMin = @CycleTimeMin, CycleTimePerPiece = @CycleTimePerPiece,
-                    IsParallel = @IsParallel, ParallelGroupNo = @ParallelGroupNo, DependsOnSteps = @DependsOnSteps,
-                    RequiresQC = @RequiresQC, QCCheckpoints = @QCCheckpoints,
-                    WorkInstructions = @WorkInstructions, SafetyInstructions = @SafetyInstructions,
-                    ToolingRequired = @ToolingRequired, Remarks = @Remarks
+                    ProcessId = @ProcessId, ProcessName = @ProcessName,
+                    IsMandatory = @IsMandatory, CanBeParallel = @CanBeParallel
                 WHERE Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -265,73 +245,30 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         #region Queries
 
-        public async Task<IEnumerable<ProcessTemplate>> GetByProductIdAsync(int productId)
+        public async Task<IEnumerable<ProcessTemplate>> GetByApplicableTypeAsync(string applicableType)
         {
-            const string query = "SELECT * FROM Masters_ProcessTemplates WHERE ProductId = @ProductId ORDER BY TemplateName";
+            const string query = @"
+                SELECT * FROM Masters_ProcessTemplates
+                WHERE ApplicableTypes LIKE '%' + @ApplicableType + '%'
+                ORDER BY TemplateName";
 
             var templates = new List<ProcessTemplate>();
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@ProductId", productId);
+            command.Parameters.AddWithValue("@ApplicableType", applicableType);
 
             await connection.OpenAsync();
             using var reader = await command.ExecuteReaderAsync();
 
             while (await reader.ReadAsync())
-                templates.Add(MapToProcessTemplate(reader));
-
-            return templates;
-        }
-
-        public async Task<IEnumerable<ProcessTemplate>> GetByChildPartIdAsync(int childPartId)
-        {
-            const string query = "SELECT * FROM Masters_ProcessTemplates WHERE ChildPartId = @ChildPartId ORDER BY TemplateName";
-
-            var templates = new List<ProcessTemplate>();
-            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
-            using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@ChildPartId", childPartId);
-
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-                templates.Add(MapToProcessTemplate(reader));
-
-            return templates;
-        }
-
-        public async Task<IEnumerable<ProcessTemplate>> GetByTemplateTypeAsync(string templateType)
-        {
-            const string query = "SELECT * FROM Masters_ProcessTemplates WHERE TemplateType = @TemplateType ORDER BY TemplateName";
-
-            var templates = new List<ProcessTemplate>();
-            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
-            using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@TemplateType", templateType);
-
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-                templates.Add(MapToProcessTemplate(reader));
-
-            return templates;
-        }
-
-        public async Task<IEnumerable<ProcessTemplate>> GetDefaultTemplatesAsync()
-        {
-            const string query = "SELECT * FROM Masters_ProcessTemplates WHERE IsDefault = 1 ORDER BY TemplateName";
-
-            var templates = new List<ProcessTemplate>();
-            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
-            using var command = new SqlCommand(query, connection);
-
-            await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-                templates.Add(MapToProcessTemplate(reader));
+            {
+                var template = MapToProcessTemplate(reader);
+                // Filter to ensure exact match in the JSON array
+                if (template.ApplicableTypes != null && template.ApplicableTypes.Contains(applicableType))
+                {
+                    templates.Add(template);
+                }
+            }
 
             return templates;
         }
@@ -350,52 +287,42 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return count > 0;
         }
 
-        public async Task<bool> ApproveTemplateAsync(int id, string approvedBy)
-        {
-            const string query = @"
-                UPDATE Masters_ProcessTemplates
-                SET ApprovedBy = @ApprovedBy, ApprovalDate = @ApprovalDate, Status = 'Approved', UpdatedAt = @UpdatedAt
-                WHERE Id = @Id";
-
-            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
-            using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@Id", id);
-            command.Parameters.AddWithValue("@ApprovedBy", approvedBy);
-            command.Parameters.AddWithValue("@ApprovalDate", DateTime.UtcNow);
-            command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
-
-            await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync() > 0;
-        }
-
         #endregion
 
         #region Helper Methods
 
         private static ProcessTemplate MapToProcessTemplate(SqlDataReader reader)
         {
-            return new ProcessTemplate
+            var template = new ProcessTemplate
             {
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 TemplateName = reader.GetString(reader.GetOrdinal("TemplateName")),
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
-                ProductId = reader.IsDBNull(reader.GetOrdinal("ProductId")) ? null : reader.GetInt32(reader.GetOrdinal("ProductId")),
-                ProductCode = reader.IsDBNull(reader.GetOrdinal("ProductCode")) ? null : reader.GetString(reader.GetOrdinal("ProductCode")),
-                ProductName = reader.IsDBNull(reader.GetOrdinal("ProductName")) ? null : reader.GetString(reader.GetOrdinal("ProductName")),
-                ChildPartId = reader.IsDBNull(reader.GetOrdinal("ChildPartId")) ? null : reader.GetInt32(reader.GetOrdinal("ChildPartId")),
-                ChildPartName = reader.IsDBNull(reader.GetOrdinal("ChildPartName")) ? null : reader.GetString(reader.GetOrdinal("ChildPartName")),
-                TemplateType = reader.IsDBNull(reader.GetOrdinal("TemplateType")) ? null : reader.GetString(reader.GetOrdinal("TemplateType")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
-                Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? null : reader.GetString(reader.GetOrdinal("Status")),
-                IsDefault = reader.GetBoolean(reader.GetOrdinal("IsDefault")),
-                ApprovedBy = reader.IsDBNull(reader.GetOrdinal("ApprovedBy")) ? null : reader.GetString(reader.GetOrdinal("ApprovedBy")),
-                ApprovalDate = reader.IsDBNull(reader.GetOrdinal("ApprovalDate")) ? null : reader.GetDateTime(reader.GetOrdinal("ApprovalDate")),
-                Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
-                UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
-                UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy"))
+                UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt"))
             };
+
+            // Deserialize ApplicableTypes from JSON
+            var applicableTypesOrdinal = reader.GetOrdinal("ApplicableTypes");
+            if (!reader.IsDBNull(applicableTypesOrdinal))
+            {
+                var applicableTypesJson = reader.GetString(applicableTypesOrdinal);
+                if (!string.IsNullOrWhiteSpace(applicableTypesJson))
+                {
+                    try
+                    {
+                        template.ApplicableTypes = JsonSerializer.Deserialize<List<string>>(applicableTypesJson);
+                    }
+                    catch
+                    {
+                        template.ApplicableTypes = null;
+                    }
+                }
+            }
+
+            return template;
         }
 
         private static ProcessTemplateStep MapToProcessTemplateStep(SqlDataReader reader)
@@ -406,24 +333,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 TemplateId = reader.GetInt32(reader.GetOrdinal("TemplateId")),
                 StepNo = reader.GetInt32(reader.GetOrdinal("StepNo")),
                 ProcessId = reader.GetInt32(reader.GetOrdinal("ProcessId")),
-                ProcessCode = reader.IsDBNull(reader.GetOrdinal("ProcessCode")) ? null : reader.GetString(reader.GetOrdinal("ProcessCode")),
                 ProcessName = reader.IsDBNull(reader.GetOrdinal("ProcessName")) ? null : reader.GetString(reader.GetOrdinal("ProcessName")),
-                DefaultMachineId = reader.IsDBNull(reader.GetOrdinal("DefaultMachineId")) ? null : reader.GetInt32(reader.GetOrdinal("DefaultMachineId")),
-                DefaultMachineName = reader.IsDBNull(reader.GetOrdinal("DefaultMachineName")) ? null : reader.GetString(reader.GetOrdinal("DefaultMachineName")),
-                MachineType = reader.IsDBNull(reader.GetOrdinal("MachineType")) ? null : reader.GetString(reader.GetOrdinal("MachineType")),
-                SetupTimeMin = reader.IsDBNull(reader.GetOrdinal("SetupTimeMin")) ? null : reader.GetInt32(reader.GetOrdinal("SetupTimeMin")),
-                CycleTimeMin = reader.IsDBNull(reader.GetOrdinal("CycleTimeMin")) ? null : reader.GetInt32(reader.GetOrdinal("CycleTimeMin")),
-                CycleTimePerPiece = reader.IsDBNull(reader.GetOrdinal("CycleTimePerPiece")) ? null : reader.GetDecimal(reader.GetOrdinal("CycleTimePerPiece")),
-                IsParallel = reader.GetBoolean(reader.GetOrdinal("IsParallel")),
-                ParallelGroupNo = reader.IsDBNull(reader.GetOrdinal("ParallelGroupNo")) ? null : reader.GetInt32(reader.GetOrdinal("ParallelGroupNo")),
-                DependsOnSteps = reader.IsDBNull(reader.GetOrdinal("DependsOnSteps")) ? null : reader.GetString(reader.GetOrdinal("DependsOnSteps")),
-                RequiresQC = reader.GetBoolean(reader.GetOrdinal("RequiresQC")),
-                QCCheckpoints = reader.IsDBNull(reader.GetOrdinal("QCCheckpoints")) ? null : reader.GetString(reader.GetOrdinal("QCCheckpoints")),
-                WorkInstructions = reader.IsDBNull(reader.GetOrdinal("WorkInstructions")) ? null : reader.GetString(reader.GetOrdinal("WorkInstructions")),
-                SafetyInstructions = reader.IsDBNull(reader.GetOrdinal("SafetyInstructions")) ? null : reader.GetString(reader.GetOrdinal("SafetyInstructions")),
-                ToolingRequired = reader.IsDBNull(reader.GetOrdinal("ToolingRequired")) ? null : reader.GetString(reader.GetOrdinal("ToolingRequired")),
-                Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
-                CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
+                IsMandatory = reader.GetBoolean(reader.GetOrdinal("IsMandatory")),
+                CanBeParallel = reader.GetBoolean(reader.GetOrdinal("CanBeParallel"))
             };
         }
 
@@ -435,21 +347,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
             }
             command.Parameters.AddWithValue("@TemplateName", template.TemplateName);
             command.Parameters.AddWithValue("@Description", (object?)template.Description ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ProductId", (object?)template.ProductId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ProductCode", (object?)template.ProductCode ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ProductName", (object?)template.ProductName ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ChildPartId", (object?)template.ChildPartId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ChildPartName", (object?)template.ChildPartName ?? DBNull.Value);
-            command.Parameters.AddWithValue("@TemplateType", (object?)template.TemplateType ?? DBNull.Value);
+
+            // Serialize ApplicableTypes to JSON
+            string? applicableTypesJson = null;
+            if (template.ApplicableTypes != null && template.ApplicableTypes.Any())
+            {
+                applicableTypesJson = JsonSerializer.Serialize(template.ApplicableTypes);
+            }
+            command.Parameters.AddWithValue("@ApplicableTypes", (object?)applicableTypesJson ?? DBNull.Value);
+
             command.Parameters.AddWithValue("@IsActive", template.IsActive);
-            command.Parameters.AddWithValue("@Status", (object?)template.Status ?? DBNull.Value);
-            command.Parameters.AddWithValue("@IsDefault", template.IsDefault);
-            command.Parameters.AddWithValue("@ApprovedBy", (object?)template.ApprovedBy ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ApprovalDate", (object?)template.ApprovalDate ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Remarks", (object?)template.Remarks ?? DBNull.Value);
             command.Parameters.AddWithValue("@CreatedAt", template.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", (object?)template.CreatedBy ?? DBNull.Value);
-            command.Parameters.AddWithValue("@UpdatedAt", (object?)template.UpdatedAt ?? DBNull.Value);
+            command.Parameters.AddWithValue("@UpdatedAt", template.UpdatedAt);
             command.Parameters.AddWithValue("@UpdatedBy", (object?)template.UpdatedBy ?? DBNull.Value);
         }
 
@@ -462,24 +372,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@TemplateId", step.TemplateId);
             command.Parameters.AddWithValue("@StepNo", step.StepNo);
             command.Parameters.AddWithValue("@ProcessId", step.ProcessId);
-            command.Parameters.AddWithValue("@ProcessCode", (object?)step.ProcessCode ?? DBNull.Value);
             command.Parameters.AddWithValue("@ProcessName", (object?)step.ProcessName ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DefaultMachineId", (object?)step.DefaultMachineId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DefaultMachineName", (object?)step.DefaultMachineName ?? DBNull.Value);
-            command.Parameters.AddWithValue("@MachineType", (object?)step.MachineType ?? DBNull.Value);
-            command.Parameters.AddWithValue("@SetupTimeMin", (object?)step.SetupTimeMin ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CycleTimeMin", (object?)step.CycleTimeMin ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CycleTimePerPiece", (object?)step.CycleTimePerPiece ?? DBNull.Value);
-            command.Parameters.AddWithValue("@IsParallel", step.IsParallel);
-            command.Parameters.AddWithValue("@ParallelGroupNo", (object?)step.ParallelGroupNo ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DependsOnSteps", (object?)step.DependsOnSteps ?? DBNull.Value);
-            command.Parameters.AddWithValue("@RequiresQC", step.RequiresQC);
-            command.Parameters.AddWithValue("@QCCheckpoints", (object?)step.QCCheckpoints ?? DBNull.Value);
-            command.Parameters.AddWithValue("@WorkInstructions", (object?)step.WorkInstructions ?? DBNull.Value);
-            command.Parameters.AddWithValue("@SafetyInstructions", (object?)step.SafetyInstructions ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ToolingRequired", (object?)step.ToolingRequired ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Remarks", (object?)step.Remarks ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CreatedAt", step.CreatedAt);
+            command.Parameters.AddWithValue("@IsMandatory", step.IsMandatory);
+            command.Parameters.AddWithValue("@CanBeParallel", step.CanBeParallel);
         }
 
         #endregion

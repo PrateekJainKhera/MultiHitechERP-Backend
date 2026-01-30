@@ -304,7 +304,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 ProcessTemplateName = template.ProcessTemplateName,
                 IsActive = template.IsActive,
                 CreatedAt = template.CreatedAt,
-                UpdatedAt = template.UpdatedAt,
+                UpdatedAt = template.UpdatedAt ?? template.CreatedAt,
                 CreatedBy = template.CreatedBy,
                 ChildParts = template.ChildParts?.Select(MapToChildPartResponse).ToList() ?? new List<ProductTemplateChildPartResponse>()
             };

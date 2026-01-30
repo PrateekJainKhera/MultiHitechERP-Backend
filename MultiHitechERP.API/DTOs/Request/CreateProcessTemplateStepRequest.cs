@@ -5,6 +5,9 @@ namespace MultiHitechERP.API.DTOs.Request
     public class CreateProcessTemplateStepRequest
     {
         [Required]
+        public int TemplateId { get; set; }
+
+        [Required]
         public int StepNo { get; set; }
 
         [Required]

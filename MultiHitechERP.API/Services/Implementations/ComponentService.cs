@@ -166,7 +166,6 @@ namespace MultiHitechERP.API.Services.Implementations
                     Manufacturer = request.Manufacturer,
                     SupplierName = request.SupplierName,
                     Specifications = request.Specifications,
-                    UnitCost = request.UnitCost,
                     LeadTimeDays = request.LeadTimeDays,
                     Unit = request.Unit,
                     Notes = request.Notes,
