@@ -31,5 +31,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<ProductTemplateChildPart>> GetChildPartsByTemplateIdAsync(int templateId);
         Task<bool> DeleteChildPartsByTemplateIdAsync(int templateId);
         Task<bool> InsertChildPartsAsync(int templateId, IEnumerable<ProductTemplateChildPart> childParts);
+
+        // Code Generation
+        Task<int> GetNextSequenceNumberAsync(string rollerType);
     }
 }

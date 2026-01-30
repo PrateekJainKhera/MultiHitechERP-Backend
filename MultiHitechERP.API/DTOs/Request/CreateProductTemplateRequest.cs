@@ -6,8 +6,7 @@ namespace MultiHitechERP.API.DTOs.Request
 {
     public class CreateProductTemplateRequest
     {
-        [Required]
-        public string TemplateCode { get; set; } = string.Empty;
+        // TemplateCode is auto-generated based on RollerType
 
         [Required]
         public string TemplateName { get; set; } = string.Empty;

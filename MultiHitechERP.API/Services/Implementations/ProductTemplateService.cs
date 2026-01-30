@@ -120,16 +120,22 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<int>.ErrorResponse($"Product template with name '{request.TemplateName}' already exists");
                 }
 
+                // Auto-generate TemplateCode
+                // Format: ROLLERTYPE-SEQ (e.g., MAG-0001, PRT-0001)
+                string prefix = request.RollerType.Length >= 3 ? request.RollerType.Substring(0, 3).ToUpper() : request.RollerType.ToUpper();
+                int sequence = await _productTemplateRepository.GetNextSequenceNumberAsync(request.RollerType);
+                string templateCode = $"{prefix}-{sequence:D4}";
+
                 // Create template entity
                 var template = new ProductTemplate
                 {
-                    TemplateCode = request.TemplateCode,
+                    TemplateCode = templateCode,
                     TemplateName = request.TemplateName,
                     Description = request.Description,
                     RollerType = request.RollerType,
                     ProcessTemplateId = request.ProcessTemplateId,
                     IsActive = request.IsActive,
-                    CreatedBy = request.CreatedBy
+                    CreatedBy = request.CreatedBy?.Trim() ?? "System"
                 };
 
                 // Insert template
@@ -153,7 +159,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     await _productTemplateRepository.InsertChildPartsAsync(templateId, childParts);
                 }
 
-                return ApiResponse<int>.SuccessResponse(templateId, "Product template created successfully");
+                return ApiResponse<int>.SuccessResponse(templateId, $"Product template '{templateCode}' created successfully");
             }
             catch (Exception ex)
             {
@@ -183,7 +189,8 @@ namespace MultiHitechERP.API.Services.Implementations
                     ProcessTemplateId = request.ProcessTemplateId,
                     IsActive = request.IsActive,
                     CreatedAt = existingTemplate.CreatedAt,
-                    CreatedBy = existingTemplate.CreatedBy
+                    CreatedBy = existingTemplate.CreatedBy,
+                    UpdatedBy = request.UpdatedBy?.Trim() ?? "System"
                 };
 
                 // Update template

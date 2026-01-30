@@ -13,5 +13,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<bool> UpdateAsync(int id, Component component);
         Task<bool> DeleteAsync(int id);
         Task<bool> PartNumberExistsAsync(string partNumber, int? excludeId = null);
+
+        // Code Generation
+        Task<int> GetNextSequenceNumberAsync(string category);
     }
 }

@@ -9,11 +9,13 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? Manufacturer { get; set; }
         public string? SupplierName { get; set; }
         public string? Specifications { get; set; }
-        public decimal UnitCost { get; set; }
         public int LeadTimeDays { get; set; }
         public string Unit { get; set; } = string.Empty;
         public string? Notes { get; set; }
+        public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string? UpdatedBy { get; set; }
     }
 }

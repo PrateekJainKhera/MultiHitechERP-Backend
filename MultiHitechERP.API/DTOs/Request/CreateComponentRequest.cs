@@ -4,9 +4,7 @@ namespace MultiHitechERP.API.DTOs.Request
 {
     public class CreateComponentRequest
     {
-        [Required(ErrorMessage = "Part number is required")]
-        [StringLength(100, ErrorMessage = "Part number cannot exceed 100 characters")]
-        public string PartNumber { get; set; } = string.Empty;
+        // PartNumber is auto-generated based on Category
 
         [Required(ErrorMessage = "Component name is required")]
         [StringLength(200, ErrorMessage = "Component name cannot exceed 200 characters")]
@@ -24,10 +22,6 @@ namespace MultiHitechERP.API.DTOs.Request
 
         public string? Specifications { get; set; }
 
-        [Required(ErrorMessage = "Unit cost is required")]
-        [Range(0, double.MaxValue, ErrorMessage = "Unit cost must be a positive value")]
-        public decimal UnitCost { get; set; }
-
         [Required(ErrorMessage = "Lead time days is required")]
         [Range(0, int.MaxValue, ErrorMessage = "Lead time days must be a positive value")]
         public int LeadTimeDays { get; set; }
@@ -37,5 +31,8 @@ namespace MultiHitechERP.API.DTOs.Request
         public string Unit { get; set; } = string.Empty;
 
         public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+        public string? CreatedBy { get; set; }
     }
 }

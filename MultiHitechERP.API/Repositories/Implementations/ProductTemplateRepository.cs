@@ -170,10 +170,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 INSERT INTO Masters_ProductTemplates (
                     TemplateCode, TemplateName, Description, RollerType,
-                    ProcessTemplateId, IsActive, CreatedAt, CreatedBy, UpdatedAt
+                    ProcessTemplateId, IsActive, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 ) VALUES (
                     @TemplateCode, @TemplateName, @Description, @RollerType,
-                    @ProcessTemplateId, @IsActive, @CreatedAt, @CreatedBy, @UpdatedAt
+                    @ProcessTemplateId, @IsActive, @CreatedAt, @CreatedBy, @UpdatedAt, @UpdatedBy
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -192,6 +192,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@CreatedAt", template.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", (object?)template.CreatedBy ?? DBNull.Value);
             command.Parameters.AddWithValue("@UpdatedAt", template.UpdatedAt);
+            command.Parameters.AddWithValue("@UpdatedBy", (object?)template.UpdatedBy ?? DBNull.Value);
 
             await connection.OpenAsync();
             var templateId = (int)await command.ExecuteScalarAsync();
@@ -210,7 +211,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     RollerType = @RollerType,
                     ProcessTemplateId = @ProcessTemplateId,
                     IsActive = @IsActive,
-                    UpdatedAt = @UpdatedAt
+                    UpdatedAt = @UpdatedAt,
+                    UpdatedBy = @UpdatedBy
                 WHERE Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -226,6 +228,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@ProcessTemplateId", template.ProcessTemplateId);
             command.Parameters.AddWithValue("@IsActive", template.IsActive);
             command.Parameters.AddWithValue("@UpdatedAt", template.UpdatedAt);
+            command.Parameters.AddWithValue("@UpdatedBy", (object?)template.UpdatedBy ?? DBNull.Value);
 
             await connection.OpenAsync();
             return await command.ExecuteNonQueryAsync() > 0;
@@ -402,6 +405,27 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return true;
         }
 
+        public async Task<int> GetNextSequenceNumberAsync(string rollerType)
+        {
+            // TemplateCode format: ROLLERTYPE-SEQ
+            // Example: MAG-0001, PRT-0001
+            string prefix = rollerType.Length >= 3 ? rollerType.Substring(0, 3).ToUpper() : rollerType.ToUpper();
+
+            const string query = @"
+                SELECT ISNULL(MAX(CAST(RIGHT(TemplateCode, 4) AS INT)), 0) + 1
+                FROM Masters_ProductTemplates
+                WHERE TemplateCode LIKE @Prefix + '%'";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Prefix", prefix);
+
+            await connection.OpenAsync();
+            var nextSequence = (int)(await command.ExecuteScalarAsync() ?? 1);
+
+            return nextSequence;
+        }
+
         #endregion
 
         #region Mapping Methods
@@ -419,8 +443,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 ProcessTemplateName = reader.IsDBNull(reader.GetOrdinal("ProcessTemplateName")) ? string.Empty : reader.GetString(reader.GetOrdinal("ProcessTemplateName")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
-                UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
+                UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
+                UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy")),
                 ChildParts = new List<ProductTemplateChildPart>()
             };
         }

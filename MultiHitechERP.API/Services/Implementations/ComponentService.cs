@@ -107,28 +107,31 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (!validCategories.Contains(request.Category))
                     return ApiResponse<int>.ErrorResponse($"Invalid category. Must be one of: {string.Join(", ", validCategories)}");
 
-                // Check for duplicate part number
-                if (await _componentRepository.PartNumberExistsAsync(request.PartNumber))
-                    return ApiResponse<int>.ErrorResponse($"Part number '{request.PartNumber}' already exists");
+                // Auto-generate PartNumber
+                // Format: CATEGORY-SEQ (e.g., BRG-0001, SFT-0002)
+                string prefix = request.Category.Length >= 3 ? request.Category.Substring(0, 3).ToUpper() : request.Category.ToUpper();
+                int sequence = await _componentRepository.GetNextSequenceNumberAsync(request.Category);
+                string partNumber = $"{prefix}-{sequence:D4}";
 
                 var component = new Component
                 {
-                    PartNumber = request.PartNumber,
+                    PartNumber = partNumber,
                     ComponentName = request.ComponentName,
                     Category = request.Category,
                     Manufacturer = request.Manufacturer,
                     SupplierName = request.SupplierName,
                     Specifications = request.Specifications,
-                    UnitCost = request.UnitCost,
                     LeadTimeDays = request.LeadTimeDays,
                     Unit = request.Unit,
                     Notes = request.Notes,
+                    IsActive = request.IsActive,
                     CreatedAt = DateTime.UtcNow,
+                    CreatedBy = request.CreatedBy?.Trim() ?? "System",
                     UpdatedAt = DateTime.UtcNow
                 };
 
                 var id = await _componentRepository.CreateAsync(component);
-                return ApiResponse<int>.SuccessResponse(id, "Component created successfully");
+                return ApiResponse<int>.SuccessResponse(id, $"Component '{partNumber}' created successfully");
             }
             catch (Exception ex)
             {
@@ -214,12 +217,14 @@ namespace MultiHitechERP.API.Services.Implementations
                 Manufacturer = component.Manufacturer,
                 SupplierName = component.SupplierName,
                 Specifications = component.Specifications,
-                UnitCost = component.UnitCost,
                 LeadTimeDays = component.LeadTimeDays,
                 Unit = component.Unit,
                 Notes = component.Notes,
+                IsActive = component.IsActive,
                 CreatedAt = component.CreatedAt,
-                UpdatedAt = component.UpdatedAt
+                CreatedBy = component.CreatedBy,
+                UpdatedAt = component.UpdatedAt,
+                UpdatedBy = component.UpdatedBy
             };
         }
     }

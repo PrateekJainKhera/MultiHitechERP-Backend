@@ -121,10 +121,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 INSERT INTO Masters_Components (
                     PartNumber, ComponentName, Category, Manufacturer, SupplierName,
-                    Specifications, UnitCost, LeadTimeDays, Unit, Notes, CreatedAt, UpdatedAt
+                    Specifications, LeadTimeDays, Unit, Notes, IsActive, CreatedAt, CreatedBy, UpdatedAt
                 ) VALUES (
                     @PartNumber, @ComponentName, @Category, @Manufacturer, @SupplierName,
-                    @Specifications, @UnitCost, @LeadTimeDays, @Unit, @Notes, @CreatedAt, @UpdatedAt
+                    @Specifications, @LeadTimeDays, @Unit, @Notes, @IsActive, @CreatedAt, @CreatedBy, @UpdatedAt
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -137,11 +137,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Manufacturer", (object?)component.Manufacturer ?? DBNull.Value);
             command.Parameters.AddWithValue("@SupplierName", (object?)component.SupplierName ?? DBNull.Value);
             command.Parameters.AddWithValue("@Specifications", (object?)component.Specifications ?? DBNull.Value);
-            command.Parameters.AddWithValue("@UnitCost", component.UnitCost);
             command.Parameters.AddWithValue("@LeadTimeDays", component.LeadTimeDays);
             command.Parameters.AddWithValue("@Unit", component.Unit);
             command.Parameters.AddWithValue("@Notes", (object?)component.Notes ?? DBNull.Value);
+            command.Parameters.AddWithValue("@IsActive", component.IsActive);
             command.Parameters.AddWithValue("@CreatedAt", component.CreatedAt);
+            command.Parameters.AddWithValue("@CreatedBy", (object?)component.CreatedBy ?? DBNull.Value);
             command.Parameters.AddWithValue("@UpdatedAt", component.UpdatedAt);
 
             await connection.OpenAsync();
@@ -159,11 +160,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     Manufacturer = @Manufacturer,
                     SupplierName = @SupplierName,
                     Specifications = @Specifications,
-                    UnitCost = @UnitCost,
                     LeadTimeDays = @LeadTimeDays,
                     Unit = @Unit,
                     Notes = @Notes,
-                    UpdatedAt = @UpdatedAt
+                    IsActive = @IsActive,
+                    UpdatedAt = @UpdatedAt,
+                    UpdatedBy = @UpdatedBy
                 WHERE Id = @Id";
 
             using var connection = new SqlConnection(_connectionString);
@@ -176,11 +178,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Manufacturer", (object?)component.Manufacturer ?? DBNull.Value);
             command.Parameters.AddWithValue("@SupplierName", (object?)component.SupplierName ?? DBNull.Value);
             command.Parameters.AddWithValue("@Specifications", (object?)component.Specifications ?? DBNull.Value);
-            command.Parameters.AddWithValue("@UnitCost", component.UnitCost);
             command.Parameters.AddWithValue("@LeadTimeDays", component.LeadTimeDays);
             command.Parameters.AddWithValue("@Unit", component.Unit);
             command.Parameters.AddWithValue("@Notes", (object?)component.Notes ?? DBNull.Value);
+            command.Parameters.AddWithValue("@IsActive", component.IsActive);
             command.Parameters.AddWithValue("@UpdatedAt", component.UpdatedAt);
+            command.Parameters.AddWithValue("@UpdatedBy", (object?)component.UpdatedBy ?? DBNull.Value);
 
             await connection.OpenAsync();
             var rowsAffected = await command.ExecuteNonQueryAsync();
@@ -221,6 +224,27 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return count > 0;
         }
 
+        public async Task<int> GetNextSequenceNumberAsync(string category)
+        {
+            // PartNumber format: CATEGORY-SEQ
+            // Example: BRG-0001, SFT-0002, etc.
+            string prefix = category.Length >= 3 ? category.Substring(0, 3).ToUpper() : category.ToUpper();
+
+            const string query = @"
+                SELECT ISNULL(MAX(CAST(RIGHT(PartNumber, 4) AS INT)), 0) + 1
+                FROM Masters_Components
+                WHERE PartNumber LIKE @Prefix + '%'";
+
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Prefix", prefix);
+
+            await connection.OpenAsync();
+            var nextSequence = (int)(await command.ExecuteScalarAsync() ?? 1);
+
+            return nextSequence;
+        }
+
         private Component MapToComponent(SqlDataReader reader)
         {
             return new Component
@@ -232,12 +256,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 Manufacturer = reader.IsDBNull(reader.GetOrdinal("Manufacturer")) ? null : reader.GetString(reader.GetOrdinal("Manufacturer")),
                 SupplierName = reader.IsDBNull(reader.GetOrdinal("SupplierName")) ? null : reader.GetString(reader.GetOrdinal("SupplierName")),
                 Specifications = reader.IsDBNull(reader.GetOrdinal("Specifications")) ? null : reader.GetString(reader.GetOrdinal("Specifications")),
-                UnitCost = reader.GetDecimal(reader.GetOrdinal("UnitCost")),
                 LeadTimeDays = reader.GetInt32(reader.GetOrdinal("LeadTimeDays")),
                 Unit = reader.GetString(reader.GetOrdinal("Unit")),
                 Notes = reader.IsDBNull(reader.GetOrdinal("Notes")) ? null : reader.GetString(reader.GetOrdinal("Notes")),
+                IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
-                UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt"))
+                CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
+                UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
+                UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy"))
             };
         }
     }
