@@ -343,7 +343,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<int> GetNextSequenceNumberAsync(string customerType)
         {
             const string query = @"
-                SELECT ISNULL(MAX(CAST(SUBSTRING(CustomerCode, CHARINDEX('-', CustomerCode) + 1, LEN(CustomerCode)) AS INT)), 0) + 1
+                SELECT ISNULL(MAX(
+                    CASE
+                        WHEN CHARINDEX('-', CustomerCode) > 0
+                        THEN CAST(SUBSTRING(CustomerCode, CHARINDEX('-', CustomerCode) + 1, LEN(CustomerCode)) AS INT)
+                        ELSE 0
+                    END
+                ), 0) + 1
                 FROM Masters_Customers
                 WHERE CustomerType = @CustomerType";
 

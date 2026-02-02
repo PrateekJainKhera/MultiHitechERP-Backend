@@ -8,16 +8,23 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required]
         public string TemplateName { get; set; } = string.Empty;
 
+        public string? TemplateCode { get; set; }
+
         [Required]
         public string ChildPartType { get; set; } = string.Empty;
 
         [Required]
         public string RollerType { get; set; } = string.Empty;
 
+        // Manufacturing Process
+        public int? ProcessTemplateId { get; set; }
+        public bool IsPurchased { get; set; } = false;
+
+        // Drawing Reference (just reference number, not full details)
         public string? DrawingNumber { get; set; }
         public string? DrawingRevision { get; set; }
 
-        // Dimensions
+        // Dimensions (optional for quick reference)
         public decimal? Length { get; set; }
         public decimal? Diameter { get; set; }
         public decimal? InnerDiameter { get; set; }
@@ -26,10 +33,6 @@ namespace MultiHitechERP.API.DTOs.Request
 
         [Required]
         public string DimensionUnit { get; set; } = "mm";
-
-        // Manufacturing
-        public List<CreateChildPartTemplateMaterialRequirementRequest> MaterialRequirements { get; set; } = new();
-        public List<CreateChildPartTemplateProcessStepRequest> ProcessSteps { get; set; } = new();
 
         // Notes
         public string? Description { get; set; }

@@ -37,9 +37,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             var template = MapToChildPartTemplate(reader);
             reader.Close();
 
-            // Load related data
-            template.MaterialRequirements = (List<ChildPartTemplateMaterialRequirement>)await GetMaterialRequirementsByTemplateIdAsync(id);
-            template.ProcessSteps = (List<ChildPartTemplateProcessStep>)await GetProcessStepsByTemplateIdAsync(id);
+            // Material requirements and process steps are now handled via ProcessTemplateId reference
 
             return template;
         }
@@ -61,9 +59,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             var template = MapToChildPartTemplate(reader);
             reader.Close();
 
-            // Load related data
-            template.MaterialRequirements = (List<ChildPartTemplateMaterialRequirement>)await GetMaterialRequirementsByTemplateIdAsync(template.Id);
-            template.ProcessSteps = (List<ChildPartTemplateProcessStep>)await GetProcessStepsByTemplateIdAsync(template.Id);
+            // Material requirements and process steps removed - now using ProcessTemplateId reference
 
             return template;
         }
@@ -85,9 +81,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             var template = MapToChildPartTemplate(reader);
             reader.Close();
 
-            // Load related data
-            template.MaterialRequirements = (List<ChildPartTemplateMaterialRequirement>)await GetMaterialRequirementsByTemplateIdAsync(template.Id);
-            template.ProcessSteps = (List<ChildPartTemplateProcessStep>)await GetProcessStepsByTemplateIdAsync(template.Id);
+            // Material requirements and process steps removed - now using ProcessTemplateId reference
 
             return template;
         }
@@ -114,8 +108,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             // Load related data for each template
             foreach (var template in templates)
             {
-                template.MaterialRequirements = (List<ChildPartTemplateMaterialRequirement>)await GetMaterialRequirementsByTemplateIdAsync(template.Id);
-                template.ProcessSteps = (List<ChildPartTemplateProcessStep>)await GetProcessStepsByTemplateIdAsync(template.Id);
+                // MaterialRequirements and ProcessSteps removed - now using ProcessTemplateId reference
             }
 
             return templates;
@@ -143,8 +136,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             // Load related data for each template
             foreach (var template in templates)
             {
-                template.MaterialRequirements = (List<ChildPartTemplateMaterialRequirement>)await GetMaterialRequirementsByTemplateIdAsync(template.Id);
-                template.ProcessSteps = (List<ChildPartTemplateProcessStep>)await GetProcessStepsByTemplateIdAsync(template.Id);
+                // MaterialRequirements and ProcessSteps removed - now using ProcessTemplateId reference
             }
 
             return templates;
@@ -155,15 +147,17 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 INSERT INTO Masters_ChildPartTemplates (
                     TemplateCode, TemplateName, ChildPartType, RollerType,
+                    ProcessTemplateId, IsPurchased,
                     DrawingNumber, DrawingRevision, Length, Diameter,
                     InnerDiameter, OuterDiameter, Thickness, DimensionUnit,
-                    TotalStandardTimeHours, Description, TechnicalNotes,
+                    Description, TechnicalNotes,
                     IsActive, CreatedAt, UpdatedAt, CreatedBy
                 ) VALUES (
                     @TemplateCode, @TemplateName, @ChildPartType, @RollerType,
+                    @ProcessTemplateId, @IsPurchased,
                     @DrawingNumber, @DrawingRevision, @Length, @Diameter,
                     @InnerDiameter, @OuterDiameter, @Thickness, @DimensionUnit,
-                    @TotalStandardTimeHours, @Description, @TechnicalNotes,
+                    @Description, @TechnicalNotes,
                     @IsActive, @CreatedAt, @UpdatedAt, @CreatedBy
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
@@ -178,6 +172,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@TemplateName", template.TemplateName);
             command.Parameters.AddWithValue("@ChildPartType", template.ChildPartType);
             command.Parameters.AddWithValue("@RollerType", template.RollerType);
+            command.Parameters.AddWithValue("@ProcessTemplateId", (object?)template.ProcessTemplateId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@IsPurchased", template.IsPurchased);
             command.Parameters.AddWithValue("@DrawingNumber", (object?)template.DrawingNumber ?? DBNull.Value);
             command.Parameters.AddWithValue("@DrawingRevision", (object?)template.DrawingRevision ?? DBNull.Value);
             command.Parameters.AddWithValue("@Length", (object?)template.Length ?? DBNull.Value);
@@ -186,7 +182,6 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@OuterDiameter", (object?)template.OuterDiameter ?? DBNull.Value);
             command.Parameters.AddWithValue("@Thickness", (object?)template.Thickness ?? DBNull.Value);
             command.Parameters.AddWithValue("@DimensionUnit", template.DimensionUnit);
-            command.Parameters.AddWithValue("@TotalStandardTimeHours", template.TotalStandardTimeHours);
             command.Parameters.AddWithValue("@Description", (object?)template.Description ?? DBNull.Value);
             command.Parameters.AddWithValue("@TechnicalNotes", (object?)template.TechnicalNotes ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", template.IsActive);
@@ -209,6 +204,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     TemplateName = @TemplateName,
                     ChildPartType = @ChildPartType,
                     RollerType = @RollerType,
+                    ProcessTemplateId = @ProcessTemplateId,
+                    IsPurchased = @IsPurchased,
                     DrawingNumber = @DrawingNumber,
                     DrawingRevision = @DrawingRevision,
                     Length = @Length,
@@ -217,7 +214,6 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     OuterDiameter = @OuterDiameter,
                     Thickness = @Thickness,
                     DimensionUnit = @DimensionUnit,
-                    TotalStandardTimeHours = @TotalStandardTimeHours,
                     Description = @Description,
                     TechnicalNotes = @TechnicalNotes,
                     IsActive = @IsActive,
@@ -234,6 +230,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@TemplateName", template.TemplateName);
             command.Parameters.AddWithValue("@ChildPartType", template.ChildPartType);
             command.Parameters.AddWithValue("@RollerType", template.RollerType);
+            command.Parameters.AddWithValue("@ProcessTemplateId", (object?)template.ProcessTemplateId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@IsPurchased", template.IsPurchased);
             command.Parameters.AddWithValue("@DrawingNumber", (object?)template.DrawingNumber ?? DBNull.Value);
             command.Parameters.AddWithValue("@DrawingRevision", (object?)template.DrawingRevision ?? DBNull.Value);
             command.Parameters.AddWithValue("@Length", (object?)template.Length ?? DBNull.Value);
@@ -242,7 +240,6 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@OuterDiameter", (object?)template.OuterDiameter ?? DBNull.Value);
             command.Parameters.AddWithValue("@Thickness", (object?)template.Thickness ?? DBNull.Value);
             command.Parameters.AddWithValue("@DimensionUnit", template.DimensionUnit);
-            command.Parameters.AddWithValue("@TotalStandardTimeHours", template.TotalStandardTimeHours);
             command.Parameters.AddWithValue("@Description", (object?)template.Description ?? DBNull.Value);
             command.Parameters.AddWithValue("@TechnicalNotes", (object?)template.TechnicalNotes ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", template.IsActive);
@@ -292,8 +289,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             // Load related data for each template
             foreach (var template in templates)
             {
-                template.MaterialRequirements = (List<ChildPartTemplateMaterialRequirement>)await GetMaterialRequirementsByTemplateIdAsync(template.Id);
-                template.ProcessSteps = (List<ChildPartTemplateProcessStep>)await GetProcessStepsByTemplateIdAsync(template.Id);
+                // MaterialRequirements and ProcessSteps removed - now using ProcessTemplateId reference
             }
 
             return templates;
@@ -322,8 +318,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             // Load related data for each template
             foreach (var template in templates)
             {
-                template.MaterialRequirements = (List<ChildPartTemplateMaterialRequirement>)await GetMaterialRequirementsByTemplateIdAsync(template.Id);
-                template.ProcessSteps = (List<ChildPartTemplateProcessStep>)await GetProcessStepsByTemplateIdAsync(template.Id);
+                // MaterialRequirements and ProcessSteps removed - now using ProcessTemplateId reference
             }
 
             return templates;
@@ -512,6 +507,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 TemplateName = reader.GetString(reader.GetOrdinal("TemplateName")),
                 ChildPartType = reader.GetString(reader.GetOrdinal("ChildPartType")),
                 RollerType = reader.IsDBNull(reader.GetOrdinal("RollerType")) ? string.Empty : reader.GetString(reader.GetOrdinal("RollerType")),
+                ProcessTemplateId = reader.IsDBNull(reader.GetOrdinal("ProcessTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ProcessTemplateId")),
+                IsPurchased = reader.GetBoolean(reader.GetOrdinal("IsPurchased")),
                 DrawingNumber = reader.IsDBNull(reader.GetOrdinal("DrawingNumber")) ? null : reader.GetString(reader.GetOrdinal("DrawingNumber")),
                 DrawingRevision = reader.IsDBNull(reader.GetOrdinal("DrawingRevision")) ? null : reader.GetString(reader.GetOrdinal("DrawingRevision")),
                 Length = reader.IsDBNull(reader.GetOrdinal("Length")) ? null : reader.GetDecimal(reader.GetOrdinal("Length")),
@@ -520,15 +517,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 OuterDiameter = reader.IsDBNull(reader.GetOrdinal("OuterDiameter")) ? null : reader.GetDecimal(reader.GetOrdinal("OuterDiameter")),
                 Thickness = reader.IsDBNull(reader.GetOrdinal("Thickness")) ? null : reader.GetDecimal(reader.GetOrdinal("Thickness")),
                 DimensionUnit = reader.GetString(reader.GetOrdinal("DimensionUnit")),
-                TotalStandardTimeHours = reader.GetDecimal(reader.GetOrdinal("TotalStandardTimeHours")),
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                 TechnicalNotes = reader.IsDBNull(reader.GetOrdinal("TechnicalNotes")) ? null : reader.GetString(reader.GetOrdinal("TechnicalNotes")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
-                CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
-                MaterialRequirements = new List<ChildPartTemplateMaterialRequirement>(),
-                ProcessSteps = new List<ChildPartTemplateProcessStep>()
+                CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy"))
             };
         }
 

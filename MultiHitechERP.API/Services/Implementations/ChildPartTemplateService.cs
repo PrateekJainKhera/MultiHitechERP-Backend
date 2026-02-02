@@ -120,15 +120,12 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<int>.ErrorResponse($"Child part template with name '{request.TemplateName}' already exists");
                 }
 
-                // Auto-generate TemplateCode (Format: CPT-0001, CPT-0002, etc.)
-                int sequence = await _childPartTemplateRepository.GetNextSequenceNumberAsync();
-                string templateCode = $"CPT-{sequence:D4}";
-
-                // Calculate TotalStandardTimeHours from process steps
-                decimal totalStandardTimeHours = 0;
-                if (request.ProcessSteps != null && request.ProcessSteps.Any())
+                // Use provided TemplateCode or auto-generate
+                string templateCode = request.TemplateCode ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(templateCode))
                 {
-                    totalStandardTimeHours = request.ProcessSteps.Sum(ps => ps.StandardTimeHours);
+                    int sequence = await _childPartTemplateRepository.GetNextSequenceNumberAsync();
+                    templateCode = $"CPT-{sequence:D4}";
                 }
 
                 // Create template entity
@@ -138,6 +135,8 @@ namespace MultiHitechERP.API.Services.Implementations
                     TemplateName = request.TemplateName,
                     ChildPartType = request.ChildPartType,
                     RollerType = request.RollerType,
+                    ProcessTemplateId = request.ProcessTemplateId,
+                    IsPurchased = request.IsPurchased,
                     DrawingNumber = request.DrawingNumber,
                     DrawingRevision = request.DrawingRevision,
                     Length = request.Length,
@@ -146,7 +145,6 @@ namespace MultiHitechERP.API.Services.Implementations
                     OuterDiameter = request.OuterDiameter,
                     Thickness = request.Thickness,
                     DimensionUnit = request.DimensionUnit,
-                    TotalStandardTimeHours = totalStandardTimeHours,
                     Description = request.Description,
                     TechnicalNotes = request.TechnicalNotes,
                     IsActive = request.IsActive,
@@ -156,40 +154,8 @@ namespace MultiHitechERP.API.Services.Implementations
                 // Insert template
                 var templateId = await _childPartTemplateRepository.InsertAsync(template);
 
-                // Insert material requirements if any
-                if (request.MaterialRequirements != null && request.MaterialRequirements.Any())
-                {
-                    var materialRequirements = request.MaterialRequirements.Select(mr => new ChildPartTemplateMaterialRequirement
-                    {
-                        ChildPartTemplateId = templateId,
-                        RawMaterialId = mr.RawMaterialId,
-                        RawMaterialName = mr.RawMaterialName,
-                        MaterialGrade = mr.MaterialGrade,
-                        QuantityRequired = mr.QuantityRequired,
-                        Unit = mr.Unit,
-                        WastagePercent = mr.WastagePercent
-                    }).ToList();
-
-                    await _childPartTemplateRepository.InsertMaterialRequirementsAsync(templateId, materialRequirements);
-                }
-
-                // Insert process steps if any
-                if (request.ProcessSteps != null && request.ProcessSteps.Any())
-                {
-                    var processSteps = request.ProcessSteps.Select(ps => new ChildPartTemplateProcessStep
-                    {
-                        ChildPartTemplateId = templateId,
-                        ProcessId = ps.ProcessId,
-                        ProcessName = ps.ProcessName,
-                        StepNumber = ps.StepNumber,
-                        MachineName = ps.MachineName,
-                        StandardTimeHours = ps.StandardTimeHours,
-                        RestTimeHours = ps.RestTimeHours,
-                        Description = ps.Description
-                    }).ToList();
-
-                    await _childPartTemplateRepository.InsertProcessStepsAsync(templateId, processSteps);
-                }
+                // Material requirements and process steps are now handled via ProcessTemplateId reference
+                // No need to insert them separately
 
                 return ApiResponse<int>.SuccessResponse(templateId, $"Child part template '{templateCode}' created successfully");
             }
@@ -210,13 +176,6 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse($"Child part template with ID {request.Id} not found");
                 }
 
-                // Calculate TotalStandardTimeHours from process steps
-                decimal totalStandardTimeHours = 0;
-                if (request.ProcessSteps != null && request.ProcessSteps.Any())
-                {
-                    totalStandardTimeHours = request.ProcessSteps.Sum(ps => ps.StandardTimeHours);
-                }
-
                 // Update template entity (preserve TemplateCode - it's immutable)
                 var template = new ChildPartTemplate
                 {
@@ -225,6 +184,8 @@ namespace MultiHitechERP.API.Services.Implementations
                     TemplateName = request.TemplateName,
                     ChildPartType = request.ChildPartType,
                     RollerType = request.RollerType,
+                    ProcessTemplateId = request.ProcessTemplateId,
+                    IsPurchased = request.IsPurchased,
                     DrawingNumber = request.DrawingNumber,
                     DrawingRevision = request.DrawingRevision,
                     Length = request.Length,
@@ -233,7 +194,6 @@ namespace MultiHitechERP.API.Services.Implementations
                     OuterDiameter = request.OuterDiameter,
                     Thickness = request.Thickness,
                     DimensionUnit = request.DimensionUnit,
-                    TotalStandardTimeHours = totalStandardTimeHours,
                     Description = request.Description,
                     TechnicalNotes = request.TechnicalNotes,
                     IsActive = request.IsActive,
@@ -248,44 +208,8 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse("Failed to update child part template");
                 }
 
-                // Update material requirements: Delete all and re-insert
-                await _childPartTemplateRepository.DeleteMaterialRequirementsByTemplateIdAsync(request.Id);
-
-                if (request.MaterialRequirements != null && request.MaterialRequirements.Any())
-                {
-                    var materialRequirements = request.MaterialRequirements.Select(mr => new ChildPartTemplateMaterialRequirement
-                    {
-                        ChildPartTemplateId = request.Id,
-                        RawMaterialId = mr.RawMaterialId,
-                        RawMaterialName = mr.RawMaterialName,
-                        MaterialGrade = mr.MaterialGrade,
-                        QuantityRequired = mr.QuantityRequired,
-                        Unit = mr.Unit,
-                        WastagePercent = mr.WastagePercent
-                    }).ToList();
-
-                    await _childPartTemplateRepository.InsertMaterialRequirementsAsync(request.Id, materialRequirements);
-                }
-
-                // Update process steps: Delete all and re-insert
-                await _childPartTemplateRepository.DeleteProcessStepsByTemplateIdAsync(request.Id);
-
-                if (request.ProcessSteps != null && request.ProcessSteps.Any())
-                {
-                    var processSteps = request.ProcessSteps.Select(ps => new ChildPartTemplateProcessStep
-                    {
-                        ChildPartTemplateId = request.Id,
-                        ProcessId = ps.ProcessId,
-                        ProcessName = ps.ProcessName,
-                        StepNumber = ps.StepNumber,
-                        MachineName = ps.MachineName,
-                        StandardTimeHours = ps.StandardTimeHours,
-                        RestTimeHours = ps.RestTimeHours,
-                        Description = ps.Description
-                    }).ToList();
-
-                    await _childPartTemplateRepository.InsertProcessStepsAsync(request.Id, processSteps);
-                }
+                // Material requirements and process steps are now handled via ProcessTemplateId reference
+                // No need to update them separately
 
                 return ApiResponse<bool>.SuccessResponse(true, "Child part template updated successfully");
             }
@@ -366,6 +290,8 @@ namespace MultiHitechERP.API.Services.Implementations
                 TemplateName = template.TemplateName,
                 ChildPartType = template.ChildPartType,
                 RollerType = template.RollerType,
+                ProcessTemplateId = template.ProcessTemplateId,
+                IsPurchased = template.IsPurchased,
                 DrawingNumber = template.DrawingNumber,
                 DrawingRevision = template.DrawingRevision,
                 Length = template.Length,
@@ -374,44 +300,12 @@ namespace MultiHitechERP.API.Services.Implementations
                 OuterDiameter = template.OuterDiameter,
                 Thickness = template.Thickness,
                 DimensionUnit = template.DimensionUnit,
-                TotalStandardTimeHours = template.TotalStandardTimeHours,
                 Description = template.Description,
                 TechnicalNotes = template.TechnicalNotes,
                 IsActive = template.IsActive,
                 CreatedAt = template.CreatedAt,
                 UpdatedAt = template.UpdatedAt,
-                CreatedBy = template.CreatedBy,
-                MaterialRequirements = template.MaterialRequirements?.Select(MapToMaterialRequirementResponse).ToList() ?? new List<ChildPartTemplateMaterialRequirementResponse>(),
-                ProcessSteps = template.ProcessSteps?.Select(MapToProcessStepResponse).ToList() ?? new List<ChildPartTemplateProcessStepResponse>()
-            };
-        }
-
-        private ChildPartTemplateMaterialRequirementResponse MapToMaterialRequirementResponse(ChildPartTemplateMaterialRequirement requirement)
-        {
-            return new ChildPartTemplateMaterialRequirementResponse
-            {
-                Id = requirement.Id,
-                RawMaterialId = requirement.RawMaterialId,
-                RawMaterialName = requirement.RawMaterialName,
-                MaterialGrade = requirement.MaterialGrade,
-                QuantityRequired = requirement.QuantityRequired,
-                Unit = requirement.Unit,
-                WastagePercent = requirement.WastagePercent
-            };
-        }
-
-        private ChildPartTemplateProcessStepResponse MapToProcessStepResponse(ChildPartTemplateProcessStep step)
-        {
-            return new ChildPartTemplateProcessStepResponse
-            {
-                Id = step.Id,
-                ProcessId = step.ProcessId,
-                ProcessName = step.ProcessName,
-                StepNumber = step.StepNumber,
-                MachineName = step.MachineName,
-                StandardTimeHours = step.StandardTimeHours,
-                RestTimeHours = step.RestTimeHours,
-                Description = step.Description
+                CreatedBy = template.CreatedBy
             };
         }
 

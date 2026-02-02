@@ -20,6 +20,10 @@ namespace MultiHitechERP.API.DTOs.Request
         public string? DrawingNumber { get; set; }
         public string? DrawingRevision { get; set; }
 
+        // Manufacturing Process
+        public int? ProcessTemplateId { get; set; }
+        public bool IsPurchased { get; set; } = false;
+
         // Dimensions
         public decimal? Length { get; set; }
         public decimal? Diameter { get; set; }
@@ -29,10 +33,6 @@ namespace MultiHitechERP.API.DTOs.Request
 
         [Required]
         public string DimensionUnit { get; set; } = "mm";
-
-        // Manufacturing
-        public List<CreateChildPartTemplateMaterialRequirementRequest> MaterialRequirements { get; set; } = new();
-        public List<CreateChildPartTemplateProcessStepRequest> ProcessSteps { get; set; } = new();
 
         // Notes
         public string? Description { get; set; }

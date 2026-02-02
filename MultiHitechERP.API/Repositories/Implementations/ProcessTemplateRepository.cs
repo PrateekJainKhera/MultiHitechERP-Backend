@@ -147,7 +147,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<IEnumerable<ProcessTemplateStep>> GetStepsByTemplateIdAsync(int templateId)
         {
-            const string query = "SELECT * FROM Masters_ProcessTemplateSteps WHERE TemplateId = @TemplateId ORDER BY StepNo";
+            const string query = @"
+                SELECT
+                    pts.Id,
+                    pts.TemplateId,
+                    pts.StepNo,
+                    pts.ProcessId,
+                    p.ProcessName,
+                    pts.IsMandatory,
+                    pts.CanBeParallel
+                FROM Masters_ProcessTemplateSteps pts
+                LEFT JOIN Masters_Processes p ON pts.ProcessId = p.Id
+                WHERE pts.TemplateId = @TemplateId
+                ORDER BY pts.StepNo";
 
             var steps = new List<ProcessTemplateStep>();
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -165,7 +177,18 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<ProcessTemplateStep?> GetStepByIdAsync(int stepId)
         {
-            const string query = "SELECT * FROM Masters_ProcessTemplateSteps WHERE Id = @Id";
+            const string query = @"
+                SELECT
+                    pts.Id,
+                    pts.TemplateId,
+                    pts.StepNo,
+                    pts.ProcessId,
+                    p.ProcessName,
+                    pts.IsMandatory,
+                    pts.CanBeParallel
+                FROM Masters_ProcessTemplateSteps pts
+                LEFT JOIN Masters_Processes p ON pts.ProcessId = p.Id
+                WHERE pts.Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);

@@ -25,10 +25,9 @@ namespace MultiHitechERP.API.Models.Masters
         public decimal? Thickness { get; set; }
         public string DimensionUnit { get; set; } = "mm";
 
-        // Manufacturing
-        public List<ChildPartTemplateMaterialRequirement>? MaterialRequirements { get; set; }
-        public List<ChildPartTemplateProcessStep>? ProcessSteps { get; set; }
-        public decimal TotalStandardTimeHours { get; set; }
+        // Manufacturing Process
+        public int? ProcessTemplateId { get; set; }
+        public bool IsPurchased { get; set; } = false;
 
         // Notes
         public string? Description { get; set; }
