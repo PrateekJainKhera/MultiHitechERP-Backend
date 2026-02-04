@@ -52,11 +52,17 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Drawings (
-                    DrawingNumber, DrawingName, DrawingType, RevisionNumber,
-                    Status, Description, Remarks, IsActive, CreatedAt, CreatedBy
+                    DrawingNumber, DrawingName, DrawingType, Revision, RevisionDate, Status,
+                    FileName, FileType, FileUrl, FileSize,
+                    ManufacturingDimensionsJSON,
+                    LinkedPartId, LinkedProductId, LinkedCustomerId,
+                    Description, Notes, IsActive, CreatedAt, CreatedBy
                 ) VALUES (
-                    @DrawingNumber, @DrawingName, @DrawingType, @RevisionNumber,
-                    @Status, @Description, @Remarks, @IsActive, @CreatedAt, @CreatedBy
+                    @DrawingNumber, @DrawingName, @DrawingType, @Revision, @RevisionDate, @Status,
+                    @FileName, @FileType, @FileUrl, @FileSize,
+                    @ManufacturingDimensionsJSON,
+                    @LinkedPartId, @LinkedProductId, @LinkedCustomerId,
+                    @Description, @Notes, @IsActive, @CreatedAt, @CreatedBy
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -67,10 +73,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@DrawingNumber", drawing.DrawingNumber);
             command.Parameters.AddWithValue("@DrawingName", drawing.DrawingName);
             command.Parameters.AddWithValue("@DrawingType", drawing.DrawingType);
-            command.Parameters.AddWithValue("@RevisionNumber", (object?)drawing.RevisionNumber ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Revision", (object?)drawing.Revision ?? DBNull.Value);
+            command.Parameters.AddWithValue("@RevisionDate", (object?)drawing.RevisionDate ?? DBNull.Value);
             command.Parameters.AddWithValue("@Status", drawing.Status);
+            command.Parameters.AddWithValue("@FileName", (object?)drawing.FileName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@FileType", (object?)drawing.FileType ?? DBNull.Value);
+            command.Parameters.AddWithValue("@FileUrl", (object?)drawing.FileUrl ?? DBNull.Value);
+            command.Parameters.AddWithValue("@FileSize", (object?)drawing.FileSize ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ManufacturingDimensionsJSON", (object?)drawing.ManufacturingDimensionsJSON ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LinkedPartId", (object?)drawing.LinkedPartId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LinkedProductId", (object?)drawing.LinkedProductId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LinkedCustomerId", (object?)drawing.LinkedCustomerId ?? DBNull.Value);
             command.Parameters.AddWithValue("@Description", (object?)drawing.Description ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Remarks", (object?)drawing.Notes ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Notes", (object?)drawing.Notes ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", drawing.IsActive);
             command.Parameters.AddWithValue("@CreatedAt", drawing.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", (object?)drawing.CreatedBy ?? DBNull.Value);
@@ -83,12 +98,22 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 UPDATE Masters_Drawings SET
+                    DrawingNumber = @DrawingNumber,
                     DrawingName = @DrawingName,
                     DrawingType = @DrawingType,
-                    RevisionNumber = @RevisionNumber,
+                    Revision = @Revision,
+                    RevisionDate = @RevisionDate,
                     Status = @Status,
+                    FileName = @FileName,
+                    FileType = @FileType,
+                    FileUrl = @FileUrl,
+                    FileSize = @FileSize,
+                    ManufacturingDimensionsJSON = @ManufacturingDimensionsJSON,
+                    LinkedPartId = @LinkedPartId,
+                    LinkedProductId = @LinkedProductId,
+                    LinkedCustomerId = @LinkedCustomerId,
                     Description = @Description,
-                    Remarks = @Remarks,
+                    Notes = @Notes,
                     IsActive = @IsActive,
                     UpdatedAt = @UpdatedAt,
                     UpdatedBy = @UpdatedBy
@@ -99,12 +124,22 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
             drawing.UpdatedAt = DateTime.UtcNow;
             command.Parameters.AddWithValue("@Id", drawing.Id);
+            command.Parameters.AddWithValue("@DrawingNumber", drawing.DrawingNumber);
             command.Parameters.AddWithValue("@DrawingName", drawing.DrawingName);
             command.Parameters.AddWithValue("@DrawingType", drawing.DrawingType);
-            command.Parameters.AddWithValue("@RevisionNumber", (object?)drawing.RevisionNumber ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Revision", (object?)drawing.Revision ?? DBNull.Value);
+            command.Parameters.AddWithValue("@RevisionDate", (object?)drawing.RevisionDate ?? DBNull.Value);
             command.Parameters.AddWithValue("@Status", drawing.Status);
+            command.Parameters.AddWithValue("@FileName", (object?)drawing.FileName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@FileType", (object?)drawing.FileType ?? DBNull.Value);
+            command.Parameters.AddWithValue("@FileUrl", (object?)drawing.FileUrl ?? DBNull.Value);
+            command.Parameters.AddWithValue("@FileSize", (object?)drawing.FileSize ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ManufacturingDimensionsJSON", (object?)drawing.ManufacturingDimensionsJSON ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LinkedPartId", (object?)drawing.LinkedPartId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LinkedProductId", (object?)drawing.LinkedProductId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LinkedCustomerId", (object?)drawing.LinkedCustomerId ?? DBNull.Value);
             command.Parameters.AddWithValue("@Description", (object?)drawing.Description ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Remarks", (object?)drawing.Notes ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Notes", (object?)drawing.Notes ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", drawing.IsActive);
             command.Parameters.AddWithValue("@UpdatedAt", drawing.UpdatedAt);
             command.Parameters.AddWithValue("@UpdatedBy", (object?)drawing.UpdatedBy ?? DBNull.Value);
@@ -159,15 +194,26 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 DrawingNumber = reader.GetString(reader.GetOrdinal("DrawingNumber")),
                 DrawingName = reader.GetString(reader.GetOrdinal("DrawingName")),
                 DrawingType = reader.GetString(reader.GetOrdinal("DrawingType")),
-                RevisionNumber = reader.IsDBNull(reader.GetOrdinal("RevisionNumber")) ? null : reader.GetString(reader.GetOrdinal("RevisionNumber")),
+                Revision = reader.IsDBNull(reader.GetOrdinal("Revision")) ? null : reader.GetString(reader.GetOrdinal("Revision")),
+                RevisionDate = reader.IsDBNull(reader.GetOrdinal("RevisionDate")) ? null : reader.GetDateTime(reader.GetOrdinal("RevisionDate")),
                 Status = reader.GetString(reader.GetOrdinal("Status")),
+                FileName = reader.IsDBNull(reader.GetOrdinal("FileName")) ? null : reader.GetString(reader.GetOrdinal("FileName")),
+                FileType = reader.IsDBNull(reader.GetOrdinal("FileType")) ? null : reader.GetString(reader.GetOrdinal("FileType")),
+                FileUrl = reader.IsDBNull(reader.GetOrdinal("FileUrl")) ? null : reader.GetString(reader.GetOrdinal("FileUrl")),
+                FileSize = reader.IsDBNull(reader.GetOrdinal("FileSize")) ? null : reader.GetDecimal(reader.GetOrdinal("FileSize")),
+                ManufacturingDimensionsJSON = reader.IsDBNull(reader.GetOrdinal("ManufacturingDimensionsJSON")) ? null : reader.GetString(reader.GetOrdinal("ManufacturingDimensionsJSON")),
+                LinkedPartId = reader.IsDBNull(reader.GetOrdinal("LinkedPartId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedPartId")),
+                LinkedProductId = reader.IsDBNull(reader.GetOrdinal("LinkedProductId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedProductId")),
+                LinkedCustomerId = reader.IsDBNull(reader.GetOrdinal("LinkedCustomerId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedCustomerId")),
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
-                Notes = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
+                Notes = reader.IsDBNull(reader.GetOrdinal("Notes")) ? null : reader.GetString(reader.GetOrdinal("Notes")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
                 UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
-                UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy"))
+                UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy")),
+                ApprovedBy = reader.IsDBNull(reader.GetOrdinal("ApprovedBy")) ? null : reader.GetString(reader.GetOrdinal("ApprovedBy")),
+                ApprovedAt = reader.IsDBNull(reader.GetOrdinal("ApprovedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("ApprovedAt"))
             };
         }
     }

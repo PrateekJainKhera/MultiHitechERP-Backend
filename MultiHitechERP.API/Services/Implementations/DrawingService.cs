@@ -52,15 +52,31 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                var drawingNumber = await _drawingRepository.GetNextDrawingNumberAsync();
+                // Use provided drawing number or auto-generate if not provided
+                var drawingNumber = !string.IsNullOrWhiteSpace(request.DrawingNumber)
+                    ? request.DrawingNumber.Trim()
+                    : await _drawingRepository.GetNextDrawingNumberAsync();
+
+                // Check if drawing number already exists
+                if (await _drawingRepository.ExistsAsync(drawingNumber))
+                    return ApiResponse<int>.ErrorResponse($"Drawing number '{drawingNumber}' already exists");
 
                 var drawing = new Drawing
                 {
                     DrawingNumber = drawingNumber,
                     DrawingName = request.DrawingName.Trim(),
                     DrawingType = request.DrawingType.Trim(),
-                    RevisionNumber = request.RevisionNumber?.Trim(),
-                    Status = request.Status?.Trim() ?? "Draft",
+                    Revision = request.Revision?.Trim(),
+                    RevisionDate = request.RevisionDate,
+                    Status = request.Status?.Trim() ?? "draft",
+                    FileName = request.FileName?.Trim(),
+                    FileType = request.FileType?.Trim(),
+                    FileUrl = request.FileUrl?.Trim(),
+                    FileSize = request.FileSize,
+                    ManufacturingDimensionsJSON = request.ManufacturingDimensionsJSON?.Trim(),
+                    LinkedPartId = request.LinkedPartId,
+                    LinkedProductId = request.LinkedProductId,
+                    LinkedCustomerId = request.LinkedCustomerId,
                     Description = request.Description?.Trim(),
                     Notes = request.Notes?.Trim(),
                     IsActive = true,
@@ -84,10 +100,27 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (existingDrawing == null)
                     return ApiResponse<bool>.ErrorResponse("Drawing not found");
 
+                // Check if drawing number is being changed and if new number already exists
+                if (existingDrawing.DrawingNumber != request.DrawingNumber.Trim())
+                {
+                    if (await _drawingRepository.ExistsAsync(request.DrawingNumber.Trim()))
+                        return ApiResponse<bool>.ErrorResponse($"Drawing number '{request.DrawingNumber}' already exists");
+                }
+
+                existingDrawing.DrawingNumber = request.DrawingNumber.Trim();
                 existingDrawing.DrawingName = request.DrawingName.Trim();
                 existingDrawing.DrawingType = request.DrawingType.Trim();
-                existingDrawing.RevisionNumber = request.RevisionNumber?.Trim();
+                existingDrawing.Revision = request.Revision?.Trim();
+                existingDrawing.RevisionDate = request.RevisionDate;
                 existingDrawing.Status = request.Status.Trim();
+                existingDrawing.FileName = request.FileName?.Trim();
+                existingDrawing.FileType = request.FileType?.Trim();
+                existingDrawing.FileUrl = request.FileUrl?.Trim();
+                existingDrawing.FileSize = request.FileSize;
+                existingDrawing.ManufacturingDimensionsJSON = request.ManufacturingDimensionsJSON?.Trim();
+                existingDrawing.LinkedPartId = request.LinkedPartId;
+                existingDrawing.LinkedProductId = request.LinkedProductId;
+                existingDrawing.LinkedCustomerId = request.LinkedCustomerId;
                 existingDrawing.Description = request.Description?.Trim();
                 existingDrawing.Notes = request.Notes?.Trim();
                 existingDrawing.IsActive = request.IsActive;
@@ -133,15 +166,26 @@ namespace MultiHitechERP.API.Services.Implementations
                 DrawingNumber = drawing.DrawingNumber,
                 DrawingName = drawing.DrawingName,
                 DrawingType = drawing.DrawingType,
-                RevisionNumber = drawing.RevisionNumber,
+                Revision = drawing.Revision,
+                RevisionDate = drawing.RevisionDate,
                 Status = drawing.Status,
+                FileName = drawing.FileName,
+                FileType = drawing.FileType,
+                FileUrl = drawing.FileUrl,
+                FileSize = drawing.FileSize,
+                ManufacturingDimensionsJSON = drawing.ManufacturingDimensionsJSON,
+                LinkedPartId = drawing.LinkedPartId,
+                LinkedProductId = drawing.LinkedProductId,
+                LinkedCustomerId = drawing.LinkedCustomerId,
                 Description = drawing.Description,
                 Notes = drawing.Notes,
                 IsActive = drawing.IsActive,
                 CreatedAt = drawing.CreatedAt,
                 CreatedBy = drawing.CreatedBy,
                 UpdatedAt = drawing.UpdatedAt,
-                UpdatedBy = drawing.UpdatedBy
+                UpdatedBy = drawing.UpdatedBy,
+                ApprovedBy = drawing.ApprovedBy,
+                ApprovedAt = drawing.ApprovedAt
             };
         }
     }
