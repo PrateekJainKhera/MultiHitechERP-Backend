@@ -14,14 +14,27 @@ namespace MultiHitechERP.API.DTOs.Request
 
         public string? Description { get; set; }
 
-        [Required]
-        public string RollerType { get; set; } = string.Empty;
+        public string? DrawingNumber { get; set; }
+        public string? DrawingRevision { get; set; }
 
         [Required]
         public int ProcessTemplateId { get; set; }
 
-        public List<CreateProductTemplateChildPartRequest> ChildParts { get; set; } = new();
+        // Final Product Dimensions
+        public decimal? Length { get; set; }
+        public decimal? Diameter { get; set; }
+        public decimal? CoreDiameter { get; set; }
+        public decimal? ShaftDiameter { get; set; }
+        public decimal? Weight { get; set; }
+        public string? DimensionUnit { get; set; }
+
+        public string? TechnicalNotes { get; set; }
+        public string? QualityCheckpoints { get; set; }
+
+        // BOM Items
+        public List<ProductTemplateBOMItemRequest> BomItems { get; set; } = new();
 
         public bool IsActive { get; set; } = true;
+        public string? UpdatedBy { get; set; }
     }
 }

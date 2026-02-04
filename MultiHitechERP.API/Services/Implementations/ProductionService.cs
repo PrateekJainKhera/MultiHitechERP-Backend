@@ -117,9 +117,6 @@ namespace MultiHitechERP.API.Services.Implementations
             if (machine == null)
                 return ApiResponse<int>.ErrorResponse("Machine not found");
 
-            if (!machine.IsAvailable)
-                return ApiResponse<int>.ErrorResponse($"Machine '{machine.MachineName}' is not available");
-
             // Validate operator availability
             var operatorEntity = await _operatorRepository.GetByIdAsync(operatorId);
             if (operatorEntity == null)
@@ -148,8 +145,7 @@ namespace MultiHitechERP.API.Services.Implementations
             // Update job card status to In Progress
             await _jobCardRepository.UpdateStatusAsync(jobCardId, "In Progress");
 
-            // Mark machine and operator as unavailable
-            await _machineRepository.AssignToJobCardAsync(machineId, jobCard.JobCardNo);
+            // Mark operator as unavailable
             await _operatorRepository.AssignToJobCardAsync(operatorId, jobCardId, jobCard.JobCardNo, machineId);
 
             return ApiResponse<int>.SuccessResponse(executionId, "Production started successfully");
@@ -222,10 +218,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 }
             }
 
-            // Release machine and operator
-            if (execution.MachineId.HasValue)
-                await _machineRepository.ReleaseFromJobCardAsync(execution.MachineId.Value);
-
+            // Release operator
             if (execution.OperatorId.HasValue)
                 await _operatorRepository.ReleaseFromJobCardAsync(execution.OperatorId.Value);
 

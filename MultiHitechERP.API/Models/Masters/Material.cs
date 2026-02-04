@@ -13,11 +13,14 @@ namespace MultiHitechERP.API.Models.Masters
         public string MaterialName { get; set; } = string.Empty;
 
         // Material Properties
+        public string MaterialType { get; set; } = string.Empty; // MaterialType: Steel, Stainless Steel, Aluminum, Other
         public string Grade { get; set; } = string.Empty; // MaterialGrade: EN8, EN19, SS304, SS316, Alloy Steel
-        public string Shape { get; set; } = string.Empty; // MaterialShape: Rod, Pipe, Forged
+        public string Shape { get; set; } = string.Empty; // MaterialShape: Rod, Pipe, Forged, Sheet
 
-        // Dimensions
-        public decimal Diameter { get; set; }
+        // Dimensions (shape-dependent)
+        public decimal Diameter { get; set; }           // Rod, Pipe (outer), Forged
+        public decimal? InnerDiameter { get; set; }     // Pipe only
+        public decimal? Width { get; set; }             // Sheet only
         public decimal LengthInMM { get; set; }
 
         // Physical Properties

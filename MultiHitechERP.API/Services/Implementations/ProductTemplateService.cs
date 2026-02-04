@@ -141,19 +141,20 @@ namespace MultiHitechERP.API.Services.Implementations
                 // Insert template
                 var templateId = await _productTemplateRepository.InsertAsync(template);
 
-                // Insert child parts if any
-                if (request.ChildParts != null && request.ChildParts.Any())
+                // Insert BOM items if any
+                if (request.BomItems != null && request.BomItems.Any())
                 {
-                    var childParts = request.ChildParts.Select(cp => new ProductTemplateChildPart
+                    var childParts = request.BomItems.Select(bom => new ProductTemplateChildPart
                     {
                         ProductTemplateId = templateId,
-                        ChildPartName = cp.ChildPartName,
-                        ChildPartCode = cp.ChildPartCode,
-                        Quantity = cp.Quantity,
-                        Unit = cp.Unit,
-                        Notes = cp.Notes,
-                        SequenceNo = cp.SequenceNo,
-                        ChildPartTemplateId = cp.ChildPartTemplateId
+                        ChildPartTemplateId = bom.ChildPartTemplateId,
+                        Quantity = bom.Quantity,
+                        Unit = "pcs", // Default unit
+                        Notes = bom.Notes,
+                        SequenceNo = bom.SequenceNumber ?? 0,
+                        // Name and Code will be fetched from Child Part Template when needed
+                        ChildPartName = "", // Placeholder - not used in new architecture
+                        ChildPartCode = ""  // Placeholder - not used in new architecture
                     }).ToList();
 
                     await _productTemplateRepository.InsertChildPartsAsync(templateId, childParts);
@@ -178,20 +179,20 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse($"Product template with ID {request.Id} not found");
                 }
 
-                // Update template entity (preserve TemplateCode - it's immutable)
+                // Update template entity (preserve TemplateCode and RollerType - they're immutable)
                 var template = new ProductTemplate
                 {
                     Id = request.Id,
                     TemplateCode = existingTemplate.TemplateCode, // Preserve original code
                     TemplateName = request.TemplateName,
                     Description = request.Description,
-                    RollerType = request.RollerType,
+                    RollerType = existingTemplate.RollerType, // Preserve original roller type
                     ProcessTemplateId = request.ProcessTemplateId,
                     IsActive = request.IsActive,
                     CreatedAt = existingTemplate.CreatedAt,
                     CreatedBy = existingTemplate.CreatedBy,
                     UpdatedAt = DateTime.UtcNow,
-                    UpdatedBy = "System"
+                    UpdatedBy = request.UpdatedBy ?? "System"
                 };
 
                 // Update template
@@ -201,21 +202,22 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse("Failed to update product template");
                 }
 
-                // Update child parts: Delete all and re-insert
+                // Update BOM items: Delete all and re-insert
                 await _productTemplateRepository.DeleteChildPartsByTemplateIdAsync(request.Id);
 
-                if (request.ChildParts != null && request.ChildParts.Any())
+                if (request.BomItems != null && request.BomItems.Any())
                 {
-                    var childParts = request.ChildParts.Select(cp => new ProductTemplateChildPart
+                    var childParts = request.BomItems.Select(bom => new ProductTemplateChildPart
                     {
                         ProductTemplateId = request.Id,
-                        ChildPartName = cp.ChildPartName,
-                        ChildPartCode = cp.ChildPartCode,
-                        Quantity = cp.Quantity,
-                        Unit = cp.Unit,
-                        Notes = cp.Notes,
-                        SequenceNo = cp.SequenceNo,
-                        ChildPartTemplateId = cp.ChildPartTemplateId
+                        ChildPartTemplateId = bom.ChildPartTemplateId,
+                        Quantity = bom.Quantity,
+                        Unit = "pcs", // Default unit
+                        Notes = bom.Notes,
+                        SequenceNo = bom.SequenceNumber ?? 0,
+                        // Name and Code will be fetched from Child Part Template when needed
+                        ChildPartName = "", // Placeholder
+                        ChildPartCode = ""  // Placeholder
                     }).ToList();
 
                     await _productTemplateRepository.InsertChildPartsAsync(request.Id, childParts);
@@ -306,23 +308,22 @@ namespace MultiHitechERP.API.Services.Implementations
                 CreatedAt = template.CreatedAt,
                 UpdatedAt = template.UpdatedAt ?? template.CreatedAt,
                 CreatedBy = template.CreatedBy,
-                ChildParts = template.ChildParts?.Select(MapToChildPartResponse).ToList() ?? new List<ProductTemplateChildPartResponse>()
+                BomItems = template.ChildParts?.Select(MapToBOMItemResponse).ToList() ?? new List<ProductTemplateBOMItemResponse>()
             };
         }
 
-        private ProductTemplateChildPartResponse MapToChildPartResponse(ProductTemplateChildPart childPart)
+        private ProductTemplateBOMItemResponse MapToBOMItemResponse(ProductTemplateChildPart childPart)
         {
-            return new ProductTemplateChildPartResponse
+            return new ProductTemplateBOMItemResponse
             {
                 Id = childPart.Id,
-                ProductTemplateId = childPart.ProductTemplateId,
-                ChildPartName = childPart.ChildPartName,
-                ChildPartCode = childPart.ChildPartCode,
-                Quantity = childPart.Quantity,
-                Unit = childPart.Unit,
+                ChildPartTemplateId = childPart.ChildPartTemplateId ?? 0,
+                ChildPartTemplateName = childPart.ChildPartName,
+                ChildPartTemplateCode = childPart.ChildPartCode,
+                ChildPartType = childPart.ChildPartType,
+                Quantity = (int)childPart.Quantity,
                 Notes = childPart.Notes,
-                SequenceNo = childPart.SequenceNo,
-                ChildPartTemplateId = childPart.ChildPartTemplateId
+                SequenceNumber = childPart.SequenceNo
             };
         }
 

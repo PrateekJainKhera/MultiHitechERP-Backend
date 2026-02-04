@@ -11,6 +11,7 @@ namespace MultiHitechERP.API.Models.Masters
         public int ProductTemplateId { get; set; }
         public string ChildPartName { get; set; } = string.Empty;
         public string? ChildPartCode { get; set; }
+        public string? ChildPartType { get; set; } // Type of child part (SHAFT, BEARING, etc.)
         public decimal Quantity { get; set; } // Quantity required per roller
         public string Unit { get; set; } = string.Empty; // e.g., "pcs", "kg", "m"
         public string? Notes { get; set; }

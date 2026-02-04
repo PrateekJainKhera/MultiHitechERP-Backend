@@ -7,9 +7,12 @@ namespace MultiHitechERP.API.DTOs.Response
         public int Id { get; set; }
         public string MaterialCode { get; set; } = string.Empty;
         public string MaterialName { get; set; } = string.Empty;
+        public string MaterialType { get; set; } = string.Empty; // MaterialType: Steel, Stainless Steel, Aluminum, Other
         public string Grade { get; set; } = string.Empty; // MaterialGrade: EN8, EN19, SS304, SS316, Alloy Steel
-        public string Shape { get; set; } = string.Empty; // MaterialShape: Rod, Pipe, Forged
+        public string Shape { get; set; } = string.Empty; // MaterialShape: Rod, Pipe, Forged, Sheet
         public decimal Diameter { get; set; }
+        public decimal? InnerDiameter { get; set; }
+        public decimal? Width { get; set; }
         public decimal LengthInMM { get; set; }
         public decimal Density { get; set; }
         public decimal WeightKG { get; set; }

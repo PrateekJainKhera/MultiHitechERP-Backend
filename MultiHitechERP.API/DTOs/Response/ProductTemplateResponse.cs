@@ -11,8 +11,8 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? Description { get; set; }
         public string RollerType { get; set; } = string.Empty;
 
-        // Child parts required for this product
-        public List<ProductTemplateChildPartResponse> ChildParts { get; set; } = new();
+        // BOM Items - child parts required for this product
+        public List<ProductTemplateBOMItemResponse> BomItems { get; set; } = new();
 
         // Process sequence
         public int ProcessTemplateId { get; set; }
@@ -25,16 +25,15 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? CreatedBy { get; set; }
     }
 
-    public class ProductTemplateChildPartResponse
+    public class ProductTemplateBOMItemResponse
     {
         public int Id { get; set; }
-        public int ProductTemplateId { get; set; }
-        public string ChildPartName { get; set; } = string.Empty;
-        public string? ChildPartCode { get; set; }
-        public decimal Quantity { get; set; }
-        public string Unit { get; set; } = string.Empty;
+        public int ChildPartTemplateId { get; set; }
+        public string ChildPartTemplateName { get; set; } = string.Empty;
+        public string? ChildPartTemplateCode { get; set; }
+        public string? ChildPartType { get; set; }
+        public int Quantity { get; set; }
         public string? Notes { get; set; }
-        public int SequenceNo { get; set; }
-        public int? ChildPartTemplateId { get; set; }
+        public int? SequenceNumber { get; set; }
     }
 }

@@ -338,9 +338,15 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<ProductTemplateChildPart>> GetChildPartsByTemplateIdAsync(int templateId)
         {
             const string query = @"
-                SELECT * FROM Masters_ProductTemplateChildParts
-                WHERE ProductTemplateId = @ProductTemplateId
-                ORDER BY SequenceNo";
+                SELECT
+                    bom.*,
+                    cpt.TemplateName as ChildPartTemplateName,
+                    cpt.TemplateCode as ChildPartTemplateCode,
+                    cpt.ChildPartType
+                FROM Masters_ProductTemplateBOM bom
+                LEFT JOIN Masters_ChildPartTemplates cpt ON bom.ChildPartTemplateId = cpt.Id
+                WHERE bom.ProductTemplateId = @ProductTemplateId
+                ORDER BY bom.SequenceNumber";
 
             var childParts = new List<ProductTemplateChildPart>();
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -360,7 +366,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<bool> DeleteChildPartsByTemplateIdAsync(int templateId)
         {
-            const string query = "DELETE FROM Masters_ProductTemplateChildParts WHERE ProductTemplateId = @ProductTemplateId";
+            const string query = "DELETE FROM Masters_ProductTemplateBOM WHERE ProductTemplateId = @ProductTemplateId";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
@@ -376,12 +382,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
             if (childParts == null) return true;
 
             const string query = @"
-                INSERT INTO Masters_ProductTemplateChildParts (
-                    ProductTemplateId, ChildPartName, ChildPartCode, Quantity,
-                    Unit, Notes, SequenceNo, ChildPartTemplateId
+                INSERT INTO Masters_ProductTemplateBOM (
+                    ProductTemplateId, ChildPartTemplateId, Quantity,
+                    Notes, SequenceNumber
                 ) VALUES (
-                    @ProductTemplateId, @ChildPartName, @ChildPartCode, @Quantity,
-                    @Unit, @Notes, @SequenceNo, @ChildPartTemplateId
+                    @ProductTemplateId, @ChildPartTemplateId, @Quantity,
+                    @Notes, @SequenceNumber
                 )";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -391,13 +397,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
             {
                 using var command = new SqlCommand(query, connection);
                 command.Parameters.AddWithValue("@ProductTemplateId", templateId);
-                command.Parameters.AddWithValue("@ChildPartName", childPart.ChildPartName);
-                command.Parameters.AddWithValue("@ChildPartCode", (object?)childPart.ChildPartCode ?? DBNull.Value);
-                command.Parameters.AddWithValue("@Quantity", childPart.Quantity);
-                command.Parameters.AddWithValue("@Unit", childPart.Unit);
-                command.Parameters.AddWithValue("@Notes", (object?)childPart.Notes ?? DBNull.Value);
-                command.Parameters.AddWithValue("@SequenceNo", childPart.SequenceNo);
                 command.Parameters.AddWithValue("@ChildPartTemplateId", (object?)childPart.ChildPartTemplateId ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Quantity", childPart.Quantity);
+                command.Parameters.AddWithValue("@Notes", (object?)childPart.Notes ?? DBNull.Value);
+                command.Parameters.AddWithValue("@SequenceNumber", childPart.SequenceNo);
 
                 await command.ExecuteNonQueryAsync();
             }
@@ -456,13 +459,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
             {
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 ProductTemplateId = reader.GetInt32(reader.GetOrdinal("ProductTemplateId")),
-                ChildPartName = reader.GetString(reader.GetOrdinal("ChildPartName")),
-                ChildPartCode = reader.IsDBNull(reader.GetOrdinal("ChildPartCode")) ? null : reader.GetString(reader.GetOrdinal("ChildPartCode")),
-                Quantity = reader.GetDecimal(reader.GetOrdinal("Quantity")),
-                Unit = reader.GetString(reader.GetOrdinal("Unit")),
+                ChildPartTemplateId = reader.IsDBNull(reader.GetOrdinal("ChildPartTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ChildPartTemplateId")),
+                ChildPartName = reader.IsDBNull(reader.GetOrdinal("ChildPartTemplateName")) ? string.Empty : reader.GetString(reader.GetOrdinal("ChildPartTemplateName")),
+                ChildPartCode = reader.IsDBNull(reader.GetOrdinal("ChildPartTemplateCode")) ? null : reader.GetString(reader.GetOrdinal("ChildPartTemplateCode")),
+                ChildPartType = reader.IsDBNull(reader.GetOrdinal("ChildPartType")) ? null : reader.GetString(reader.GetOrdinal("ChildPartType")),
+                Quantity = reader.GetInt32(reader.GetOrdinal("Quantity")),
+                Unit = "pcs", // Default unit
                 Notes = reader.IsDBNull(reader.GetOrdinal("Notes")) ? null : reader.GetString(reader.GetOrdinal("Notes")),
-                SequenceNo = reader.GetInt32(reader.GetOrdinal("SequenceNo")),
-                ChildPartTemplateId = reader.IsDBNull(reader.GetOrdinal("ChildPartTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ChildPartTemplateId"))
+                SequenceNo = reader.IsDBNull(reader.GetOrdinal("SequenceNumber")) ? 0 : reader.GetInt32(reader.GetOrdinal("SequenceNumber"))
             };
         }
 

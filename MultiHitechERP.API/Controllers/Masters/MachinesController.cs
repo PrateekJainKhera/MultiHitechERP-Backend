@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MultiHitechERP.API.DTOs.Request;
@@ -45,13 +44,6 @@ namespace MultiHitechERP.API.Controllers.Masters
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        [HttpGet("available")]
-        public async Task<IActionResult> GetAvailableMachines()
-        {
-            var result = await _machineService.GetAvailableMachinesAsync();
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
         [HttpGet("by-type/{machineType}")]
         public async Task<IActionResult> GetByType(string machineType)
         {
@@ -63,13 +55,6 @@ namespace MultiHitechERP.API.Controllers.Masters
         public async Task<IActionResult> GetByDepartment(string department)
         {
             var result = await _machineService.GetByDepartmentAsync(department);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpGet("maintenance-due")]
-        public async Task<IActionResult> GetDueForMaintenance()
-        {
-            var result = await _machineService.GetDueForMaintenanceAsync();
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
@@ -100,34 +85,6 @@ namespace MultiHitechERP.API.Controllers.Masters
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _machineService.DeleteMachineAsync(id);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpPost("{id}/activate")]
-        public async Task<IActionResult> Activate(int id)
-        {
-            var result = await _machineService.ActivateMachineAsync(id);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpPost("{id}/deactivate")]
-        public async Task<IActionResult> Deactivate(int id)
-        {
-            var result = await _machineService.DeactivateMachineAsync(id);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpPost("{id}/assign")]
-        public async Task<IActionResult> AssignToJobCard(int id, [FromBody] string jobCardNo)
-        {
-            var result = await _machineService.AssignToJobCardAsync(id, jobCardNo);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
-
-        [HttpPost("{id}/release")]
-        public async Task<IActionResult> ReleaseFromJobCard(int id)
-        {
-            var result = await _machineService.ReleaseFromJobCardAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
     }

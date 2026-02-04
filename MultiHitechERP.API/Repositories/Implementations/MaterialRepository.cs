@@ -52,10 +52,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Materials (
-                    MaterialCode, MaterialName, Grade, Shape, Diameter, LengthInMM,
+                    MaterialCode, MaterialName, MaterialType, Grade, Shape,
+                    Diameter, InnerDiameter, Width, LengthInMM,
                     Density, WeightKG, IsActive, CreatedAt, CreatedBy, UpdatedAt
                 ) VALUES (
-                    @MaterialCode, @MaterialName, @Grade, @Shape, @Diameter, @LengthInMM,
+                    @MaterialCode, @MaterialName, @MaterialType, @Grade, @Shape,
+                    @Diameter, @InnerDiameter, @Width, @LengthInMM,
                     @Density, @WeightKG, @IsActive, @CreatedAt, @CreatedBy, @UpdatedAt
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
@@ -69,9 +71,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
             command.Parameters.AddWithValue("@MaterialCode", material.MaterialCode);
             command.Parameters.AddWithValue("@MaterialName", material.MaterialName);
+            command.Parameters.AddWithValue("@MaterialType", material.MaterialType);
             command.Parameters.AddWithValue("@Grade", material.Grade);
             command.Parameters.AddWithValue("@Shape", material.Shape);
             command.Parameters.AddWithValue("@Diameter", material.Diameter);
+            command.Parameters.AddWithValue("@InnerDiameter", (object?)material.InnerDiameter ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Width", (object?)material.Width ?? DBNull.Value);
             command.Parameters.AddWithValue("@LengthInMM", material.LengthInMM);
             command.Parameters.AddWithValue("@Density", material.Density);
             command.Parameters.AddWithValue("@WeightKG", material.WeightKG);
@@ -92,9 +97,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 UPDATE Masters_Materials SET
                     MaterialName = @MaterialName,
+                    MaterialType = @MaterialType,
                     Grade = @Grade,
                     Shape = @Shape,
                     Diameter = @Diameter,
+                    InnerDiameter = @InnerDiameter,
+                    Width = @Width,
                     LengthInMM = @LengthInMM,
                     Density = @Density,
                     WeightKG = @WeightKG,
@@ -108,9 +116,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
             command.Parameters.AddWithValue("@Id", material.Id);
             command.Parameters.AddWithValue("@MaterialName", material.MaterialName);
+            command.Parameters.AddWithValue("@MaterialType", material.MaterialType);
             command.Parameters.AddWithValue("@Grade", material.Grade);
             command.Parameters.AddWithValue("@Shape", material.Shape);
             command.Parameters.AddWithValue("@Diameter", material.Diameter);
+            command.Parameters.AddWithValue("@InnerDiameter", (object?)material.InnerDiameter ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Width", (object?)material.Width ?? DBNull.Value);
             command.Parameters.AddWithValue("@LengthInMM", material.LengthInMM);
             command.Parameters.AddWithValue("@Density", material.Density);
             command.Parameters.AddWithValue("@WeightKG", material.WeightKG);
@@ -204,8 +215,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<int> GetNextSequenceNumberAsync(string grade, string shape, decimal diameter)
         {
-            // MaterialCode format: GRADE-SHAPE-DIAMETER-SEQ
-            // Example: EN8-ROD-050-001, EN8-ROD-050-002
+            // MaterialCode format: GRADE-SHAPE-DIMENSION-SEQ
+            // Example: EN8-ROD-050-001, SS304-SHE-500-001
             string prefix = $"{grade.Replace(" ", "")}-{shape.ToUpper().Substring(0, 3)}-{((int)diameter):D3}";
 
             const string query = @"
@@ -230,9 +241,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 MaterialCode = reader.GetString(reader.GetOrdinal("MaterialCode")),
                 MaterialName = reader.GetString(reader.GetOrdinal("MaterialName")),
+                MaterialType = reader.GetString(reader.GetOrdinal("MaterialType")),
                 Grade = reader.GetString(reader.GetOrdinal("Grade")),
                 Shape = reader.GetString(reader.GetOrdinal("Shape")),
                 Diameter = reader.GetDecimal(reader.GetOrdinal("Diameter")),
+                InnerDiameter = reader.IsDBNull(reader.GetOrdinal("InnerDiameter"))
+                    ? null : reader.GetDecimal(reader.GetOrdinal("InnerDiameter")),
+                Width = reader.IsDBNull(reader.GetOrdinal("Width"))
+                    ? null : reader.GetDecimal(reader.GetOrdinal("Width")),
                 LengthInMM = reader.GetDecimal(reader.GetOrdinal("LengthInMM")),
                 Density = reader.GetDecimal(reader.GetOrdinal("Density")),
                 WeightKG = reader.GetDecimal(reader.GetOrdinal("WeightKG")),

@@ -6,10 +6,10 @@ namespace MultiHitechERP.API.DTOs.Request
 {
     public class CreateProductTemplateRequest
     {
-        // TemplateCode is auto-generated based on RollerType
-
         [Required]
         public string TemplateName { get; set; } = string.Empty;
+
+        public string? TemplateCode { get; set; }
 
         public string? Description { get; set; }
 
@@ -19,30 +19,41 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required]
         public int ProcessTemplateId { get; set; }
 
-        public List<CreateProductTemplateChildPartRequest> ChildParts { get; set; } = new();
+        public string? DrawingNumber { get; set; }
+        public string? DrawingRevision { get; set; }
+
+        // Final Product Dimensions
+        public decimal? Length { get; set; }
+        public decimal? Diameter { get; set; }
+        public decimal? CoreDiameter { get; set; }
+        public decimal? ShaftDiameter { get; set; }
+        public decimal? Weight { get; set; }
+        public string? DimensionUnit { get; set; } = "mm";
+
+        public string? TechnicalNotes { get; set; }
+        public string? QualityCheckpoints { get; set; }
+
+        // BOM Items - references to Child Part Templates
+        public List<ProductTemplateBOMItemRequest> BomItems { get; set; } = new();
 
         public bool IsActive { get; set; } = true;
         public string? CreatedBy { get; set; }
     }
 
-    public class CreateProductTemplateChildPartRequest
+    /// <summary>
+    /// BOM Item - Reference to a Child Part Template with quantity
+    /// </summary>
+    public class ProductTemplateBOMItemRequest
     {
         [Required]
-        public string ChildPartName { get; set; } = string.Empty;
-
-        public string? ChildPartCode { get; set; }
+        public int ChildPartTemplateId { get; set; }
 
         [Required]
-        public decimal Quantity { get; set; }
-
-        [Required]
-        public string Unit { get; set; } = string.Empty;
+        [Range(1, int.MaxValue)]
+        public int Quantity { get; set; }
 
         public string? Notes { get; set; }
 
-        [Required]
-        public int SequenceNo { get; set; }
-
-        public int? ChildPartTemplateId { get; set; }
+        public int? SequenceNumber { get; set; }
     }
 }

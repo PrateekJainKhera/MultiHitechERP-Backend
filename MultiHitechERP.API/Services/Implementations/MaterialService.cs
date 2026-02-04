@@ -58,32 +58,62 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (exists)
                     return ApiResponse<int>.ErrorResponse($"Material '{request.MaterialName}' already exists");
 
+                // Business validation: Validate MaterialType
+                var validTypes = new[] { "Steel", "Stainless Steel", "Aluminum", "Other" };
+                if (!validTypes.Contains(request.MaterialType))
+                    return ApiResponse<int>.ErrorResponse($"Invalid material type. Must be one of: {string.Join(", ", validTypes)}");
+
                 // Business validation: Validate Grade
                 var validGrades = new[] { "EN8", "EN19", "SS304", "SS316", "Alloy Steel" };
                 if (!validGrades.Contains(request.Grade))
                     return ApiResponse<int>.ErrorResponse($"Invalid grade. Must be one of: {string.Join(", ", validGrades)}");
 
                 // Business validation: Validate Shape
-                var validShapes = new[] { "Rod", "Pipe", "Forged" };
+                var validShapes = new[] { "Rod", "Pipe", "Forged", "Sheet" };
                 if (!validShapes.Contains(request.Shape))
                     return ApiResponse<int>.ErrorResponse($"Invalid shape. Must be one of: {string.Join(", ", validShapes)}");
 
+                // Shape-based dimension validation
+                if (request.Shape == "Rod" || request.Shape == "Forged")
+                {
+                    if (request.Diameter <= 0)
+                        return ApiResponse<int>.ErrorResponse("Diameter is required for Rod/Forged and must be greater than 0");
+                }
+                else if (request.Shape == "Pipe")
+                {
+                    if (request.Diameter <= 0)
+                        return ApiResponse<int>.ErrorResponse("Outer diameter is required for Pipe and must be greater than 0");
+                    if (!request.InnerDiameter.HasValue || request.InnerDiameter.Value <= 0)
+                        return ApiResponse<int>.ErrorResponse("Inner diameter is required for Pipe and must be greater than 0");
+                    if (request.InnerDiameter.Value >= request.Diameter)
+                        return ApiResponse<int>.ErrorResponse("Inner diameter must be less than outer diameter");
+                }
+                else if (request.Shape == "Sheet")
+                {
+                    if (!request.Width.HasValue || request.Width.Value <= 0)
+                        return ApiResponse<int>.ErrorResponse("Width is required for Sheet and must be greater than 0");
+                }
+
                 // Auto-generate MaterialCode
-                // Format: GRADE-SHAPE-DIAMETER-SEQ (e.g., EN8-ROD-050-001)
+                // For Sheet: use Width as the dimension in code; for others use Diameter
+                decimal codeDimension = request.Shape == "Sheet" ? (request.Width ?? 0) : request.Diameter;
                 string grade = request.Grade.Replace(" ", "");
                 string shape = request.Shape.ToUpper().Substring(0, 3);
-                string diameter = ((int)request.Diameter).ToString("D3");
-                int sequence = await _materialRepository.GetNextSequenceNumberAsync(request.Grade, request.Shape, request.Diameter);
-                string materialCode = $"{grade}-{shape}-{diameter}-{sequence:D3}";
+                string dimensionStr = ((int)codeDimension).ToString("D3");
+                int sequence = await _materialRepository.GetNextSequenceNumberAsync(request.Grade, request.Shape, codeDimension);
+                string materialCode = $"{grade}-{shape}-{dimensionStr}-{sequence:D3}";
 
                 // Create material entity
                 var material = new Material
                 {
                     MaterialCode = materialCode,
                     MaterialName = request.MaterialName.Trim(),
+                    MaterialType = request.MaterialType.Trim(),
                     Grade = request.Grade.Trim(),
                     Shape = request.Shape.Trim(),
-                    Diameter = request.Diameter,
+                    Diameter = request.Shape == "Sheet" ? 0 : request.Diameter,
+                    InnerDiameter = request.InnerDiameter,
+                    Width = request.Width,
                     LengthInMM = request.LengthInMM,
                     Density = request.Density,
                     WeightKG = request.WeightKG,
@@ -117,21 +147,50 @@ namespace MultiHitechERP.API.Services.Implementations
                         return ApiResponse<bool>.ErrorResponse($"Material '{request.MaterialName}' already exists");
                 }
 
+                // Business validation: Validate MaterialType
+                var validTypes = new[] { "Steel", "Stainless Steel", "Aluminum", "Other" };
+                if (!validTypes.Contains(request.MaterialType))
+                    return ApiResponse<bool>.ErrorResponse($"Invalid material type. Must be one of: {string.Join(", ", validTypes)}");
+
                 // Business validation: Validate Grade
                 var validGrades = new[] { "EN8", "EN19", "SS304", "SS316", "Alloy Steel" };
                 if (!validGrades.Contains(request.Grade))
                     return ApiResponse<bool>.ErrorResponse($"Invalid grade. Must be one of: {string.Join(", ", validGrades)}");
 
                 // Business validation: Validate Shape
-                var validShapes = new[] { "Rod", "Pipe", "Forged" };
+                var validShapes = new[] { "Rod", "Pipe", "Forged", "Sheet" };
                 if (!validShapes.Contains(request.Shape))
                     return ApiResponse<bool>.ErrorResponse($"Invalid shape. Must be one of: {string.Join(", ", validShapes)}");
 
+                // Shape-based dimension validation
+                if (request.Shape == "Rod" || request.Shape == "Forged")
+                {
+                    if (request.Diameter <= 0)
+                        return ApiResponse<bool>.ErrorResponse("Diameter is required for Rod/Forged and must be greater than 0");
+                }
+                else if (request.Shape == "Pipe")
+                {
+                    if (request.Diameter <= 0)
+                        return ApiResponse<bool>.ErrorResponse("Outer diameter is required for Pipe and must be greater than 0");
+                    if (!request.InnerDiameter.HasValue || request.InnerDiameter.Value <= 0)
+                        return ApiResponse<bool>.ErrorResponse("Inner diameter is required for Pipe and must be greater than 0");
+                    if (request.InnerDiameter.Value >= request.Diameter)
+                        return ApiResponse<bool>.ErrorResponse("Inner diameter must be less than outer diameter");
+                }
+                else if (request.Shape == "Sheet")
+                {
+                    if (!request.Width.HasValue || request.Width.Value <= 0)
+                        return ApiResponse<bool>.ErrorResponse("Width is required for Sheet and must be greater than 0");
+                }
+
                 // Update material entity
                 existingMaterial.MaterialName = request.MaterialName.Trim();
+                existingMaterial.MaterialType = request.MaterialType.Trim();
                 existingMaterial.Grade = request.Grade.Trim();
                 existingMaterial.Shape = request.Shape.Trim();
-                existingMaterial.Diameter = request.Diameter;
+                existingMaterial.Diameter = request.Shape == "Sheet" ? 0 : request.Diameter;
+                existingMaterial.InnerDiameter = request.Shape == "Pipe" ? request.InnerDiameter : null;
+                existingMaterial.Width = request.Shape == "Sheet" ? request.Width : null;
                 existingMaterial.LengthInMM = request.LengthInMM;
                 existingMaterial.Density = request.Density;
                 existingMaterial.WeightKG = request.WeightKG;
@@ -220,9 +279,12 @@ namespace MultiHitechERP.API.Services.Implementations
                 Id = material.Id,
                 MaterialCode = material.MaterialCode,
                 MaterialName = material.MaterialName,
+                MaterialType = material.MaterialType,
                 Grade = material.Grade,
                 Shape = material.Shape,
                 Diameter = material.Diameter,
+                InnerDiameter = material.InnerDiameter,
+                Width = material.Width,
                 LengthInMM = material.LengthInMM,
                 Density = material.Density,
                 WeightKG = material.WeightKG,
