@@ -1,67 +1,33 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace MultiHitechERP.API.DTOs.Request
 {
     public class UpdateDrawingRequest
     {
-        [Required]
+        [Required(ErrorMessage = "Id is required")]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Drawing number is required")]
-        public string DrawingNumber { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Drawing name is required")]
+        [StringLength(200, ErrorMessage = "Drawing name cannot exceed 200 characters")]
+        public string DrawingName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Drawing title is required")]
-        public string DrawingTitle { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Drawing type is required")]
+        [StringLength(100, ErrorMessage = "Drawing type cannot exceed 100 characters")]
+        public string DrawingType { get; set; } = string.Empty;
 
-        // Product Reference
-        public int? ProductId { get; set; }
-        public string? ProductCode { get; set; }
-        public string? ProductName { get; set; }
-
-        // Revision Control
+        [StringLength(20, ErrorMessage = "Revision number cannot exceed 20 characters")]
         public string? RevisionNumber { get; set; }
-        public DateTime? RevisionDate { get; set; }
-        public string? RevisionDescription { get; set; }
 
-        // Classification
-        public string? DrawingType { get; set; }
-        public string? Category { get; set; }
+        [Required(ErrorMessage = "Status is required")]
+        [StringLength(50, ErrorMessage = "Status cannot exceed 50 characters")]
+        public string Status { get; set; } = string.Empty;
 
-        // File Information
-        public string? FilePath { get; set; }
-        public string? FileName { get; set; }
-        public string? FileFormat { get; set; }
-        public long? FileSize { get; set; }
+        [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+        public string? Description { get; set; }
 
-        // Approval
-        public string? PreparedBy { get; set; }
-        public string? CheckedBy { get; set; }
-        public string? ApprovedBy { get; set; }
-        public DateTime? ApprovalDate { get; set; }
+        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
+        public string? Notes { get; set; }
 
-        // Manufacturing Info
-        public string? MaterialSpecification { get; set; }
-        public string? Finish { get; set; }
-        public string? ToleranceGrade { get; set; }
-        public string? TreatmentRequired { get; set; }
-
-        // Dimensions Summary
-        public decimal? OverallLength { get; set; }
-        public decimal? OverallWidth { get; set; }
-        public decimal? OverallHeight { get; set; }
-        public decimal? Weight { get; set; }
-
-        // Status
-        public bool IsActive { get; set; }
-        public string? Status { get; set; }
-        public bool IsLatestRevision { get; set; }
-
-        // Version History
-        public int? PreviousRevisionId { get; set; }
-        public int VersionNumber { get; set; }
-
-        public string? Remarks { get; set; }
-        public string? UpdatedBy { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 }
