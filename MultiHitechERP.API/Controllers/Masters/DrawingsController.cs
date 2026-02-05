@@ -203,5 +203,20 @@ namespace MultiHitechERP.API.Controllers.Masters
                 return StatusCode(500, ApiResponse<object>.ErrorResponse($"Error during bulk upload: {ex.Message}"));
             }
         }
+
+        [HttpPatch("{id}/link-order")]
+        public async Task<IActionResult> LinkDrawingToOrder(int id, [FromBody] dynamic body)
+        {
+            try
+            {
+                int orderId = (int)body.linkedOrderId;
+                var result = await _drawingService.LinkDrawingToOrderAsync(id, orderId);
+                return result.Success ? Ok(result) : NotFound(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<bool>.ErrorResponse($"Error linking drawing: {ex.Message}"));
+            }
+        }
     }
 }

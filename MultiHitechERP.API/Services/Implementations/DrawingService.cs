@@ -203,5 +203,23 @@ namespace MultiHitechERP.API.Services.Implementations
                 ApprovedAt = drawing.ApprovedAt
             };
         }
+
+        public async Task<ApiResponse<bool>> LinkDrawingToOrderAsync(int drawingId, int orderId)
+        {
+            try
+            {
+                var drawing = await _drawingRepository.GetByIdAsync(drawingId);
+                if (drawing == null)
+                    return ApiResponse<bool>.ErrorResponse("Drawing not found");
+
+                drawing.LinkedOrderId = orderId;
+                await _drawingRepository.UpdateAsync(drawing);
+                return ApiResponse<bool>.SuccessResponse(true, "Drawing linked to order");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResponse($"Error linking drawing to order: {ex.Message}");
+            }
+        }
     }
 }

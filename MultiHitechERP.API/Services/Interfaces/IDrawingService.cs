@@ -13,5 +13,6 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<int>> CreateDrawingAsync(CreateDrawingRequest request);
         Task<ApiResponse<bool>> UpdateDrawingAsync(UpdateDrawingRequest request);
         Task<ApiResponse<bool>> DeleteDrawingAsync(int id);
+        Task<ApiResponse<bool>> LinkDrawingToOrderAsync(int drawingId, int orderId);
     }
 }
