@@ -30,6 +30,8 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? LinkedProductName { get; set; }
         public int? LinkedCustomerId { get; set; }
         public string? LinkedCustomerName { get; set; }
+        public int? LinkedOrderId { get; set; }
+        public string? LinkedOrderNo { get; set; }
 
         // Metadata
         public string? Description { get; set; }

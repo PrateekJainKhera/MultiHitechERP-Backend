@@ -17,13 +17,16 @@ namespace MultiHitechERP.API.Controllers.Orders
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
+        private readonly IDrawingService _drawingService;
         private readonly ILogger<OrdersController> _logger;
 
         public OrdersController(
             IOrderService orderService,
+            IDrawingService drawingService,
             ILogger<OrdersController> logger)
         {
             _orderService = orderService;
+            _drawingService = drawingService;
             _logger = logger;
         }
 
@@ -395,6 +398,25 @@ namespace MultiHitechERP.API.Controllers.Orders
             _logger.LogInformation("Generating order number");
 
             var response = await _orderService.GenerateOrderNoAsync();
+
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Get all drawings linked to an order
+        /// </summary>
+        [HttpGet("{id}/drawings")]
+        [ProducesResponseType(typeof(ApiResponse<IEnumerable<DTOs.Response.DrawingResponse>>), 200)]
+        public async Task<IActionResult> GetOrderDrawings(int id)
+        {
+            _logger.LogInformation("Getting drawings for order: {OrderId}", id);
+
+            var response = await _drawingService.GetDrawingsByOrderIdAsync(id);
 
             if (!response.Success)
             {

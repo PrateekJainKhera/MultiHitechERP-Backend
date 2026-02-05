@@ -48,6 +48,24 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return drawings;
         }
 
+        public async Task<IEnumerable<Drawing>> GetByOrderIdAsync(int orderId)
+        {
+            const string query = "SELECT * FROM Masters_Drawings WHERE LinkedOrderId = @OrderId ORDER BY DrawingNumber";
+
+            var drawings = new List<Drawing>();
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@OrderId", orderId);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+                drawings.Add(MapToDrawing(reader));
+
+            return drawings;
+        }
+
         public async Task<int> InsertAsync(Drawing drawing)
         {
             const string query = @"
@@ -55,13 +73,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     DrawingNumber, DrawingName, DrawingType, Revision, RevisionDate, Status,
                     FileName, FileType, FileUrl, FileSize,
                     ManufacturingDimensionsJSON,
-                    LinkedPartId, LinkedProductId, LinkedCustomerId,
+                    LinkedPartId, LinkedProductId, LinkedCustomerId, LinkedOrderId,
                     Description, Notes, IsActive, CreatedAt, CreatedBy
                 ) VALUES (
                     @DrawingNumber, @DrawingName, @DrawingType, @Revision, @RevisionDate, @Status,
                     @FileName, @FileType, @FileUrl, @FileSize,
                     @ManufacturingDimensionsJSON,
-                    @LinkedPartId, @LinkedProductId, @LinkedCustomerId,
+                    @LinkedPartId, @LinkedProductId, @LinkedCustomerId, @LinkedOrderId,
                     @Description, @Notes, @IsActive, @CreatedAt, @CreatedBy
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
@@ -84,6 +102,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LinkedPartId", (object?)drawing.LinkedPartId ?? DBNull.Value);
             command.Parameters.AddWithValue("@LinkedProductId", (object?)drawing.LinkedProductId ?? DBNull.Value);
             command.Parameters.AddWithValue("@LinkedCustomerId", (object?)drawing.LinkedCustomerId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LinkedOrderId", (object?)drawing.LinkedOrderId ?? DBNull.Value);
             command.Parameters.AddWithValue("@Description", (object?)drawing.Description ?? DBNull.Value);
             command.Parameters.AddWithValue("@Notes", (object?)drawing.Notes ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", drawing.IsActive);
@@ -112,6 +131,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     LinkedPartId = @LinkedPartId,
                     LinkedProductId = @LinkedProductId,
                     LinkedCustomerId = @LinkedCustomerId,
+                    LinkedOrderId = @LinkedOrderId,
                     Description = @Description,
                     Notes = @Notes,
                     IsActive = @IsActive,
@@ -138,6 +158,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LinkedPartId", (object?)drawing.LinkedPartId ?? DBNull.Value);
             command.Parameters.AddWithValue("@LinkedProductId", (object?)drawing.LinkedProductId ?? DBNull.Value);
             command.Parameters.AddWithValue("@LinkedCustomerId", (object?)drawing.LinkedCustomerId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LinkedOrderId", (object?)drawing.LinkedOrderId ?? DBNull.Value);
             command.Parameters.AddWithValue("@Description", (object?)drawing.Description ?? DBNull.Value);
             command.Parameters.AddWithValue("@Notes", (object?)drawing.Notes ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", drawing.IsActive);
@@ -205,6 +226,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 LinkedPartId = reader.IsDBNull(reader.GetOrdinal("LinkedPartId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedPartId")),
                 LinkedProductId = reader.IsDBNull(reader.GetOrdinal("LinkedProductId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedProductId")),
                 LinkedCustomerId = reader.IsDBNull(reader.GetOrdinal("LinkedCustomerId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedCustomerId")),
+                LinkedOrderId = reader.IsDBNull(reader.GetOrdinal("LinkedOrderId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedOrderId")),
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                 Notes = reader.IsDBNull(reader.GetOrdinal("Notes")) ? null : reader.GetString(reader.GetOrdinal("Notes")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),

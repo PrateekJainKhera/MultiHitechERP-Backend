@@ -6,8 +6,12 @@ using MultiHitechERP.API.Services.Implementations;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Controllers
-builder.Services.AddControllers();
+// Add Controllers with camelCase JSON serialization to match frontend expectations
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+});
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();

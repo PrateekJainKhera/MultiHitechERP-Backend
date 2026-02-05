@@ -48,6 +48,19 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<IEnumerable<DrawingResponse>>> GetDrawingsByOrderIdAsync(int orderId)
+        {
+            try
+            {
+                var drawings = await _drawingRepository.GetByOrderIdAsync(orderId);
+                return ApiResponse<IEnumerable<DrawingResponse>>.SuccessResponse(drawings.Select(MapToResponse).ToList());
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<DrawingResponse>>.ErrorResponse($"Error retrieving drawings for order: {ex.Message}");
+            }
+        }
+
         public async Task<ApiResponse<int>> CreateDrawingAsync(CreateDrawingRequest request)
         {
             try
@@ -77,6 +90,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     LinkedPartId = request.LinkedPartId,
                     LinkedProductId = request.LinkedProductId,
                     LinkedCustomerId = request.LinkedCustomerId,
+                    LinkedOrderId = request.LinkedOrderId,
                     Description = request.Description?.Trim(),
                     Notes = request.Notes?.Trim(),
                     IsActive = true,
@@ -177,6 +191,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 LinkedPartId = drawing.LinkedPartId,
                 LinkedProductId = drawing.LinkedProductId,
                 LinkedCustomerId = drawing.LinkedCustomerId,
+                LinkedOrderId = drawing.LinkedOrderId,
                 Description = drawing.Description,
                 Notes = drawing.Notes,
                 IsActive = drawing.IsActive,
