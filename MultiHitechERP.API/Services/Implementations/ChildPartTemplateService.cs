@@ -35,6 +35,14 @@ namespace MultiHitechERP.API.Services.Implementations
                 }
 
                 var response = MapToTemplateResponse(template);
+
+                // Load sub-entities for detail view
+                var materialReqs = await _childPartTemplateRepository.GetMaterialRequirementsByTemplateIdAsync(id);
+                response.MaterialRequirements = materialReqs.Select(MapToMaterialRequirementResponse).ToList();
+
+                var processSteps = await _childPartTemplateRepository.GetProcessStepsByTemplateIdAsync(id);
+                response.ProcessSteps = processSteps.Select(MapToProcessStepResponse).ToList();
+
                 return ApiResponse<ChildPartTemplateResponse>.SuccessResponse(response);
             }
             catch (Exception ex)
@@ -306,6 +314,35 @@ namespace MultiHitechERP.API.Services.Implementations
                 CreatedAt = template.CreatedAt,
                 UpdatedAt = template.UpdatedAt,
                 CreatedBy = template.CreatedBy
+            };
+        }
+
+        private ChildPartTemplateMaterialRequirementResponse MapToMaterialRequirementResponse(ChildPartTemplateMaterialRequirement req)
+        {
+            return new ChildPartTemplateMaterialRequirementResponse
+            {
+                Id = req.Id,
+                RawMaterialId = req.RawMaterialId,
+                RawMaterialName = req.RawMaterialName,
+                MaterialGrade = req.MaterialGrade,
+                QuantityRequired = req.QuantityRequired,
+                Unit = req.Unit,
+                WastagePercent = req.WastagePercent
+            };
+        }
+
+        private ChildPartTemplateProcessStepResponse MapToProcessStepResponse(ChildPartTemplateProcessStep step)
+        {
+            return new ChildPartTemplateProcessStepResponse
+            {
+                Id = step.Id,
+                ProcessId = step.ProcessId,
+                ProcessName = step.ProcessName,
+                StepNumber = step.StepNumber,
+                MachineName = step.MachineName,
+                StandardTimeHours = step.StandardTimeHours,
+                RestTimeHours = step.RestTimeHours,
+                Description = step.Description
             };
         }
 
