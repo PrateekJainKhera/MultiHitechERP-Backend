@@ -232,14 +232,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Stores_MaterialRequisitions
-                (Id, RequisitionNo, RequisitionDate, JobCardId, JobCardNo, OrderId, OrderNo, CustomerName,
+                (RequisitionNo, RequisitionDate, JobCardId, JobCardNo, OrderId, OrderNo, CustomerName,
                  Status, Priority, DueDate, RequestedBy, ApprovedBy, ApprovalDate, Remarks, CreatedAt, CreatedBy)
                 VALUES
-                (@Id, @RequisitionNo, @RequisitionDate, @JobCardId, @JobCardNo, @OrderId, @OrderNo, @CustomerName,
-                 @Status, @Priority, @DueDate, @RequestedBy, @ApprovedBy, @ApprovalDate, @Remarks, @CreatedAt, @CreatedBy)";
+                (@RequisitionNo, @RequisitionDate, @JobCardId, @JobCardNo, @OrderId, @OrderNo, @CustomerName,
+                 @Status, @Priority, @DueDate, @RequestedBy, @ApprovedBy, @ApprovalDate, @Remarks, @CreatedAt, @CreatedBy);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
-            var requisitionId = 0;
-            requisition.Id = requisitionId;
             requisition.CreatedAt = DateTime.UtcNow;
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -248,7 +247,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             AddRequisitionParameters(command, requisition);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            var requisitionId = (int)await command.ExecuteScalarAsync();
 
             return requisitionId;
         }
