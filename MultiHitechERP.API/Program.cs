@@ -50,6 +50,8 @@ builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 builder.Services.AddScoped<IProcessTemplateRepository, ProcessTemplateRepository>();
 builder.Services.AddScoped<IProductTemplateRepository, ProductTemplateRepository>();
 builder.Services.AddScoped<IChildPartTemplateRepository, ChildPartTemplateRepository>();
+builder.Services.AddScoped<IGRNRepository, GRNRepository>();
+builder.Services.AddScoped<IMaterialUsageHistoryRepository, MaterialUsageHistoryRepository>();
 
 // Register Services
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -74,6 +76,9 @@ builder.Services.AddScoped<IProcessTemplateService, ProcessTemplateService>();
 builder.Services.AddScoped<IProductTemplateService, ProductTemplateService>();
 builder.Services.AddScoped<IChildPartTemplateService, ChildPartTemplateService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IGRNService, GRNService>();
+builder.Services.AddScoped<IMaterialPieceService, MaterialPieceService>();
+builder.Services.AddScoped<IMaterialUsageService, MaterialUsageService>();
 
 // CORS for frontend
 builder.Services.AddCors(options =>

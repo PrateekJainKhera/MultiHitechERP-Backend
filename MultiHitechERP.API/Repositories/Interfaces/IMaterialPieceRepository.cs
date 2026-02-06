@@ -1,41 +1,34 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MultiHitechERP.API.Models.Stores;
 
 namespace MultiHitechERP.API.Repositories.Interfaces
 {
-    /// <summary>
-    /// Repository interface for Material Piece operations (length-based tracking)
-    /// </summary>
     public interface IMaterialPieceRepository
     {
-        // Basic CRUD Operations
+        Task<int> CreateAsync(MaterialPiece piece);
         Task<MaterialPiece?> GetByIdAsync(int id);
         Task<MaterialPiece?> GetByPieceNoAsync(string pieceNo);
         Task<IEnumerable<MaterialPiece>> GetAllAsync();
         Task<IEnumerable<MaterialPiece>> GetByMaterialIdAsync(int materialId);
         Task<IEnumerable<MaterialPiece>> GetByStatusAsync(string status);
-
-        // Create, Update, Delete
-        Task<int> InsertAsync(MaterialPiece piece);
+        Task<IEnumerable<MaterialPiece>> GetByGRNIdAsync(int grnId);
+        Task<IEnumerable<MaterialPiece>> GetAvailablePiecesAsync();
+        Task<IEnumerable<MaterialPiece>> GetWastagePiecesAsync();
         Task<bool> UpdateAsync(MaterialPiece piece);
+        Task<bool> UpdateLengthAsync(int pieceId, decimal newLengthMM);
+        Task<bool> MarkAsWastageAsync(int pieceId, string reason, decimal? scrapValue);
         Task<bool> DeleteAsync(int id);
 
-        // Allocation Operations
-        Task<bool> AllocatePieceAsync(int id, int requisitionId);
-        Task<bool> IssuePieceAsync(int id, int jobCardId, DateTime issuedDate, string issuedBy);
-        Task<bool> ConsumePieceAsync(int id, decimal consumedLengthMM, decimal consumedWeightKG);
-        Task<bool> ReturnPieceAsync(int id);
+        // Stock queries
+        Task<decimal> GetTotalStockByMaterialIdAsync(int materialId);
+        Task<decimal> GetAvailableStockByMaterialIdAsync(int materialId);
 
-        // Queries
-        Task<IEnumerable<MaterialPiece>> GetAvailablePiecesAsync(int materialId);
+        // Requisition/Issue methods (for MaterialRequisitionService compatibility)
+        Task<IEnumerable<MaterialPiece>> GetAvailablePiecesByFIFOAsync(int materialId, decimal requiredQuantityMM);
         Task<IEnumerable<MaterialPiece>> GetAllocatedPiecesAsync(int requisitionId);
-        Task<IEnumerable<MaterialPiece>> GetIssuedPiecesAsync(int jobCardId);
-        Task<IEnumerable<MaterialPiece>> GetPiecesByLocationAsync(string location);
-
-        // FIFO Selection
-        Task<IEnumerable<MaterialPiece>> GetAvailablePiecesByFIFOAsync(int materialId, decimal requiredLengthMM);
-        Task<decimal> GetAvailableQuantityAsync(int materialId);
+        Task<bool> AllocatePieceAsync(int pieceId, int requisitionId);
+        Task<bool> ReturnPieceAsync(int pieceId);
+        Task<bool> IssuePieceAsync(int pieceId, int jobCardId, System.DateTime issuedDate, string issuedBy);
     }
 }
