@@ -13,7 +13,13 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required(ErrorMessage = "Category is required")]
         public string Category { get; set; } = string.Empty;
 
+        // Legacy field - kept for backward compatibility
         public string? DefaultMachine { get; set; }
+
+        // New FK field for machine relationship
+        public int? DefaultMachineId { get; set; }
+        public decimal? DefaultSetupTimeHours { get; set; }
+        public decimal? DefaultCycleTimePerPieceHours { get; set; }
 
         [Required(ErrorMessage = "Setup time is required")]
         public int StandardSetupTimeMin { get; set; }
