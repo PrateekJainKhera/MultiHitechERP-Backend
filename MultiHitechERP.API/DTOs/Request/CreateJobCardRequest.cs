@@ -56,5 +56,8 @@ namespace MultiHitechERP.API.DTOs.Request
 
         // Dependencies (list of prerequisite job card IDs)
         public List<int>? PrerequisiteJobCardIds { get; set; }
+
+        // Material Requirements (confirmed by planner during creation)
+        public List<JobCardMaterialRequirementRequest>? MaterialRequirements { get; set; }
     }
 }

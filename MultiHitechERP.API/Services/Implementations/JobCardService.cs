@@ -14,11 +14,16 @@ namespace MultiHitechERP.API.Services.Implementations
     {
         private readonly IJobCardRepository _jobCardRepository;
         private readonly IJobCardDependencyRepository _dependencyRepository;
+        private readonly IJobCardMaterialRequirementRepository _materialRequirementRepository;
 
-        public JobCardService(IJobCardRepository jobCardRepository, IJobCardDependencyRepository dependencyRepository)
+        public JobCardService(
+            IJobCardRepository jobCardRepository,
+            IJobCardDependencyRepository dependencyRepository,
+            IJobCardMaterialRequirementRepository materialRequirementRepository)
         {
             _jobCardRepository = jobCardRepository;
             _dependencyRepository = dependencyRepository;
+            _materialRequirementRepository = materialRequirementRepository;
         }
 
         public async Task<ApiResponse<JobCardResponse>> GetByIdAsync(int id)
@@ -29,7 +34,30 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (jobCard == null)
                     return ApiResponse<JobCardResponse>.ErrorResponse($"Job card with ID {id} not found");
 
-                return ApiResponse<JobCardResponse>.SuccessResponse(MapToResponse(jobCard));
+                var response = MapToResponse(jobCard);
+
+                // Include material requirements for detail view
+                var materialRequirements = await _materialRequirementRepository.GetByJobCardIdAsync(id);
+                response.MaterialRequirements = materialRequirements.Select(mr => new JobCardMaterialRequirementResponse
+                {
+                    Id = mr.Id,
+                    JobCardId = mr.JobCardId,
+                    JobCardNo = mr.JobCardNo,
+                    RawMaterialId = mr.RawMaterialId,
+                    RawMaterialName = mr.RawMaterialName,
+                    MaterialGrade = mr.MaterialGrade,
+                    RequiredQuantity = mr.RequiredQuantity,
+                    Unit = mr.Unit,
+                    WastagePercent = mr.WastagePercent,
+                    TotalQuantityWithWastage = mr.TotalQuantityWithWastage,
+                    Source = mr.Source,
+                    ConfirmedBy = mr.ConfirmedBy,
+                    ConfirmedAt = mr.ConfirmedAt,
+                    CreatedAt = mr.CreatedAt,
+                    CreatedBy = mr.CreatedBy
+                }).ToList();
+
+                return ApiResponse<JobCardResponse>.SuccessResponse(response);
             }
             catch (Exception ex)
             {
@@ -154,6 +182,30 @@ namespace MultiHitechERP.API.Services.Implementations
                 };
 
                 var jobCardId = await _jobCardRepository.InsertAsync(jobCard);
+
+                // Create material requirements if specified
+                if (request.MaterialRequirements != null && request.MaterialRequirements.Any())
+                {
+                    var materialRequirements = request.MaterialRequirements.Select(mr => new JobCardMaterialRequirement
+                    {
+                        JobCardId = jobCardId,
+                        JobCardNo = request.JobCardNo,
+                        RawMaterialId = mr.RawMaterialId,
+                        RawMaterialName = mr.RawMaterialName.Trim(),
+                        MaterialGrade = mr.MaterialGrade?.Trim() ?? string.Empty,
+                        RequiredQuantity = mr.RequiredQuantity,
+                        Unit = mr.Unit.Trim(),
+                        WastagePercent = mr.WastagePercent,
+                        TotalQuantityWithWastage = mr.RequiredQuantity * (1 + mr.WastagePercent / 100),
+                        Source = mr.Source ?? "Template",
+                        ConfirmedBy = mr.ConfirmedBy ?? request.CreatedBy ?? "System",
+                        ConfirmedAt = DateTime.UtcNow,
+                        CreatedBy = request.CreatedBy ?? "System",
+                        CreatedAt = DateTime.UtcNow
+                    }).ToList();
+
+                    await _materialRequirementRepository.InsertBatchAsync(materialRequirements);
+                }
 
                 // Create dependencies if specified
                 if (request.PrerequisiteJobCardIds != null && request.PrerequisiteJobCardIds.Any())
