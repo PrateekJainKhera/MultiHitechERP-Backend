@@ -1,0 +1,39 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace MultiHitechERP.API.DTOs.Request
+{
+    /// <summary>
+    /// Request DTO for creating a material requisition item (line item)
+    /// </summary>
+    public class CreateMaterialRequisitionItemRequest
+    {
+        [Required(ErrorMessage = "Line number is required")]
+        public int LineNo { get; set; }
+
+        [Required(ErrorMessage = "Material ID is required")]
+        public int MaterialId { get; set; }
+
+        public string? MaterialCode { get; set; }
+        public string? MaterialName { get; set; }
+        public string? MaterialGrade { get; set; }
+
+        [Required(ErrorMessage = "Quantity required is mandatory")]
+        [Range(0.001, double.MaxValue, ErrorMessage = "Quantity must be greater than 0")]
+        public decimal QuantityRequired { get; set; }
+
+        public string? UOM { get; set; } = "KG";
+
+        // Length-based (for rods/pipes)
+        public decimal? LengthRequiredMM { get; set; }
+        public decimal? DiameterMM { get; set; }
+        public int? NumberOfPieces { get; set; }
+
+        // Reference
+        public int? JobCardId { get; set; }
+        public string? JobCardNo { get; set; }
+        public int? ProcessId { get; set; }
+        public string? ProcessName { get; set; }
+
+        public string? Remarks { get; set; }
+    }
+}

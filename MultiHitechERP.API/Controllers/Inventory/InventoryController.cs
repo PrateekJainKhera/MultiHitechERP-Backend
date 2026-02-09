@@ -228,6 +228,40 @@ namespace MultiHitechERP.API.Controllers.Inventory
         }
 
         /// <summary>
+        /// Receive purchased component directly into inventory
+        /// </summary>
+        [HttpPost("receive-component")]
+        public async Task<ActionResult<ApiResponse<int>>> ReceiveComponent([FromBody] ReceiveComponentRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<int>.ErrorResponse("Invalid request data"));
+
+            var response = await _service.ReceiveComponentAsync(
+                request.ComponentId,
+                request.ComponentName,
+                request.PartNumber ?? "",
+                request.Quantity,
+                request.Unit,
+                request.UnitCost,
+                request.SupplierId,
+                request.SupplierName ?? "",
+                request.InvoiceNo ?? "",
+                request.InvoiceDate,
+                request.PONo ?? "",
+                request.PODate,
+                request.ReceiptDate,
+                request.StorageLocation ?? "Main Warehouse",
+                request.Remarks ?? "",
+                request.ReceivedBy
+            );
+
+            if (!response.Success)
+                return BadRequest(response);
+
+            return Ok(response);
+        }
+
+        /// <summary>
         /// Update stock level parameters
         /// </summary>
         [HttpPut("stock-levels")]

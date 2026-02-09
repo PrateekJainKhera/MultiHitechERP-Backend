@@ -40,5 +40,16 @@ namespace MultiHitechERP.API.Repositories.Interfaces
 
         // Reconciliation
         Task<bool> ReconcileStockAsync(int materialId, decimal actualQuantity, string performedBy, string remarks);
+
+        // GRN Integration - Upsert inventory from GRN data
+        Task<bool> UpsertFromGRNAsync(
+            int materialId,
+            string materialCode,
+            string materialName,
+            decimal lengthToAdd,
+            string uom,
+            string location,
+            string updatedBy,
+            string itemType = "RawMaterial");  // Added itemType parameter
     }
 }

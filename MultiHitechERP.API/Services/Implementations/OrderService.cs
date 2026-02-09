@@ -295,6 +295,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 existingOrder.Quantity = request.Quantity;
                 existingOrder.Status = request.Status;
                 existingOrder.Priority = request.Priority;
+                if (!string.IsNullOrEmpty(request.PlanningStatus))  // ✅ Update planning status if provided
+                {
+                    existingOrder.PlanningStatus = request.PlanningStatus;
+                }
                 existingOrder.OrderValue = request.OrderValue;
                 existingOrder.AdvancePayment = request.AdvancePayment;
                 existingOrder.BalancePayment = request.BalancePayment;

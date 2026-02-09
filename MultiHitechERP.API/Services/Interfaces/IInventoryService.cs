@@ -32,6 +32,25 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<int>> RecordStockAdjustmentAsync(int materialId, decimal quantity, string remarks, string performedBy);
         Task<ApiResponse<bool>> ReconcileStockAsync(int materialId, decimal actualQuantity, string performedBy, string remarks);
 
+        // Component Receipt
+        Task<ApiResponse<int>> ReceiveComponentAsync(
+            int componentId,
+            string componentName,
+            string partNumber,
+            decimal quantity,
+            string unit,
+            decimal? unitCost,
+            int? supplierId,
+            string supplierName,
+            string invoiceNo,
+            DateTime? invoiceDate,
+            string poNo,
+            DateTime? poDate,
+            DateTime receiptDate,
+            string storageLocation,
+            string remarks,
+            string receivedBy);
+
         // Transactions
         Task<ApiResponse<IEnumerable<InventoryTransaction>>> GetTransactionsByMaterialIdAsync(int materialId);
         Task<ApiResponse<IEnumerable<InventoryTransaction>>> GetTransactionsByTypeAsync(string transactionType);

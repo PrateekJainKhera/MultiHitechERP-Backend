@@ -33,5 +33,10 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<MaterialRequisition>> GetApprovedRequisitionsAsync();
         Task<IEnumerable<MaterialRequisition>> GetByPriorityAsync(string priority);
         Task<IEnumerable<MaterialRequisition>> GetOverdueRequisitionsAsync();
+
+        // Requisition Items
+        Task<int> InsertRequisitionItemAsync(MaterialRequisitionItem item);
+        Task<IEnumerable<MaterialRequisitionItem>> GetRequisitionItemsAsync(int requisitionId);
+        Task<bool> DeleteRequisitionItemsAsync(int requisitionId);
     }
 }

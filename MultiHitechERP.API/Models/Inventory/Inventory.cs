@@ -9,9 +9,15 @@ namespace MultiHitechERP.API.Models.Inventory
     public class Inventory
     {
         public int Id { get; set; }
+
+        // Unified inventory fields - ItemType + ItemId
+        public string ItemType { get; set; } = "RawMaterial"; // "RawMaterial", "ChildPart", "FinishedGood"
+        public int ItemId { get; set; } // MaterialId or ChildPartId depending on ItemType
+
+        // Legacy field for backwards compatibility
         public int MaterialId { get; set; }
 
-        // Material Reference (denormalized for quick access)
+        // Item Reference (denormalized for quick access)
         public string? MaterialCode { get; set; }
         public string? MaterialName { get; set; }
         public string? MaterialCategory { get; set; }

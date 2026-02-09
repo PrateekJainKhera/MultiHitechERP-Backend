@@ -44,11 +44,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 SELECT * FROM Inventory_Stock
-                WHERE MaterialId = @MaterialId";
+                WHERE ItemType = @ItemType AND ItemId = @ItemId";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@MaterialId", materialId);
+            command.Parameters.AddWithValue("@ItemType", "RawMaterial");
+            command.Parameters.AddWithValue("@ItemId", materialId);
 
             await connection.OpenAsync();
             using var reader = await command.ExecuteReaderAsync();
@@ -63,8 +64,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 SELECT * FROM Inventory_Stock
-                WHERE IsActive = 1
-                ORDER BY MaterialCode";
+                ORDER BY ItemCode";
 
             var inventories = new List<Inventory>();
 
@@ -228,7 +228,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 SELECT * FROM Inventory_Stock
-                WHERE IsActive = 1
+                WHERE 1=1
                   AND IsLowStock = 1
                 ORDER BY AvailableQuantity ASC";
 
@@ -252,7 +252,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 SELECT * FROM Inventory_Stock
-                WHERE IsActive = 1
+                WHERE 1=1
                   AND IsOutOfStock = 1
                 ORDER BY MaterialCode";
 
@@ -276,7 +276,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 SELECT * FROM Inventory_Stock
-                WHERE IsActive = 1
+                WHERE 1=1
                   AND MaterialCategory = @Category
                 ORDER BY MaterialCode";
 
@@ -301,7 +301,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 SELECT * FROM Inventory_Stock
-                WHERE IsActive = 1
+                WHERE 1=1
                   AND PrimaryStorageLocation = @Location
                 ORDER BY MaterialCode";
 
@@ -326,7 +326,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 SELECT * FROM Inventory_Stock
-                WHERE IsActive = 1
+                WHERE 1=1
                   AND TotalQuantity > 0
                 ORDER BY MaterialCode";
 
@@ -650,38 +650,95 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
+        public async Task<bool> UpsertFromGRNAsync(
+            int materialId,
+            string materialCode,
+            string materialName,
+            decimal lengthToAdd,
+            string uom,
+            string location,
+            string updatedBy,
+            string itemType = "RawMaterial")  // Added itemType parameter with default value
+        {
+            // Use MERGE to handle both INSERT and UPDATE in a single atomic operation
+            // If MaterialCode is null/empty, fetch it from Masters_Materials
+            const string query = @"
+                MERGE Inventory_Stock AS target
+                USING (
+                    SELECT
+                        @ItemType AS ItemType,
+                        @ItemId AS ItemId,
+                        @Location AS Location,
+                        ISNULL(@ItemCode, m.MaterialCode) AS ItemCode,
+                        @ItemName AS ItemName
+                    FROM Masters_Materials m
+                    WHERE m.Id = @ItemId
+                ) AS source
+                ON (target.ItemType = source.ItemType AND target.ItemId = source.ItemId AND target.Location = source.Location)
+                WHEN MATCHED THEN
+                    UPDATE SET
+                        CurrentStock = CurrentStock + @LengthToAdd,
+                        LastUpdated = @LastUpdated,
+                        UpdatedBy = @UpdatedBy
+                WHEN NOT MATCHED THEN
+                    INSERT (ItemType, ItemId, ItemCode, ItemName, CurrentStock, ReservedStock, UOM, Location, MinStockLevel, LastUpdated, UpdatedBy)
+                    VALUES (@ItemType, @ItemId, source.ItemCode, @ItemName, @LengthToAdd, 0, @UOM, @Location, 0, @LastUpdated, @UpdatedBy);";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@ItemType", itemType);  // ✅ Use parameter instead of hardcoded value
+            command.Parameters.AddWithValue("@ItemId", materialId);
+            command.Parameters.AddWithValue("@ItemCode", (object?)materialCode ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ItemName", materialName);
+            command.Parameters.AddWithValue("@LengthToAdd", lengthToAdd);
+            command.Parameters.AddWithValue("@UOM", uom);
+            command.Parameters.AddWithValue("@Location", location);
+            command.Parameters.AddWithValue("@LastUpdated", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@UpdatedBy", updatedBy);
+
+            await connection.OpenAsync();
+            await command.ExecuteNonQueryAsync();
+
+            return true;
+        }
+
         // Mapping Methods
         private static Inventory MapToInventory(IDataReader reader)
         {
+            var itemType = reader.GetString(reader.GetOrdinal("ItemType"));
+            var itemId = reader.GetInt32(reader.GetOrdinal("ItemId"));
+
             return new Inventory
             {
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                MaterialId = reader.GetInt32(reader.GetOrdinal("MaterialId")),
-                MaterialCode = reader.IsDBNull(reader.GetOrdinal("MaterialCode")) ? null : reader.GetString(reader.GetOrdinal("MaterialCode")),
-                MaterialName = reader.IsDBNull(reader.GetOrdinal("MaterialName")) ? null : reader.GetString(reader.GetOrdinal("MaterialName")),
-                MaterialCategory = reader.IsDBNull(reader.GetOrdinal("MaterialCategory")) ? null : reader.GetString(reader.GetOrdinal("MaterialCategory")),
-                TotalQuantity = reader.GetDecimal(reader.GetOrdinal("TotalQuantity")),
-                AvailableQuantity = reader.GetDecimal(reader.GetOrdinal("AvailableQuantity")),
-                AllocatedQuantity = reader.GetDecimal(reader.GetOrdinal("AllocatedQuantity")),
-                IssuedQuantity = reader.GetDecimal(reader.GetOrdinal("IssuedQuantity")),
-                ReservedQuantity = reader.GetDecimal(reader.GetOrdinal("ReservedQuantity")),
+                ItemType = itemType,
+                ItemId = itemId,
+                MaterialId = itemId, // For backwards compatibility
+                MaterialCode = reader.IsDBNull(reader.GetOrdinal("ItemCode")) ? null : reader.GetString(reader.GetOrdinal("ItemCode")),
+                MaterialName = reader.IsDBNull(reader.GetOrdinal("ItemName")) ? null : reader.GetString(reader.GetOrdinal("ItemName")),
+                MaterialCategory = null, // Inventory_Stock doesn't have this column yet
+                TotalQuantity = reader.GetDecimal(reader.GetOrdinal("CurrentStock")),
+                AvailableQuantity = reader.GetDecimal(reader.GetOrdinal("AvailableStock")),
+                AllocatedQuantity = reader.IsDBNull(reader.GetOrdinal("ReservedStock")) ? 0 : reader.GetDecimal(reader.GetOrdinal("ReservedStock")),
+                IssuedQuantity = 0, // Not in Inventory_Stock schema yet
+                ReservedQuantity = reader.IsDBNull(reader.GetOrdinal("ReservedStock")) ? 0 : reader.GetDecimal(reader.GetOrdinal("ReservedStock")),
                 UOM = reader.GetString(reader.GetOrdinal("UOM")),
-                MinimumStock = reader.IsDBNull(reader.GetOrdinal("MinimumStock")) ? null : reader.GetDecimal(reader.GetOrdinal("MinimumStock")),
-                MaximumStock = reader.IsDBNull(reader.GetOrdinal("MaximumStock")) ? null : reader.GetDecimal(reader.GetOrdinal("MaximumStock")),
-                ReorderLevel = reader.IsDBNull(reader.GetOrdinal("ReorderLevel")) ? null : reader.GetDecimal(reader.GetOrdinal("ReorderLevel")),
-                ReorderQuantity = reader.IsDBNull(reader.GetOrdinal("ReorderQuantity")) ? null : reader.GetDecimal(reader.GetOrdinal("ReorderQuantity")),
-                PrimaryStorageLocation = reader.IsDBNull(reader.GetOrdinal("PrimaryStorageLocation")) ? null : reader.GetString(reader.GetOrdinal("PrimaryStorageLocation")),
-                WarehouseCode = reader.IsDBNull(reader.GetOrdinal("WarehouseCode")) ? null : reader.GetString(reader.GetOrdinal("WarehouseCode")),
-                AverageCostPerUnit = reader.IsDBNull(reader.GetOrdinal("AverageCostPerUnit")) ? null : reader.GetDecimal(reader.GetOrdinal("AverageCostPerUnit")),
-                TotalStockValue = reader.IsDBNull(reader.GetOrdinal("TotalStockValue")) ? null : reader.GetDecimal(reader.GetOrdinal("TotalStockValue")),
-                IsLowStock = reader.GetBoolean(reader.GetOrdinal("IsLowStock")),
-                IsOutOfStock = reader.GetBoolean(reader.GetOrdinal("IsOutOfStock")),
-                IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
-                LastStockInDate = reader.IsDBNull(reader.GetOrdinal("LastStockInDate")) ? null : reader.GetDateTime(reader.GetOrdinal("LastStockInDate")),
-                LastStockOutDate = reader.IsDBNull(reader.GetOrdinal("LastStockOutDate")) ? null : reader.GetDateTime(reader.GetOrdinal("LastStockOutDate")),
-                LastCountDate = reader.IsDBNull(reader.GetOrdinal("LastCountDate")) ? null : reader.GetDateTime(reader.GetOrdinal("LastCountDate")),
-                CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
-                UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
+                MinimumStock = reader.IsDBNull(reader.GetOrdinal("MinStockLevel")) ? null : reader.GetDecimal(reader.GetOrdinal("MinStockLevel")),
+                MaximumStock = reader.IsDBNull(reader.GetOrdinal("MaxStockLevel")) ? null : reader.GetDecimal(reader.GetOrdinal("MaxStockLevel")),
+                ReorderLevel = null, // Not in Inventory_Stock yet
+                ReorderQuantity = null, // Not in Inventory_Stock yet
+                PrimaryStorageLocation = reader.IsDBNull(reader.GetOrdinal("Location")) ? null : reader.GetString(reader.GetOrdinal("Location")),
+                WarehouseCode = null, // Not in Inventory_Stock yet
+                AverageCostPerUnit = null, // Not in Inventory_Stock yet
+                TotalStockValue = null, // Not in Inventory_Stock yet
+                IsLowStock = false, // Calculate based on MinStockLevel
+                IsOutOfStock = reader.GetDecimal(reader.GetOrdinal("AvailableStock")) <= 0,
+                IsActive = true,
+                LastStockInDate = null, // Not in Inventory_Stock yet
+                LastStockOutDate = null, // Not in Inventory_Stock yet
+                LastCountDate = null, // Not in Inventory_Stock yet
+                CreatedAt = DateTime.UtcNow, // Default for now
+                UpdatedAt = reader.IsDBNull(reader.GetOrdinal("LastUpdated")) ? null : reader.GetDateTime(reader.GetOrdinal("LastUpdated")),
                 UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy"))
             };
         }

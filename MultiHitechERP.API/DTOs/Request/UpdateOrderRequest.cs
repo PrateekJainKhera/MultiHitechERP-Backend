@@ -31,6 +31,7 @@ namespace MultiHitechERP.API.DTOs.Request
 
         public string Status { get; set; } = "Pending";
         public string Priority { get; set; } = "Medium";
+        public string? PlanningStatus { get; set; }  // Added for planning workflow
 
         public decimal? OrderValue { get; set; }
         public decimal? AdvancePayment { get; set; }

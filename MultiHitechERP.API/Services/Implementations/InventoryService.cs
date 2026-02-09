@@ -446,5 +446,76 @@ namespace MultiHitechERP.API.Services.Implementations
 
             return ApiResponse<bool>.SuccessResponse(true);
         }
+
+        public async Task<ApiResponse<int>> ReceiveComponentAsync(
+            int componentId,
+            string componentName,
+            string partNumber,
+            decimal quantity,
+            string unit,
+            decimal? unitCost,
+            int? supplierId,
+            string supplierName,
+            string invoiceNo,
+            DateTime? invoiceDate,
+            string poNo,
+            DateTime? poDate,
+            DateTime receiptDate,
+            string storageLocation,
+            string remarks,
+            string receivedBy)
+        {
+            try
+            {
+                // Generate receipt transaction number
+                string transactionNo = $"CR-{DateTime.UtcNow:yyyyMMddHHmmss}";
+
+                // Upsert inventory using UpsertFromGRNAsync (works for components too)
+                // Using ItemType = "Component" to differentiate from raw materials
+                await _inventoryRepository.UpsertFromGRNAsync(
+                    componentId,
+                    partNumber,
+                    componentName,
+                    quantity,
+                    unit,
+                    storageLocation,
+                    receivedBy,
+                    "Component"  // ✅ Pass "Component" as ItemType
+                );
+
+                // Create transaction record
+                var transaction = new InventoryTransaction
+                {
+                    MaterialId = componentId, // Using MaterialId field for ComponentId (backwards compatible)
+                    TransactionType = "ComponentReceipt",
+                    TransactionNo = transactionNo,
+                    TransactionDate = receiptDate,
+                    Quantity = quantity,
+                    UOM = unit,
+                    ReferenceType = "ComponentReceipt",
+                    ReferenceNo = invoiceNo ?? poNo ?? transactionNo,
+                    FromLocation = supplierName ?? "External Supplier",
+                    ToLocation = storageLocation,
+                    UnitCost = unitCost,
+                    TotalCost = unitCost.HasValue ? unitCost.Value * quantity : null,
+                    BalanceQuantity = quantity, // This will be updated by the repository
+                    Remarks = remarks ?? $"Component receipt from {supplierName}",
+                    PerformedBy = receivedBy,
+                    SupplierId = supplierId,
+                    GRNNo = invoiceNo,
+                    CreatedBy = receivedBy
+                };
+
+                var transactionId = await _inventoryRepository.InsertTransactionAsync(transaction);
+
+                return ApiResponse<int>.SuccessResponse(
+                    transactionId,
+                    $"Component received successfully. Transaction: {transactionNo}");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<int>.ErrorResponse($"Failed to receive component: {ex.Message}");
+            }
+        }
     }
 }

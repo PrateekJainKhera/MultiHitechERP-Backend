@@ -22,6 +22,8 @@ namespace MultiHitechERP.API.Services.Interfaces
 
         // Create, Update, Delete
         Task<ApiResponse<int>> CreateRequisitionAsync(MaterialRequisition requisition);
+        Task<ApiResponse<int>> CreateRequisitionWithItemsAsync(MaterialRequisition requisition, List<MaterialRequisitionItem> items);
+        Task<ApiResponse<IEnumerable<MaterialRequisitionItem>>> GetRequisitionItemsAsync(int requisitionId);
         Task<ApiResponse<bool>> UpdateRequisitionAsync(MaterialRequisition requisition);
         Task<ApiResponse<bool>> DeleteRequisitionAsync(int id);
 

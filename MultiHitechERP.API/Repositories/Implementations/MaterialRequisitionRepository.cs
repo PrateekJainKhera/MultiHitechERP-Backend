@@ -404,5 +404,129 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@CreatedAt", requisition.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", (object?)requisition.CreatedBy ?? DBNull.Value);
         }
+
+        // Requisition Item Methods
+        public async Task<int> InsertRequisitionItemAsync(MaterialRequisitionItem item)
+        {
+            const string query = @"
+                INSERT INTO [Stores_MaterialRequisitionItems]
+                ([RequisitionId], [LineNo], [MaterialId], [MaterialCode], [MaterialName], [MaterialGrade],
+                 [RequestedQuantity], [IssuedQuantity],
+                 [QuantityRequired], [UOM], [LengthRequiredMM], [DiameterMM], [NumberOfPieces],
+                 [QuantityAllocated], [QuantityIssued], [QuantityPending], [Status],
+                 [JobCardId], [JobCardNo], [ProcessId], [ProcessName], [Remarks], [CreatedAt])
+                VALUES
+                (@RequisitionId, @LineNo, @MaterialId, @MaterialCode, @MaterialName, @MaterialGrade,
+                 @RequestedQuantity, @IssuedQuantity,
+                 @QuantityRequired, @UOM, @LengthRequiredMM, @DiameterMM, @NumberOfPieces,
+                 @QuantityAllocated, @QuantityIssued, @QuantityPending, @Status,
+                 @JobCardId, @JobCardNo, @ProcessId, @ProcessName, @Remarks, @CreatedAt);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+            item.CreatedAt = DateTime.UtcNow;
+            item.Status = "Pending";
+            item.QuantityPending = item.QuantityRequired;
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+
+            command.Parameters.AddWithValue("@RequisitionId", item.RequisitionId);
+            command.Parameters.AddWithValue("@LineNo", item.LineNo);
+            command.Parameters.AddWithValue("@MaterialId", item.MaterialId);
+            command.Parameters.AddWithValue("@MaterialCode", (object?)item.MaterialCode ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MaterialName", (object?)item.MaterialName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MaterialGrade", (object?)item.MaterialGrade ?? DBNull.Value);
+            // Map to both old and new columns for backward compatibility
+            command.Parameters.AddWithValue("@RequestedQuantity", item.QuantityRequired);
+            command.Parameters.AddWithValue("@IssuedQuantity", (object?)item.QuantityIssued ?? 0);
+            command.Parameters.AddWithValue("@QuantityRequired", item.QuantityRequired);
+            command.Parameters.AddWithValue("@UOM", (object?)item.UOM ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LengthRequiredMM", (object?)item.LengthRequiredMM ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DiameterMM", (object?)item.DiameterMM ?? DBNull.Value);
+            command.Parameters.AddWithValue("@NumberOfPieces", (object?)item.NumberOfPieces ?? DBNull.Value);
+            command.Parameters.AddWithValue("@QuantityAllocated", (object?)item.QuantityAllocated ?? DBNull.Value);
+            command.Parameters.AddWithValue("@QuantityIssued", (object?)item.QuantityIssued ?? DBNull.Value);
+            command.Parameters.AddWithValue("@QuantityPending", (object?)item.QuantityPending ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Status", item.Status);
+            command.Parameters.AddWithValue("@JobCardId", (object?)item.JobCardId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@JobCardNo", (object?)item.JobCardNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProcessId", (object?)item.ProcessId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProcessName", (object?)item.ProcessName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Remarks", (object?)item.Remarks ?? DBNull.Value);
+            command.Parameters.AddWithValue("@CreatedAt", item.CreatedAt);
+
+            await connection.OpenAsync();
+            var itemId = (int)await command.ExecuteScalarAsync();
+
+            return itemId;
+        }
+
+        public async Task<IEnumerable<MaterialRequisitionItem>> GetRequisitionItemsAsync(int requisitionId)
+        {
+            const string query = @"
+                SELECT * FROM [Stores_MaterialRequisitionItems]
+                WHERE [RequisitionId] = @RequisitionId
+                ORDER BY [LineNo]";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@RequisitionId", requisitionId);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            var items = new List<MaterialRequisitionItem>();
+            while (await reader.ReadAsync())
+            {
+                items.Add(MapToRequisitionItem(reader));
+            }
+
+            return items;
+        }
+
+        public async Task<bool> DeleteRequisitionItemsAsync(int requisitionId)
+        {
+            const string query = "DELETE FROM Stores_MaterialRequisitionItems WHERE RequisitionId = @RequisitionId";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@RequisitionId", requisitionId);
+
+            await connection.OpenAsync();
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+
+            return rowsAffected > 0;
+        }
+
+        private static MaterialRequisitionItem MapToRequisitionItem(SqlDataReader reader)
+        {
+            return new MaterialRequisitionItem
+            {
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                RequisitionId = reader.GetInt32(reader.GetOrdinal("RequisitionId")),
+                LineNo = reader.GetInt32(reader.GetOrdinal("LineNo")),
+                MaterialId = reader.GetInt32(reader.GetOrdinal("MaterialId")),
+                MaterialCode = reader.IsDBNull(reader.GetOrdinal("MaterialCode")) ? null : reader.GetString(reader.GetOrdinal("MaterialCode")),
+                MaterialName = reader.IsDBNull(reader.GetOrdinal("MaterialName")) ? null : reader.GetString(reader.GetOrdinal("MaterialName")),
+                MaterialGrade = reader.IsDBNull(reader.GetOrdinal("MaterialGrade")) ? null : reader.GetString(reader.GetOrdinal("MaterialGrade")),
+                QuantityRequired = reader.GetDecimal(reader.GetOrdinal("QuantityRequired")),
+                UOM = reader.IsDBNull(reader.GetOrdinal("UOM")) ? null : reader.GetString(reader.GetOrdinal("UOM")),
+                LengthRequiredMM = reader.IsDBNull(reader.GetOrdinal("LengthRequiredMM")) ? null : reader.GetDecimal(reader.GetOrdinal("LengthRequiredMM")),
+                DiameterMM = reader.IsDBNull(reader.GetOrdinal("DiameterMM")) ? null : reader.GetDecimal(reader.GetOrdinal("DiameterMM")),
+                NumberOfPieces = reader.IsDBNull(reader.GetOrdinal("NumberOfPieces")) ? null : reader.GetInt32(reader.GetOrdinal("NumberOfPieces")),
+                QuantityAllocated = reader.IsDBNull(reader.GetOrdinal("QuantityAllocated")) ? null : reader.GetDecimal(reader.GetOrdinal("QuantityAllocated")),
+                QuantityIssued = reader.IsDBNull(reader.GetOrdinal("QuantityIssued")) ? null : reader.GetDecimal(reader.GetOrdinal("QuantityIssued")),
+                QuantityPending = reader.IsDBNull(reader.GetOrdinal("QuantityPending")) ? null : reader.GetDecimal(reader.GetOrdinal("QuantityPending")),
+                Status = reader.GetString(reader.GetOrdinal("Status")),
+                AllocatedAt = reader.IsDBNull(reader.GetOrdinal("AllocatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("AllocatedAt")),
+                IssuedAt = reader.IsDBNull(reader.GetOrdinal("IssuedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("IssuedAt")),
+                JobCardId = reader.IsDBNull(reader.GetOrdinal("JobCardId")) ? null : reader.GetInt32(reader.GetOrdinal("JobCardId")),
+                JobCardNo = reader.IsDBNull(reader.GetOrdinal("JobCardNo")) ? null : reader.GetString(reader.GetOrdinal("JobCardNo")),
+                ProcessId = reader.IsDBNull(reader.GetOrdinal("ProcessId")) ? null : reader.GetInt32(reader.GetOrdinal("ProcessId")),
+                ProcessName = reader.IsDBNull(reader.GetOrdinal("ProcessName")) ? null : reader.GetString(reader.GetOrdinal("ProcessName")),
+                Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
+                CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
+            };
+        }
     }
 }

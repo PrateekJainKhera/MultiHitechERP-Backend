@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace MultiHitechERP.API.DTOs.Request
@@ -41,5 +42,10 @@ namespace MultiHitechERP.API.DTOs.Request
 
         [StringLength(100)]
         public string? CreatedBy { get; set; }
+
+        /// <summary>
+        /// List of material requisition items (line items)
+        /// </summary>
+        public List<CreateMaterialRequisitionItemRequest>? Items { get; set; }
     }
 }

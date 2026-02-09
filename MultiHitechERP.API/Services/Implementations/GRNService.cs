@@ -14,11 +14,13 @@ namespace MultiHitechERP.API.Services.Implementations
     {
         private readonly IGRNRepository _grnRepo;
         private readonly IMaterialPieceRepository _pieceRepo;
+        private readonly IInventoryRepository _inventoryRepo;
 
-        public GRNService(IGRNRepository grnRepo, IMaterialPieceRepository pieceRepo)
+        public GRNService(IGRNRepository grnRepo, IMaterialPieceRepository pieceRepo, IInventoryRepository inventoryRepo)
         {
             _grnRepo = grnRepo;
             _pieceRepo = pieceRepo;
+            _inventoryRepo = inventoryRepo;
         }
 
         public async Task<GRNResponse> CreateGRNAsync(CreateGRNRequest request)
@@ -126,6 +128,32 @@ namespace MultiHitechERP.API.Services.Implementations
             grn.TotalWeight = totalWeight;
             grn.TotalValue = totalValue;
             await _grnRepo.UpdateAsync(grn);
+
+            // Update Inventory_Stock for each material line
+            foreach (var lineReq in request.Lines)
+            {
+                // Calculate length from weight (same logic as above)
+                var (calculatedLength, weightPerMeter) = CalculateLengthFromWeight(lineReq);
+
+                // Determine UOM based on material type
+                string uom = lineReq.MaterialType == "Rod" || lineReq.MaterialType == "Pipe" || lineReq.MaterialType == "Forged"
+                    ? "mm"
+                    : "kg";
+
+                // Determine what to add to inventory
+                decimal quantityToAdd = uom == "mm" ? calculatedLength : lineReq.TotalWeightKG;
+
+                // Upsert inventory stock (MaterialCode will be fetched from Masters_Materials)
+                await _inventoryRepo.UpsertFromGRNAsync(
+                    lineReq.MaterialId,
+                    null, // Will be fetched from Masters_Materials
+                    lineReq.MaterialName,
+                    quantityToAdd,
+                    uom,
+                    "Main Warehouse",
+                    request.CreatedBy
+                );
+            }
 
             return MapToResponse(grn);
         }

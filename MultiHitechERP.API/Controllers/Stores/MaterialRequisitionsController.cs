@@ -53,6 +53,20 @@ namespace MultiHitechERP.API.Controllers.Stores
         }
 
         /// <summary>
+        /// Get material requisition items by requisition ID
+        /// </summary>
+        [HttpGet("{id:int}/items")]
+        public async Task<ActionResult<ApiResponse<MaterialRequisitionItemResponse[]>>> GetItems(int id)
+        {
+            var response = await _service.GetRequisitionItemsAsync(id);
+            if (!response.Success)
+                return BadRequest(response);
+
+            var dtos = response.Data.Select(MapToItemResponse).ToArray();
+            return Ok(ApiResponse<MaterialRequisitionItemResponse[]>.SuccessResponse(dtos));
+        }
+
+        /// <summary>
         /// Get material requisition by requisition number
         /// </summary>
         [HttpGet("by-requisition-no/{requisitionNo}")]
@@ -189,11 +203,42 @@ namespace MultiHitechERP.API.Controllers.Stores
                 CreatedBy = request.CreatedBy
             };
 
-            var response = await _service.CreateRequisitionAsync(requisition);
-            if (!response.Success)
-                return BadRequest(response);
+            // Check if items are provided
+            if (request.Items != null && request.Items.Count > 0)
+            {
+                // Map request items to model items
+                var items = request.Items.Select(item => new MaterialRequisitionItem
+                {
+                    MaterialId = item.MaterialId,
+                    MaterialCode = item.MaterialCode,
+                    MaterialName = item.MaterialName,
+                    MaterialGrade = item.MaterialGrade,
+                    QuantityRequired = item.QuantityRequired,
+                    UOM = item.UOM,
+                    LengthRequiredMM = item.LengthRequiredMM,
+                    DiameterMM = item.DiameterMM,
+                    NumberOfPieces = item.NumberOfPieces,
+                    JobCardId = item.JobCardId,
+                    JobCardNo = item.JobCardNo,
+                    ProcessId = item.ProcessId,
+                    ProcessName = item.ProcessName,
+                    Remarks = item.Remarks
+                }).ToList();
 
-            return Ok(response);
+                var response = await _service.CreateRequisitionWithItemsAsync(requisition, items);
+                if (!response.Success)
+                    return BadRequest(response);
+
+                return Ok(response);
+            }
+            else
+            {
+                var response = await _service.CreateRequisitionAsync(requisition);
+                if (!response.Success)
+                    return BadRequest(response);
+
+                return Ok(response);
+            }
         }
 
         /// <summary>
@@ -405,6 +450,37 @@ namespace MultiHitechERP.API.Controllers.Stores
                 Remarks = requisition.Remarks,
                 CreatedAt = requisition.CreatedAt,
                 CreatedBy = requisition.CreatedBy
+            };
+        }
+
+        private static MaterialRequisitionItemResponse MapToItemResponse(MaterialRequisitionItem item)
+        {
+            return new MaterialRequisitionItemResponse
+            {
+                Id = item.Id,
+                RequisitionId = item.RequisitionId,
+                LineNo = item.LineNo,
+                MaterialId = item.MaterialId,
+                MaterialCode = item.MaterialCode,
+                MaterialName = item.MaterialName,
+                MaterialGrade = item.MaterialGrade,
+                QuantityRequired = item.QuantityRequired,
+                UOM = item.UOM,
+                LengthRequiredMM = item.LengthRequiredMM,
+                DiameterMM = item.DiameterMM,
+                NumberOfPieces = item.NumberOfPieces,
+                QuantityAllocated = item.QuantityAllocated,
+                QuantityIssued = item.QuantityIssued,
+                QuantityPending = item.QuantityPending,
+                Status = item.Status,
+                JobCardId = item.JobCardId,
+                JobCardNo = item.JobCardNo,
+                ProcessId = item.ProcessId,
+                ProcessName = item.ProcessName,
+                Remarks = item.Remarks,
+                AllocatedAt = item.AllocatedAt,
+                IssuedAt = item.IssuedAt,
+                CreatedAt = item.CreatedAt
             };
         }
 

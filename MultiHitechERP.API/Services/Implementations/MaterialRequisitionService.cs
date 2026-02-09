@@ -102,6 +102,56 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<int>.SuccessResponse(id, "Material requisition created successfully");
         }
 
+        public async Task<ApiResponse<int>> CreateRequisitionWithItemsAsync(MaterialRequisition requisition, List<MaterialRequisitionItem> items)
+        {
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(requisition.RequisitionNo))
+                return ApiResponse<int>.ErrorResponse("Requisition number is required");
+
+            if (requisition.RequisitionDate == default)
+                return ApiResponse<int>.ErrorResponse("Requisition date is required");
+
+            // Check for duplicate requisition number
+            var existing = await _requisitionRepository.GetByRequisitionNoAsync(requisition.RequisitionNo);
+            if (existing != null)
+                return ApiResponse<int>.ErrorResponse($"Requisition number '{requisition.RequisitionNo}' already exists");
+
+            // Set default values
+            if (string.IsNullOrWhiteSpace(requisition.Status))
+                requisition.Status = "Pending";
+
+            if (string.IsNullOrWhiteSpace(requisition.Priority))
+                requisition.Priority = "Medium";
+
+            // Create requisition
+            var requisitionId = await _requisitionRepository.InsertAsync(requisition);
+
+            // Create requisition items if provided
+            if (items != null && items.Count > 0)
+            {
+                int lineNo = 1;
+                foreach (var item in items)
+                {
+                    item.RequisitionId = requisitionId;
+                    item.LineNo = lineNo++;
+                    await _requisitionRepository.InsertRequisitionItemAsync(item);
+                }
+            }
+
+            return ApiResponse<int>.SuccessResponse(requisitionId, $"Material requisition created successfully with {items?.Count ?? 0} item(s)");
+        }
+
+        public async Task<ApiResponse<IEnumerable<MaterialRequisitionItem>>> GetRequisitionItemsAsync(int requisitionId)
+        {
+            // Validate requisition exists
+            var requisition = await _requisitionRepository.GetByIdAsync(requisitionId);
+            if (requisition == null)
+                return ApiResponse<IEnumerable<MaterialRequisitionItem>>.ErrorResponse("Material requisition not found");
+
+            var items = await _requisitionRepository.GetRequisitionItemsAsync(requisitionId);
+            return ApiResponse<IEnumerable<MaterialRequisitionItem>>.SuccessResponse(items);
+        }
+
         public async Task<ApiResponse<bool>> UpdateRequisitionAsync(MaterialRequisition requisition)
         {
             // Check if requisition exists
