@@ -39,7 +39,7 @@ namespace MultiHitechERP.API.Controllers.Inventory
         /// <summary>
         /// Get inventory by ID
         /// </summary>
-        [HttpGet("{id:guid}")]
+        [HttpGet("{id:int}")]
         public async Task<ActionResult<ApiResponse<InventoryResponse>>> GetById(int id)
         {
             var response = await _service.GetByIdAsync(id);
@@ -53,7 +53,7 @@ namespace MultiHitechERP.API.Controllers.Inventory
         /// <summary>
         /// Get inventory by material ID
         /// </summary>
-        [HttpGet("by-material/{materialId:guid}")]
+        [HttpGet("by-material/{materialId:int}")]
         public async Task<ActionResult<ApiResponse<InventoryResponse>>> GetByMaterialId(int materialId)
         {
             var response = await _service.GetByMaterialIdAsync(materialId);
@@ -253,7 +253,7 @@ namespace MultiHitechERP.API.Controllers.Inventory
         /// <summary>
         /// Get transactions by material ID
         /// </summary>
-        [HttpGet("transactions/by-material/{materialId:guid}")]
+        [HttpGet("transactions/by-material/{materialId:int}")]
         public async Task<ActionResult<ApiResponse<InventoryTransactionResponse[]>>> GetTransactionsByMaterialId(int materialId)
         {
             var response = await _service.GetTransactionsByMaterialIdAsync(materialId);

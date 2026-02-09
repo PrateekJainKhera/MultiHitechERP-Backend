@@ -64,7 +64,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<int>.ErrorResponse($"Invalid material type. Must be one of: {string.Join(", ", validTypes)}");
 
                 // Business validation: Validate Grade
-                var validGrades = new[] { "EN8", "EN19", "EN24", "SS304", "SS316", "Alloy Steel" };
+                var validGrades = new[] { "EN8", "EN19", "EN24", "SS304", "SS316", "Alloy Steel", "6061", "6063", "Standard" };
                 if (!validGrades.Contains(request.Grade))
                     return ApiResponse<int>.ErrorResponse($"Invalid grade. Must be one of: {string.Join(", ", validGrades)}");
 
@@ -153,7 +153,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse($"Invalid material type. Must be one of: {string.Join(", ", validTypes)}");
 
                 // Business validation: Validate Grade
-                var validGrades = new[] { "EN8", "EN19", "EN24", "SS304", "SS316", "Alloy Steel" };
+                var validGrades = new[] { "EN8", "EN19", "EN24", "SS304", "SS316", "Alloy Steel", "6061", "6063", "Standard" };
                 if (!validGrades.Contains(request.Grade))
                     return ApiResponse<bool>.ErrorResponse($"Invalid grade. Must be one of: {string.Join(", ", validGrades)}");
 
