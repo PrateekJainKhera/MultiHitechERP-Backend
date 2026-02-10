@@ -42,6 +42,13 @@ namespace MultiHitechERP.API.Models.Stores
         public int? ProcessId { get; set; }
         public string? ProcessName { get; set; }
 
+        // Pre-selected pieces (stored as comma-separated IDs)
+        /// <summary>
+        /// Comma-separated list of pre-selected material piece IDs.
+        /// If provided, these specific pieces should be allocated instead of auto-allocation.
+        /// </summary>
+        public string? SelectedPieceIds { get; set; }
+
         public string? Remarks { get; set; }
         public DateTime CreatedAt { get; set; }
     }

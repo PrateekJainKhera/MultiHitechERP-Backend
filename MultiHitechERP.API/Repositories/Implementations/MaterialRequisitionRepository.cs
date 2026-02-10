@@ -414,13 +414,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
                  [RequestedQuantity], [IssuedQuantity],
                  [QuantityRequired], [UOM], [LengthRequiredMM], [DiameterMM], [NumberOfPieces],
                  [QuantityAllocated], [QuantityIssued], [QuantityPending], [Status],
-                 [JobCardId], [JobCardNo], [ProcessId], [ProcessName], [Remarks], [CreatedAt])
+                 [JobCardId], [JobCardNo], [ProcessId], [ProcessName], [SelectedPieceIds], [Remarks], [CreatedAt])
                 VALUES
                 (@RequisitionId, @LineNo, @MaterialId, @MaterialCode, @MaterialName, @MaterialGrade,
                  @RequestedQuantity, @IssuedQuantity,
                  @QuantityRequired, @UOM, @LengthRequiredMM, @DiameterMM, @NumberOfPieces,
                  @QuantityAllocated, @QuantityIssued, @QuantityPending, @Status,
-                 @JobCardId, @JobCardNo, @ProcessId, @ProcessName, @Remarks, @CreatedAt);
+                 @JobCardId, @JobCardNo, @ProcessId, @ProcessName, @SelectedPieceIds, @Remarks, @CreatedAt);
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             item.CreatedAt = DateTime.UtcNow;
@@ -452,6 +452,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@JobCardNo", (object?)item.JobCardNo ?? DBNull.Value);
             command.Parameters.AddWithValue("@ProcessId", (object?)item.ProcessId ?? DBNull.Value);
             command.Parameters.AddWithValue("@ProcessName", (object?)item.ProcessName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SelectedPieceIds", (object?)item.SelectedPieceIds ?? DBNull.Value);
             command.Parameters.AddWithValue("@Remarks", (object?)item.Remarks ?? DBNull.Value);
             command.Parameters.AddWithValue("@CreatedAt", item.CreatedAt);
 

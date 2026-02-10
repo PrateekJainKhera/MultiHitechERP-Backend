@@ -222,6 +222,9 @@ namespace MultiHitechERP.API.Controllers.Stores
                     JobCardNo = item.JobCardNo,
                     ProcessId = item.ProcessId,
                     ProcessName = item.ProcessName,
+                    SelectedPieceIds = item.SelectedPieceIds != null && item.SelectedPieceIds.Count > 0
+                        ? string.Join(",", item.SelectedPieceIds)
+                        : null,
                     Remarks = item.Remarks
                 }).ToList();
 
@@ -455,6 +458,24 @@ namespace MultiHitechERP.API.Controllers.Stores
 
         private static MaterialRequisitionItemResponse MapToItemResponse(MaterialRequisitionItem item)
         {
+            // Parse comma-separated SelectedPieceIds back to List<int>
+            List<int>? selectedPieceIds = null;
+            if (!string.IsNullOrWhiteSpace(item.SelectedPieceIds))
+            {
+                try
+                {
+                    selectedPieceIds = item.SelectedPieceIds
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(int.Parse)
+                        .ToList();
+                }
+                catch
+                {
+                    // If parsing fails, leave as null
+                    selectedPieceIds = null;
+                }
+            }
+
             return new MaterialRequisitionItemResponse
             {
                 Id = item.Id,
@@ -477,6 +498,7 @@ namespace MultiHitechERP.API.Controllers.Stores
                 JobCardNo = item.JobCardNo,
                 ProcessId = item.ProcessId,
                 ProcessName = item.ProcessName,
+                SelectedPieceIds = selectedPieceIds,
                 Remarks = item.Remarks,
                 AllocatedAt = item.AllocatedAt,
                 IssuedAt = item.IssuedAt,

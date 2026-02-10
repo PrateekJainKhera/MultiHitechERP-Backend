@@ -33,6 +33,11 @@ namespace MultiHitechERP.API.DTOs.Response
         public int? ProcessId { get; set; }
         public string? ProcessName { get; set; }
 
+        /// <summary>
+        /// List of pre-selected material piece IDs for this requisition item
+        /// </summary>
+        public List<int>? SelectedPieceIds { get; set; }
+
         public string? Remarks { get; set; }
         public DateTime? AllocatedAt { get; set; }
         public DateTime? IssuedAt { get; set; }

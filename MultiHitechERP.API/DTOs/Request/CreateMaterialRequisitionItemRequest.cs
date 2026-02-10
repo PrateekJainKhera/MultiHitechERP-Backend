@@ -34,6 +34,13 @@ namespace MultiHitechERP.API.DTOs.Request
         public int? ProcessId { get; set; }
         public string? ProcessName { get; set; }
 
+        // Pre-allocated pieces (optional - for piece-level inventory control)
+        /// <summary>
+        /// Optional list of pre-selected material piece IDs for this requisition item.
+        /// If provided, these pieces will be allocated instead of using automatic FIFO allocation.
+        /// </summary>
+        public List<int>? SelectedPieceIds { get; set; }
+
         public string? Remarks { get; set; }
     }
 }
