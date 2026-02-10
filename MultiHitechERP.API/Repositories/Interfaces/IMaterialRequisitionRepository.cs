@@ -38,5 +38,6 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<int> InsertRequisitionItemAsync(MaterialRequisitionItem item);
         Task<IEnumerable<MaterialRequisitionItem>> GetRequisitionItemsAsync(int requisitionId);
         Task<bool> DeleteRequisitionItemsAsync(int requisitionId);
+        Task<bool> UpdateItemSelectedPiecesAsync(int itemId, string? selectedPieceIds);
     }
 }

@@ -170,6 +170,27 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true, "Material requisition updated successfully");
         }
 
+        public async Task<ApiResponse<bool>> UpdateItemSelectedPiecesAsync(int requisitionId, int itemId, List<int> pieceIds)
+        {
+            // Verify the requisition exists and item belongs to it
+            var items = await _requisitionRepository.GetRequisitionItemsAsync(requisitionId);
+            var item = System.Linq.Enumerable.FirstOrDefault(items, i => i.Id == itemId);
+            if (item == null)
+                return ApiResponse<bool>.ErrorResponse("Requisition item not found");
+
+            // Only allow update if not already selected during planning (empty/null)
+            if (!string.IsNullOrWhiteSpace(item.SelectedPieceIds))
+                return ApiResponse<bool>.ErrorResponse("Piece selection was already set during planning and cannot be changed here");
+
+            var selectedPieceIds = pieceIds.Count > 0 ? string.Join(",", pieceIds) : null;
+            var success = await _requisitionRepository.UpdateItemSelectedPiecesAsync(itemId, selectedPieceIds);
+
+            if (!success)
+                return ApiResponse<bool>.ErrorResponse("Failed to update selected pieces");
+
+            return ApiResponse<bool>.SuccessResponse(true, "Selected pieces updated successfully");
+        }
+
         public async Task<ApiResponse<bool>> DeleteRequisitionAsync(int id)
         {
             // Check if requisition exists

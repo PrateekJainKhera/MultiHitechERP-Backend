@@ -26,6 +26,7 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<IEnumerable<MaterialRequisitionItem>>> GetRequisitionItemsAsync(int requisitionId);
         Task<ApiResponse<bool>> UpdateRequisitionAsync(MaterialRequisition requisition);
         Task<ApiResponse<bool>> DeleteRequisitionAsync(int id);
+        Task<ApiResponse<bool>> UpdateItemSelectedPiecesAsync(int requisitionId, int itemId, List<int> pieceIds);
 
         // Approval Workflow
         Task<ApiResponse<bool>> ApproveRequisitionAsync(int id, string approvedBy);

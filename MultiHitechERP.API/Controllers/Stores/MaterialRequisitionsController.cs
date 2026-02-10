@@ -328,6 +328,19 @@ namespace MultiHitechERP.API.Controllers.Stores
         }
 
         /// <summary>
+        /// Update selected piece IDs for a requisition item (only if not set during planning)
+        /// </summary>
+        [HttpPatch("{id:int}/items/{itemId:int}/selected-pieces")]
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateItemSelectedPieces(int id, int itemId, [FromBody] UpdateItemSelectedPiecesRequest request)
+        {
+            var response = await _service.UpdateItemSelectedPiecesAsync(id, itemId, request.PieceIds);
+            if (!response.Success)
+                return BadRequest(response);
+
+            return Ok(response);
+        }
+
+        /// <summary>
         /// Update requisition status
         /// </summary>
         [HttpPatch("{id:int}/status")]
@@ -575,5 +588,10 @@ namespace MultiHitechERP.API.Controllers.Stores
     {
         [System.ComponentModel.DataAnnotations.Required]
         public string Status { get; set; } = string.Empty;
+    }
+
+    public class UpdateItemSelectedPiecesRequest
+    {
+        public List<int> PieceIds { get; set; } = new();
     }
 }

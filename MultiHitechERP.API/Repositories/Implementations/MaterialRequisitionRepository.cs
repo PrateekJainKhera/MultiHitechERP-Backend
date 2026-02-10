@@ -499,6 +499,24 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
+        public async Task<bool> UpdateItemSelectedPiecesAsync(int itemId, string? selectedPieceIds)
+        {
+            const string query = @"
+                UPDATE Stores_MaterialRequisitionItems
+                SET SelectedPieceIds = @SelectedPieceIds
+                WHERE Id = @Id";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", itemId);
+            command.Parameters.AddWithValue("@SelectedPieceIds", (object?)selectedPieceIds ?? DBNull.Value);
+
+            await connection.OpenAsync();
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+
+            return rowsAffected > 0;
+        }
+
         private static MaterialRequisitionItem MapToRequisitionItem(SqlDataReader reader)
         {
             return new MaterialRequisitionItem
