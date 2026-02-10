@@ -411,12 +411,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 INSERT INTO [Stores_MaterialRequisitionItems]
                 ([RequisitionId], [LineNo], [MaterialId], [MaterialCode], [MaterialName], [MaterialGrade],
+                 [ComponentId], [ComponentCode], [ComponentName],
                  [RequestedQuantity], [IssuedQuantity],
                  [QuantityRequired], [UOM], [LengthRequiredMM], [DiameterMM], [NumberOfPieces],
                  [QuantityAllocated], [QuantityIssued], [QuantityPending], [Status],
                  [JobCardId], [JobCardNo], [ProcessId], [ProcessName], [SelectedPieceIds], [Remarks], [CreatedAt])
                 VALUES
                 (@RequisitionId, @LineNo, @MaterialId, @MaterialCode, @MaterialName, @MaterialGrade,
+                 @ComponentId, @ComponentCode, @ComponentName,
                  @RequestedQuantity, @IssuedQuantity,
                  @QuantityRequired, @UOM, @LengthRequiredMM, @DiameterMM, @NumberOfPieces,
                  @QuantityAllocated, @QuantityIssued, @QuantityPending, @Status,
@@ -432,10 +434,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
             command.Parameters.AddWithValue("@RequisitionId", item.RequisitionId);
             command.Parameters.AddWithValue("@LineNo", item.LineNo);
-            command.Parameters.AddWithValue("@MaterialId", item.MaterialId);
+            command.Parameters.AddWithValue("@MaterialId", (object?)item.MaterialId ?? DBNull.Value);
             command.Parameters.AddWithValue("@MaterialCode", (object?)item.MaterialCode ?? DBNull.Value);
             command.Parameters.AddWithValue("@MaterialName", (object?)item.MaterialName ?? DBNull.Value);
             command.Parameters.AddWithValue("@MaterialGrade", (object?)item.MaterialGrade ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ComponentId", (object?)item.ComponentId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ComponentCode", (object?)item.ComponentCode ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ComponentName", (object?)item.ComponentName ?? DBNull.Value);
             // Map to both old and new columns for backward compatibility
             command.Parameters.AddWithValue("@RequestedQuantity", item.QuantityRequired);
             command.Parameters.AddWithValue("@IssuedQuantity", (object?)item.QuantityIssued ?? 0);
@@ -524,10 +529,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 RequisitionId = reader.GetInt32(reader.GetOrdinal("RequisitionId")),
                 LineNo = reader.GetInt32(reader.GetOrdinal("LineNo")),
-                MaterialId = reader.GetInt32(reader.GetOrdinal("MaterialId")),
+                MaterialId = reader.IsDBNull(reader.GetOrdinal("MaterialId")) ? null : reader.GetInt32(reader.GetOrdinal("MaterialId")),
                 MaterialCode = reader.IsDBNull(reader.GetOrdinal("MaterialCode")) ? null : reader.GetString(reader.GetOrdinal("MaterialCode")),
                 MaterialName = reader.IsDBNull(reader.GetOrdinal("MaterialName")) ? null : reader.GetString(reader.GetOrdinal("MaterialName")),
                 MaterialGrade = reader.IsDBNull(reader.GetOrdinal("MaterialGrade")) ? null : reader.GetString(reader.GetOrdinal("MaterialGrade")),
+                ComponentId = reader.IsDBNull(reader.GetOrdinal("ComponentId")) ? null : reader.GetInt32(reader.GetOrdinal("ComponentId")),
+                ComponentCode = reader.IsDBNull(reader.GetOrdinal("ComponentCode")) ? null : reader.GetString(reader.GetOrdinal("ComponentCode")),
+                ComponentName = reader.IsDBNull(reader.GetOrdinal("ComponentName")) ? null : reader.GetString(reader.GetOrdinal("ComponentName")),
                 QuantityRequired = reader.GetDecimal(reader.GetOrdinal("QuantityRequired")),
                 UOM = reader.IsDBNull(reader.GetOrdinal("UOM")) ? null : reader.GetString(reader.GetOrdinal("UOM")),
                 LengthRequiredMM = reader.IsDBNull(reader.GetOrdinal("LengthRequiredMM")) ? null : reader.GetDecimal(reader.GetOrdinal("LengthRequiredMM")),

@@ -32,6 +32,9 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<int>> RecordStockAdjustmentAsync(int materialId, decimal quantity, string remarks, string performedBy);
         Task<ApiResponse<bool>> ReconcileStockAsync(int materialId, decimal actualQuantity, string performedBy, string remarks);
 
+        // Component Stock
+        Task<(decimal currentStock, decimal availableStock, string uom, string location)> GetComponentStockAsync(int componentId);
+
         // Component Receipt
         Task<ApiResponse<int>> ReceiveComponentAsync(
             int componentId,

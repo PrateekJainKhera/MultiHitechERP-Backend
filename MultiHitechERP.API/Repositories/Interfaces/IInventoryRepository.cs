@@ -41,6 +41,10 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         // Reconciliation
         Task<bool> ReconcileStockAsync(int materialId, decimal actualQuantity, string performedBy, string remarks);
 
+        // Component Stock
+        Task<(decimal currentStock, decimal availableStock, string uom, string location)> GetComponentStockAsync(int componentId);
+        Task<bool> DeductComponentStockAsync(int componentId, decimal quantity, string updatedBy);
+
         // GRN Integration - Upsert inventory from GRN data
         Task<bool> UpsertFromGRNAsync(
             int materialId,

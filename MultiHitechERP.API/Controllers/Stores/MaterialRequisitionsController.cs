@@ -213,6 +213,9 @@ namespace MultiHitechERP.API.Controllers.Stores
                     MaterialCode = item.MaterialCode,
                     MaterialName = item.MaterialName,
                     MaterialGrade = item.MaterialGrade,
+                    ComponentId = item.ComponentId,
+                    ComponentCode = item.ComponentCode,
+                    ComponentName = item.ComponentName,
                     QuantityRequired = item.QuantityRequired,
                     UOM = item.UOM,
                     LengthRequiredMM = item.LengthRequiredMM,
@@ -406,7 +409,7 @@ namespace MultiHitechERP.API.Controllers.Stores
 
             var response = await _service.IssueMaterialsAsync(
                 request.RequisitionId,
-                request.JobCardId,
+                request.JobCardId ?? 0,
                 request.IssuedBy,
                 request.ReceivedBy);
 
@@ -498,6 +501,9 @@ namespace MultiHitechERP.API.Controllers.Stores
                 MaterialCode = item.MaterialCode,
                 MaterialName = item.MaterialName,
                 MaterialGrade = item.MaterialGrade,
+                ComponentId = item.ComponentId,
+                ComponentCode = item.ComponentCode,
+                ComponentName = item.ComponentName,
                 QuantityRequired = item.QuantityRequired,
                 UOM = item.UOM,
                 LengthRequiredMM = item.LengthRequiredMM,

@@ -11,10 +11,16 @@ namespace MultiHitechERP.API.DTOs.Response
         public int RequisitionId { get; set; }
         public int LineNo { get; set; }
 
-        public int MaterialId { get; set; }
+        // Raw material fields
+        public int? MaterialId { get; set; }
         public string? MaterialCode { get; set; }
         public string? MaterialName { get; set; }
         public string? MaterialGrade { get; set; }
+
+        // Purchased component fields (mutually exclusive with MaterialId)
+        public int? ComponentId { get; set; }
+        public string? ComponentCode { get; set; }
+        public string? ComponentName { get; set; }
 
         public decimal QuantityRequired { get; set; }
         public string? UOM { get; set; }

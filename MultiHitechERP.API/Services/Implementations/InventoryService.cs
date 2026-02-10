@@ -447,6 +447,11 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<bool>.SuccessResponse(true);
         }
 
+        public async Task<(decimal currentStock, decimal availableStock, string uom, string location)> GetComponentStockAsync(int componentId)
+        {
+            return await _inventoryRepository.GetComponentStockAsync(componentId);
+        }
+
         public async Task<ApiResponse<int>> ReceiveComponentAsync(
             int componentId,
             string componentName,

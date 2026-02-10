@@ -650,6 +650,57 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
+        public async Task<(decimal currentStock, decimal availableStock, string uom, string location)> GetComponentStockAsync(int componentId)
+        {
+            const string query = @"
+                SELECT TOP 1 CurrentStock, AvailableStock, UOM, Location
+                FROM Inventory_Stock
+                WHERE ItemType = 'Component' AND ItemId = @ComponentId
+                ORDER BY AvailableStock DESC";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@ComponentId", componentId);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return (
+                    reader.GetDecimal(reader.GetOrdinal("CurrentStock")),
+                    reader.GetDecimal(reader.GetOrdinal("AvailableStock")),
+                    reader.GetString(reader.GetOrdinal("UOM")),
+                    reader.IsDBNull(reader.GetOrdinal("Location")) ? "" : reader.GetString(reader.GetOrdinal("Location"))
+                );
+            }
+
+            return (0, 0, "PCS", "");
+        }
+
+        public async Task<bool> DeductComponentStockAsync(int componentId, decimal quantity, string updatedBy)
+        {
+            const string query = @"
+                UPDATE Inventory_Stock
+                SET CurrentStock = CurrentStock - @Quantity,
+                    LastUpdated = @LastUpdated,
+                    UpdatedBy = @UpdatedBy
+                WHERE ItemType = 'Component' AND ItemId = @ComponentId
+                  AND (CurrentStock - ReservedStock) >= @Quantity";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@ComponentId", componentId);
+            command.Parameters.AddWithValue("@Quantity", quantity);
+            command.Parameters.AddWithValue("@LastUpdated", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@UpdatedBy", updatedBy);
+
+            await connection.OpenAsync();
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+
+            return rowsAffected > 0;
+        }
+
         public async Task<bool> UpsertFromGRNAsync(
             int materialId,
             string materialCode,

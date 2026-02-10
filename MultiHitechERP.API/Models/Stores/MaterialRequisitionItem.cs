@@ -11,11 +11,16 @@ namespace MultiHitechERP.API.Models.Stores
         public int RequisitionId { get; set; }
         public int LineNo { get; set; }
 
-        // Material Details
-        public int MaterialId { get; set; }
+        // Material Details (raw material — set when item is for a raw material rod/bar)
+        public int? MaterialId { get; set; }
         public string? MaterialCode { get; set; }
         public string? MaterialName { get; set; }
         public string? MaterialGrade { get; set; }
+
+        // Component Details (purchased component — mutually exclusive with MaterialId)
+        public int? ComponentId { get; set; }
+        public string? ComponentCode { get; set; }
+        public string? ComponentName { get; set; }
 
         // Quantity Required
         public decimal QuantityRequired { get; set; }

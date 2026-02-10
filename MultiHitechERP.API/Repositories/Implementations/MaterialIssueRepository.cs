@@ -142,16 +142,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Stores_MaterialIssues
-                (Id, IssueNo, IssueDate, RequisitionId, JobCardNo, OrderNo, MaterialName, MaterialGrade,
+                (IssueNo, IssueDate, RequisitionId, JobCardNo, OrderNo, MaterialName, MaterialGrade,
                  TotalPieces, TotalIssuedLengthMM, TotalIssuedWeightKG, Status,
                  IssuedById, IssuedByName, ReceivedById, ReceivedByName)
                 VALUES
-                (@Id, @IssueNo, @IssueDate, @RequisitionId, @JobCardNo, @OrderNo, @MaterialName, @MaterialGrade,
+                (@IssueNo, @IssueDate, @RequisitionId, @JobCardNo, @OrderNo, @MaterialName, @MaterialGrade,
                  @TotalPieces, @TotalIssuedLengthMM, @TotalIssuedWeightKG, @Status,
-                 @IssuedById, @IssuedByName, @ReceivedById, @ReceivedByName)";
-
-            var issueId = 0;
-            issue.Id = issueId;
+                 @IssuedById, @IssuedByName, @ReceivedById, @ReceivedByName);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
@@ -159,9 +157,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             AddIssueParameters(command, issue);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
-
-            return issueId;
+            var result = await command.ExecuteScalarAsync();
+            return result != null ? (int)result : 0;
         }
 
         public async Task<bool> UpdateAsync(MaterialIssue issue)

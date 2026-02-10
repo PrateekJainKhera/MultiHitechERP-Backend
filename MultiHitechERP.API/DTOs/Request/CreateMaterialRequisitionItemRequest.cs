@@ -10,12 +10,16 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required(ErrorMessage = "Line number is required")]
         public int LineNo { get; set; }
 
-        [Required(ErrorMessage = "Material ID is required")]
-        public int MaterialId { get; set; }
-
+        // Raw material (set when item is for a raw material rod/bar; mutually exclusive with ComponentId)
+        public int? MaterialId { get; set; }
         public string? MaterialCode { get; set; }
         public string? MaterialName { get; set; }
         public string? MaterialGrade { get; set; }
+
+        // Purchased component (set when item is for a received component; mutually exclusive with MaterialId)
+        public int? ComponentId { get; set; }
+        public string? ComponentCode { get; set; }
+        public string? ComponentName { get; set; }
 
         [Required(ErrorMessage = "Quantity required is mandatory")]
         [Range(0.001, double.MaxValue, ErrorMessage = "Quantity must be greater than 0")]

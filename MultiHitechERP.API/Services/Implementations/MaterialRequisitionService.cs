@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Stores;
+using MultiHitechERP.API.Models.Inventory;
 using MultiHitechERP.API.Repositories.Interfaces;
 using MultiHitechERP.API.Services.Interfaces;
 
@@ -18,15 +19,21 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IMaterialRequisitionRepository _requisitionRepository;
         private readonly IMaterialPieceRepository _pieceRepository;
         private readonly IMaterialIssueRepository _issueRepository;
+        private readonly IInventoryRepository _inventoryRepository;
+        private readonly IJobCardRepository _jobCardRepository;
 
         public MaterialRequisitionService(
             IMaterialRequisitionRepository requisitionRepository,
             IMaterialPieceRepository pieceRepository,
-            IMaterialIssueRepository issueRepository)
+            IMaterialIssueRepository issueRepository,
+            IInventoryRepository inventoryRepository,
+            IJobCardRepository jobCardRepository)
         {
             _requisitionRepository = requisitionRepository;
             _pieceRepository = pieceRepository;
             _issueRepository = issueRepository;
+            _inventoryRepository = inventoryRepository;
+            _jobCardRepository = jobCardRepository;
         }
 
         public async Task<ApiResponse<MaterialRequisition>> GetByIdAsync(int id)
@@ -351,25 +358,72 @@ namespace MultiHitechERP.API.Services.Implementations
             if (requisition.Status != "Approved")
                 return ApiResponse<int>.ErrorResponse($"Cannot issue materials for requisition with status '{requisition.Status}'");
 
-            // Get allocated pieces
-            var allocatedPieces = await _pieceRepository.GetAllocatedPiecesAsync(requisitionId);
-            var piecesList = allocatedPieces.ToList();
+            var items = await _requisitionRepository.GetRequisitionItemsAsync(requisitionId);
 
-            if (!piecesList.Any())
-                return ApiResponse<int>.ErrorResponse("No allocated materials found for this requisition");
+            // Separate raw material items (have SelectedPieceIds) from component items (have ComponentId)
+            var materialItems = items.Where(i => i.MaterialId.HasValue && !string.IsNullOrWhiteSpace(i.SelectedPieceIds)).ToList();
+            var componentItems = items.Where(i => i.ComponentId.HasValue).ToList();
 
-            // Calculate totals
-            int totalPieces = piecesList.Count;
-            decimal totalLengthMM = piecesList.Sum(p => p.CurrentLengthMM);
-            decimal totalWeightKG = piecesList.Sum(p => p.CurrentWeightKG);
+            if (!materialItems.Any() && !componentItems.Any())
+                return ApiResponse<int>.ErrorResponse("No items to issue. Raw material items must have pieces selected; component items require a ComponentId.");
 
-            // Issue all pieces to job card
-            foreach (var piece in piecesList)
+            // --- Issue raw material pieces ---
+            var issuedPieces = new List<MaterialPiece>();
+
+            if (materialItems.Any())
             {
-                await _pieceRepository.IssuePieceAsync(piece.Id, jobCardId, DateTime.UtcNow, issuedBy);
+                var allPieceIds = new List<int>();
+                var pieceToJobCardId = new Dictionary<int, int>();
+
+                foreach (var item in materialItems)
+                {
+                    var ids = item.SelectedPieceIds!
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
+                        .Where(id => id > 0);
+                    allPieceIds.AddRange(ids);
+                    foreach (var pid in ids)
+                        pieceToJobCardId[pid] = item.JobCardId ?? jobCardId;
+                }
+
+                foreach (var pieceId in allPieceIds.Distinct())
+                {
+                    var piece = await _pieceRepository.GetByIdAsync(pieceId);
+                    if (piece != null)
+                    {
+                        var effectiveJobCardId = pieceToJobCardId.TryGetValue(pieceId, out var jcId) ? jcId : jobCardId;
+                        await _pieceRepository.IssuePieceAsync(piece.Id, effectiveJobCardId, DateTime.UtcNow, issuedBy);
+                        issuedPieces.Add(piece);
+                    }
+                }
             }
 
+            // --- Issue purchased components (deduct from Inventory_Stock) ---
+            var issuedComponentCount = 0;
+            foreach (var item in componentItems)
+            {
+                var deducted = await _inventoryRepository.DeductComponentStockAsync(
+                    item.ComponentId!.Value,
+                    item.QuantityRequired,
+                    issuedBy);
+
+                if (deducted)
+                    issuedComponentCount++;
+            }
+
+            if (!issuedPieces.Any() && issuedComponentCount == 0)
+                return ApiResponse<int>.ErrorResponse("Failed to issue any items — pieces may no longer be available or component stock is insufficient");
+
+            // Calculate totals (raw material pieces)
+            int totalPieces = issuedPieces.Count + issuedComponentCount;
+            decimal totalLengthMM = issuedPieces.Sum(p => p.CurrentLengthMM);
+            decimal totalWeightKG = issuedPieces.Sum(p => p.CurrentWeightKG);
+
             // Create material issue record
+            var firstMaterialName = issuedPieces.Any()
+                ? issuedPieces.First().MaterialId.ToString()
+                : componentItems.FirstOrDefault()?.ComponentName ?? "Component";
+
             var materialIssue = new MaterialIssue
             {
                 IssueNo = GenerateIssueNo(),
@@ -377,7 +431,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 RequisitionId = requisitionId,
                 JobCardNo = requisition.JobCardNo,
                 OrderNo = requisition.OrderNo,
-                MaterialName = piecesList.First().MaterialId.ToString(), // Would need to join with Materials table
+                MaterialName = firstMaterialName,
                 TotalPieces = totalPieces,
                 TotalIssuedLengthMM = totalLengthMM,
                 TotalIssuedWeightKG = totalWeightKG,
@@ -391,8 +445,19 @@ namespace MultiHitechERP.API.Services.Implementations
             // Update requisition status to "Issued"
             await _requisitionRepository.UpdateStatusAsync(requisitionId, "Issued");
 
+            // Update all related job cards to "Scheduled" so they appear in the scheduling queue
+            var jobCardIds = materialItems
+                .Select(i => i.JobCardId)
+                .Concat(componentItems.Select(i => i.JobCardId))
+                .Where(id => id.HasValue && id.Value > 0)
+                .Select(id => id!.Value)
+                .Distinct();
+
+            foreach (var jcId in jobCardIds)
+                await _jobCardRepository.UpdateStatusAsync(jcId, "Scheduled");
+
             return ApiResponse<int>.SuccessResponse(issueId,
-                $"Successfully issued {totalPieces} piece(s) totaling {totalLengthMM}mm");
+                $"Successfully issued {issuedPieces.Count} material piece(s) and {issuedComponentCount} component(s)");
         }
 
         public async Task<ApiResponse<IEnumerable<MaterialPiece>>> GetAllocatedPiecesAsync(int requisitionId)

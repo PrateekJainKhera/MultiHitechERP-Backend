@@ -262,6 +262,23 @@ namespace MultiHitechERP.API.Controllers.Inventory
         }
 
         /// <summary>
+        /// Get available stock for a purchased component
+        /// </summary>
+        [HttpGet("component-stock/{componentId:int}")]
+        public async Task<ActionResult<ApiResponse<object>>> GetComponentStock(int componentId)
+        {
+            var (currentStock, availableStock, uom, location) = await _service.GetComponentStockAsync(componentId);
+            return Ok(ApiResponse<object>.SuccessResponse(new
+            {
+                componentId,
+                currentStock,
+                availableStock,
+                uom,
+                location
+            }));
+        }
+
+        /// <summary>
         /// Update stock level parameters
         /// </summary>
         [HttpPut("stock-levels")]

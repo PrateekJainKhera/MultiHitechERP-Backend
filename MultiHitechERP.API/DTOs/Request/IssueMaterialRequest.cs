@@ -11,8 +11,7 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required]
         public int RequisitionId { get; set; }
 
-        [Required]
-        public int JobCardId { get; set; }
+        public int? JobCardId { get; set; }
 
         [Required]
         [StringLength(100)]
