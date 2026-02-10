@@ -68,6 +68,16 @@ namespace MultiHitechERP.API.Controllers
         }
 
         /// <summary>
+        /// Get full scheduling tree for an order: Order → Child Parts → Process Steps with machine assignments
+        /// </summary>
+        [HttpGet("order/{orderId}/tree")]
+        public async Task<IActionResult> GetOrderSchedulingTree(int orderId)
+        {
+            var result = await _scheduleService.GetOrderSchedulingTreeAsync(orderId);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
         /// SEMI-AUTOMATIC SCHEDULING: Get intelligent machine suggestions for a job card
         /// </summary>
         [HttpGet("suggestions/{jobCardId}")]

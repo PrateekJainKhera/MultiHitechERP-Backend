@@ -102,6 +102,128 @@ namespace MultiHitechERP.API.Services.Implementations
         }
 
         /// <summary>
+        /// Get the full scheduling tree for an order: Order → ChildPart groups → Process steps
+        /// Shows which steps have machines assigned and which are still pending
+        /// </summary>
+        public async Task<ApiResponse<OrderSchedulingTreeResponse>> GetOrderSchedulingTreeAsync(int orderId)
+        {
+            try
+            {
+                // Get all job cards for this order
+                var jobCards = await _jobCardRepository.GetByOrderIdAsync(orderId);
+                var jobCardList = jobCards.ToList();
+
+                if (!jobCardList.Any())
+                    return ApiResponse<OrderSchedulingTreeResponse>.ErrorResponse($"No job cards found for order {orderId}");
+
+                var orderNo = jobCardList[0].OrderNo ?? $"Order-{orderId}";
+                var priority = jobCardList[0].Priority ?? "MEDIUM";
+
+                // For each job card, get its existing machine schedule (first active one)
+                var stepItems = new List<ProcessStepSchedulingItem>();
+                foreach (var jc in jobCardList)
+                {
+                    var schedules = await _scheduleRepository.GetByJobCardIdAsync(jc.Id);
+                    var activeSchedule = schedules
+                        .Where(s => s.Status == "Scheduled" || s.Status == "InProgress")
+                        .OrderByDescending(s => s.CreatedAt)
+                        .FirstOrDefault();
+
+                    stepItems.Add(new ProcessStepSchedulingItem
+                    {
+                        JobCardId = jc.Id,
+                        JobCardNo = jc.JobCardNo,
+                        ProcessId = jc.ProcessId,
+                        ProcessName = jc.ProcessName,
+                        ProcessCode = jc.ProcessCode,
+                        StepNo = jc.StepNo,
+                        Quantity = jc.Quantity,
+                        Priority = jc.Priority,
+                        JobCardStatus = jc.Status,
+                        // Machine assignment from existing schedule
+                        ScheduleId = activeSchedule?.Id,
+                        AssignedMachineId = activeSchedule?.MachineId,
+                        AssignedMachineCode = activeSchedule?.MachineCode,
+                        AssignedMachineName = activeSchedule?.MachineName,
+                        ScheduledStartTime = activeSchedule?.ScheduledStartTime,
+                        ScheduledEndTime = activeSchedule?.ScheduledEndTime,
+                        ScheduleStatus = activeSchedule?.Status,
+                        EstimatedDurationMinutes = activeSchedule?.EstimatedDurationMinutes
+                    });
+                }
+
+                // Group by child part name; assembly (CreationType = "Assembly") goes last
+                var groups = new List<ChildPartGroupResponse>();
+
+                // Child part groups
+                var childPartGroups = jobCardList
+                    .Where(jc => jc.CreationType != "Assembly")
+                    .GroupBy(jc => jc.ChildPartName ?? "Unknown Part")
+                    .OrderBy(g => g.Key);
+
+                foreach (var group in childPartGroups)
+                {
+                    var groupSteps = stepItems
+                        .Where(s => group.Any(jc => jc.Id == s.JobCardId))
+                        .OrderBy(s => s.StepNo ?? 999)
+                        .ToList();
+
+                    groups.Add(new ChildPartGroupResponse
+                    {
+                        GroupName = group.Key,
+                        CreationType = "ChildPart",
+                        TotalSteps = groupSteps.Count,
+                        ScheduledSteps = groupSteps.Count(s => s.AssignedMachineId.HasValue),
+                        Steps = groupSteps
+                    });
+                }
+
+                // Assembly groups last
+                var assemblyGroups = jobCardList
+                    .Where(jc => jc.CreationType == "Assembly")
+                    .GroupBy(jc => jc.ChildPartName ?? "Assembly")
+                    .OrderBy(g => g.Key);
+
+                foreach (var group in assemblyGroups)
+                {
+                    var groupSteps = stepItems
+                        .Where(s => group.Any(jc => jc.Id == s.JobCardId))
+                        .OrderBy(s => s.StepNo ?? 999)
+                        .ToList();
+
+                    groups.Add(new ChildPartGroupResponse
+                    {
+                        GroupName = group.Key,
+                        CreationType = "Assembly",
+                        TotalSteps = groupSteps.Count,
+                        ScheduledSteps = groupSteps.Count(s => s.AssignedMachineId.HasValue),
+                        Steps = groupSteps
+                    });
+                }
+
+                var totalSteps = stepItems.Count;
+                var scheduledSteps = stepItems.Count(s => s.AssignedMachineId.HasValue);
+
+                var tree = new OrderSchedulingTreeResponse
+                {
+                    OrderId = orderId,
+                    OrderNo = orderNo,
+                    Priority = priority,
+                    TotalSteps = totalSteps,
+                    ScheduledSteps = scheduledSteps,
+                    PendingSteps = totalSteps - scheduledSteps,
+                    Groups = groups
+                };
+
+                return ApiResponse<OrderSchedulingTreeResponse>.SuccessResponse(tree);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<OrderSchedulingTreeResponse>.ErrorResponse($"Error building scheduling tree: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// SEMI-AUTOMATIC SCHEDULING: Get intelligent machine suggestions for a job card
         /// </summary>
         public async Task<ApiResponse<IEnumerable<MachineSuggestionResponse>>> GetMachineSuggestionsAsync(int jobCardId)
