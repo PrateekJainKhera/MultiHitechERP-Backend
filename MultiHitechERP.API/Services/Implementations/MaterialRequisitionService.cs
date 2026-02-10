@@ -178,9 +178,9 @@ namespace MultiHitechERP.API.Services.Implementations
             if (item == null)
                 return ApiResponse<bool>.ErrorResponse("Requisition item not found");
 
-            // Only allow update if not already selected during planning (empty/null)
+            // Pieces set during planning are locked — cannot be overridden from inventory page
             if (!string.IsNullOrWhiteSpace(item.SelectedPieceIds))
-                return ApiResponse<bool>.ErrorResponse("Piece selection was already set during planning and cannot be changed here");
+                return ApiResponse<bool>.ErrorResponse("Selected pieces were set during planning and cannot be changed on the inventory page");
 
             var selectedPieceIds = pieceIds.Count > 0 ? string.Join(",", pieceIds) : null;
             var success = await _requisitionRepository.UpdateItemSelectedPiecesAsync(itemId, selectedPieceIds);
