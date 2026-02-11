@@ -294,6 +294,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 RestTimeHours = reader.IsDBNull(reader.GetOrdinal("RestTimeHours")) ? null : reader.GetDecimal(reader.GetOrdinal("RestTimeHours")),
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                 IsOutsourced = reader.GetBoolean(reader.GetOrdinal("IsOutsourced")),
+                IsManual = reader.GetBoolean(reader.GetOrdinal("IsManual")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? null : reader.GetString(reader.GetOrdinal("Status")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),

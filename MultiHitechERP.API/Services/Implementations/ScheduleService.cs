@@ -122,14 +122,16 @@ namespace MultiHitechERP.API.Services.Implementations
                 var orderNo = jobCardList[0].OrderNo ?? $"Order-{orderId}";
                 var priority = jobCardList[0].Priority ?? "MEDIUM";
 
-                // Fetch IsOutsourced flag for each unique process used by these job cards
+                // Fetch IsOutsourced + IsManual flags for each unique process
                 var uniqueProcessIds = jobCardList.Select(jc => jc.ProcessId).Distinct().ToList();
                 var ospProcessIds = new HashSet<int>();
+                var manualProcessIds = new HashSet<int>();
                 foreach (var pid in uniqueProcessIds)
                 {
                     var process = await _processRepository.GetByIdAsync(pid);
-                    if (process != null && process.IsOutsourced)
-                        ospProcessIds.Add(pid);
+                    if (process == null) continue;
+                    if (process.IsOutsourced) ospProcessIds.Add(pid);
+                    if (process.IsManual) manualProcessIds.Add(pid);
                 }
 
                 // For each job card, get its existing machine schedule (first active one)
@@ -151,6 +153,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         ProcessCode = jc.ProcessCode,
                         StepNo = jc.StepNo,
                         IsOsp = ospProcessIds.Contains(jc.ProcessId),
+                        IsManual = manualProcessIds.Contains(jc.ProcessId),
                         Quantity = jc.Quantity,
                         Priority = jc.Priority,
                         JobCardStatus = jc.Status,
@@ -346,10 +349,12 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (jobCard == null)
                     return ApiResponse<int>.ErrorResponse("Job card not found");
 
-                string machineCode = "OSP";
-                string machineName = "Outside Service Process";
+                bool noMachine = request.IsOsp || request.IsManual;
 
-                if (!request.IsOsp)
+                string machineCode = request.IsOsp ? "OSP" : "MANUAL";
+                string machineName = request.IsOsp ? "Outside Service Process" : "Manual Process";
+
+                if (!noMachine)
                 {
                     // Get machine
                     var machine = await _machineRepository.GetByIdAsync(request.MachineId);
@@ -359,7 +364,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     machineCode = machine.MachineCode;
                     machineName = machine.MachineName;
 
-                    // Check for scheduling conflicts (not needed for OSP)
+                    // Check for scheduling conflicts (not needed for OSP/Manual)
                     var hasConflict = await _scheduleRepository.HasConflictAsync(
                         request.MachineId,
                         request.ScheduledStartTime,
@@ -375,14 +380,14 @@ namespace MultiHitechERP.API.Services.Implementations
                 {
                     JobCardId = request.JobCardId,
                     JobCardNo = jobCard.JobCardNo,
-                    MachineId = request.IsOsp ? (int?)null : request.MachineId,
+                    MachineId = noMachine ? (int?)null : request.MachineId,
                     MachineCode = machineCode,
                     MachineName = machineName,
                     ScheduledStartTime = request.ScheduledStartTime,
                     ScheduledEndTime = request.ScheduledEndTime,
                     EstimatedDurationMinutes = request.EstimatedDurationMinutes,
                     Status = "Scheduled",
-                    SchedulingMethod = request.IsOsp ? "OSP" : (request.SchedulingMethod ?? "Semi-Automatic"),
+                    SchedulingMethod = request.IsOsp ? "OSP" : request.IsManual ? "Manual" : (request.SchedulingMethod ?? "Semi-Automatic"),
                     SuggestedBySystem = request.SuggestedBySystem,
                     ConfirmedBy = request.CreatedBy,
                     ConfirmedAt = DateTime.UtcNow,

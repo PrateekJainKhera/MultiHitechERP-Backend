@@ -28,6 +28,8 @@ namespace MultiHitechERP.API.DTOs.Request
         public bool SuggestedBySystem { get; set; }
         // True for Outside Service Process (OSP) steps — skips machine lookup and conflict check
         public bool IsOsp { get; set; }
+        // True for manual (no-machine) in-house processes — same scheduling behaviour as OSP
+        public bool IsManual { get; set; }
         public string? Notes { get; set; }
         public string? CreatedBy { get; set; }
     }

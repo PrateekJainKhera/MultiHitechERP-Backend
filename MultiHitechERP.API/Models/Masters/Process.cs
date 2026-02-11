@@ -24,6 +24,7 @@ namespace MultiHitechERP.API.Models.Masters
         public decimal? RestTimeHours { get; set; }
         public string? Description { get; set; }
         public bool IsOutsourced { get; set; }
+        public bool IsManual { get; set; }
         public bool IsActive { get; set; } = true;
         public string? Status { get; set; } = "Active";
         public DateTime CreatedAt { get; set; }

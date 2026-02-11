@@ -40,6 +40,8 @@ namespace MultiHitechERP.API.DTOs.Response
 
         // OSP flag — true when this step is outsourced (no machine needed)
         public bool IsOsp { get; set; }
+        // Manual flag — true when this step is a manual in-house process (no machine needed)
+        public bool IsManual { get; set; }
 
         // Production info
         public int Quantity { get; set; }
