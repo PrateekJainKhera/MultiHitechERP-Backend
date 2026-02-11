@@ -395,8 +395,43 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 var scheduleId = await _scheduleRepository.InsertAsync(schedule);
 
-                // Update job card status (you'll need to implement this in JobCardRepository)
-                // await _jobCardRepository.UpdateScheduleStatusAsync(request.JobCardId, "SCHEDULED", request.MachineId);
+                // Mark job card as Scheduled
+                await _jobCardRepository.UpdateStatusAsync(request.JobCardId, "Scheduled");
+
+                // Determine ProductionStatus for this job card:
+                // - Step 1 of a child part → Ready (can start immediately)
+                // - Step N>1 → Ready only if the previous step is already Completed
+                // - Assembly → stays Pending (cascade will set Ready when all parts done)
+                string productionStatus = "Pending";
+                if (jobCard.CreationType != "Assembly")
+                {
+                    if (jobCard.StepNo == 1)
+                    {
+                        productionStatus = "Ready";
+                    }
+                    else
+                    {
+                        // Check if previous step in same child part is already Completed
+                        var siblingCards = (await _jobCardRepository.GetByOrderIdAsync(jobCard.OrderId)).ToList();
+                        var prevStep = siblingCards
+                            .Where(jc =>
+                                jc.CreationType != "Assembly" &&
+                                (jc.ChildPartId.HasValue
+                                    ? jc.ChildPartId == jobCard.ChildPartId
+                                    : (jc.ChildPartName ?? "") == (jobCard.ChildPartName ?? "")) &&
+                                jc.StepNo == jobCard.StepNo - 1)
+                            .FirstOrDefault();
+
+                        if (prevStep != null && prevStep.ProductionStatus == "Completed")
+                            productionStatus = "Ready";
+                    }
+                }
+
+                await _jobCardRepository.UpdateProductionStatusAsync(
+                    request.JobCardId, productionStatus,
+                    jobCard.ActualStartTime, jobCard.ActualEndTime,
+                    jobCard.CompletedQty, jobCard.RejectedQty
+                );
 
                 return ApiResponse<int>.SuccessResponse(scheduleId, "Schedule created successfully");
             }

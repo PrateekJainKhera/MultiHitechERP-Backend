@@ -28,6 +28,11 @@ namespace MultiHitechERP.API.Services.Implementations
             _processRepository = processRepository;
         }
 
+        // Helper: stable key for grouping job cards by child part
+        // Uses ChildPartId when available, falls back to ChildPartName
+        private static string ChildPartKey(Models.Planning.JobCard jc) =>
+            jc.ChildPartId.HasValue ? $"id:{jc.ChildPartId}" : $"name:{jc.ChildPartName ?? "unknown"}";
+
         // ─────────────────────────────────────────────────────────────────────
         // 1. Production Dashboard — list of orders
         // ─────────────────────────────────────────────────────────────────────
@@ -51,11 +56,11 @@ namespace MultiHitechERP.API.Services.Implementations
                     var inProgressSteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "InProgress");
                     var completedChildParts = nonAssemblyJcs
                         .Where(jc => jc.ReadyForAssembly)
-                        .Select(jc => jc.ChildPartId)
+                        .Select(jc => ChildPartKey(jc))
                         .Distinct()
                         .Count();
                     var totalChildParts = nonAssemblyJcs
-                        .Select(jc => jc.ChildPartId)
+                        .Select(jc => ChildPartKey(jc))
                         .Distinct()
                         .Count();
 
@@ -131,24 +136,28 @@ namespace MultiHitechERP.API.Services.Implementations
                         scheduleByJobCard[jc.Id] = (active.MachineName, active.MachineCode, active.ScheduledStartTime, active.ScheduledEndTime, active.EstimatedDurationMinutes);
                 }
 
-                // Separate assembly from child-part steps
-                var assemblyJcs = jobCards.Where(jc => jc.CreationType == "Assembly").ToList();
-                var childJcs = jobCards.Where(jc => jc.CreationType != "Assembly").ToList();
+                // Only show job cards that have been scheduled (machine assigned)
+                var scheduledCards = jobCards.Where(jc => jc.Status == "Scheduled").ToList();
 
-                // Group child part steps
+                // Separate assembly from child-part steps
+                var assemblyJcs = scheduledCards.Where(jc => jc.CreationType == "Assembly").ToList();
+                var childJcs = scheduledCards.Where(jc => jc.CreationType != "Assembly").ToList();
+
+                // Group child part steps by ChildPartKey (id when available, name otherwise)
                 var childPartGroups = childJcs
-                    .GroupBy(jc => jc.ChildPartId ?? 0)
+                    .GroupBy(jc => ChildPartKey(jc))
                     .OrderBy(g => g.Key)
                     .Select(g =>
                     {
                         var steps = g.OrderBy(jc => jc.StepNo ?? 999).ToList();
                         var completedSteps = steps.Count(jc => jc.ProductionStatus == "Completed");
                         var isReady = steps.All(jc => jc.ProductionStatus == "Completed");
+                        var first = steps.First();
 
                         return new ProductionChildPartGroup
                         {
-                            ChildPartId = g.Key == 0 ? null : g.Key,
-                            ChildPartName = steps.First().ChildPartName ?? "Unknown Part",
+                            ChildPartId = first.ChildPartId,
+                            ChildPartName = first.ChildPartName ?? "Unknown Part",
                             TotalSteps = steps.Count,
                             CompletedSteps = completedSteps,
                             IsReadyForAssembly = isReady,
@@ -166,7 +175,7 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 var allChildSteps = childJcs.Count;
                 var completedChildSteps = childJcs.Count(jc => jc.ProductionStatus == "Completed");
-                var inProgressChildSteps = childJcs.Count(jc => jc.ProductionStatus == "InProgress");
+                var inProgressChildSteps = childJcs.Count(jc => jc.ProductionStatus == "InProgress" || jc.ProductionStatus == "Paused");
                 var canStartAssembly = childPartGroups.All(g => g.IsReadyForAssembly);
 
                 var detail = new ProductionOrderDetail
@@ -275,11 +284,15 @@ namespace MultiHitechERP.API.Services.Implementations
 
             var allOrderCards = (await _jobCardRepository.GetByOrderIdAsync(completedCard.OrderId)).ToList();
 
-            // Find the next step in the SAME child part group (same ChildPartId, next StepNo)
+            var completedKey = ChildPartKey(completedCard);
+
+            // Find the next step in the SAME child part group that is already Scheduled
+            // (If not yet scheduled, ScheduleService will set it to Ready when machine is assigned)
             var nextStep = allOrderCards
                 .Where(jc =>
-                    jc.ChildPartId == completedCard.ChildPartId &&
+                    ChildPartKey(jc) == completedKey &&
                     jc.CreationType != "Assembly" &&
+                    jc.Status == "Scheduled" &&
                     jc.StepNo > completedCard.StepNo)
                 .OrderBy(jc => jc.StepNo)
                 .FirstOrDefault();
@@ -296,7 +309,7 @@ namespace MultiHitechERP.API.Services.Implementations
 
             // Check if ALL steps of this child part are now Completed
             var childPartSteps = allOrderCards
-                .Where(jc => jc.ChildPartId == completedCard.ChildPartId && jc.CreationType != "Assembly")
+                .Where(jc => ChildPartKey(jc) == completedKey && jc.CreationType != "Assembly")
                 .ToList();
 
             // Re-fetch the completed step so its status is updated
@@ -333,8 +346,9 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 if (allChildPartsDone)
                 {
-                    // Unlock assembly step
-                    var assemblyCard = allOrderCards.FirstOrDefault(jc => jc.CreationType == "Assembly");
+                    // Unlock assembly step only if it has been scheduled (machine assigned)
+                    var assemblyCard = allOrderCards.FirstOrDefault(jc =>
+                        jc.CreationType == "Assembly" && jc.Status == "Scheduled");
                     if (assemblyCard != null && assemblyCard.ProductionStatus == "Pending")
                     {
                         await _jobCardRepository.UpdateProductionStatusAsync(
