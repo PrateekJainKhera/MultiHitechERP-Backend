@@ -42,7 +42,6 @@ builder.Services.AddScoped<IJobCardRepository, JobCardRepository>();
 builder.Services.AddScoped<IMaterialRequisitionRepository, MaterialRequisitionRepository>();
 builder.Services.AddScoped<IMaterialPieceRepository, MaterialPieceRepository>();
 builder.Services.AddScoped<IMaterialIssueRepository, MaterialIssueRepository>();
-builder.Services.AddScoped<IJobCardExecutionRepository, JobCardExecutionRepository>();
 builder.Services.AddScoped<IQCResultRepository, QCResultRepository>();
 builder.Services.AddScoped<IDeliveryChallanRepository, DeliveryChallanRepository>();
 builder.Services.AddScoped<IBOMRepository, BOMRepository>();
