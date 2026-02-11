@@ -53,6 +53,14 @@ namespace MultiHitechERP.API.Models.Planning
         // Manufacturing Dimensions (JSON from drawing)
         public string? ManufacturingDimensions { get; set; }
 
+        // Production Execution (shop-floor tracking)
+        public string ProductionStatus { get; set; } = "Pending";
+        public DateTime? ActualStartTime { get; set; }
+        public DateTime? ActualEndTime { get; set; }
+        public int CompletedQty { get; set; }
+        public int RejectedQty { get; set; }
+        public bool ReadyForAssembly { get; set; }
+
         // Audit
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }

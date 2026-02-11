@@ -29,6 +29,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
                        WorkInstructions, QualityCheckpoints, SpecialNotes,
                        Quantity, Status, Priority, ManufacturingDimensions,
+                       ProductionStatus, ActualStartTime, ActualEndTime,
+                       CompletedQty, RejectedQty, ReadyForAssembly,
                        CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
                 FROM Planning_JobCards WHERE Id = @Id";
 
@@ -51,6 +53,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
                        WorkInstructions, QualityCheckpoints, SpecialNotes,
                        Quantity, Status, Priority, ManufacturingDimensions,
+                       ProductionStatus, ActualStartTime, ActualEndTime,
+                       CompletedQty, RejectedQty, ReadyForAssembly,
                        CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
                 FROM Planning_JobCards WHERE JobCardNo = @JobCardNo";
 
@@ -73,6 +77,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
                        WorkInstructions, QualityCheckpoints, SpecialNotes,
                        Quantity, Status, Priority, ManufacturingDimensions,
+                       ProductionStatus, ActualStartTime, ActualEndTime,
+                       CompletedQty, RejectedQty, ReadyForAssembly,
                        CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
                 FROM Planning_JobCards ORDER BY CreatedAt DESC";
 
@@ -100,6 +106,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
                        WorkInstructions, QualityCheckpoints, SpecialNotes,
                        Quantity, Status, Priority, ManufacturingDimensions,
+                       ProductionStatus, ActualStartTime, ActualEndTime,
+                       CompletedQty, RejectedQty, ReadyForAssembly,
                        CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
                 FROM Planning_JobCards
                 WHERE OrderId = @OrderId
@@ -130,6 +138,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
                        WorkInstructions, QualityCheckpoints, SpecialNotes,
                        Quantity, Status, Priority, ManufacturingDimensions,
+                       ProductionStatus, ActualStartTime, ActualEndTime,
+                       CompletedQty, RejectedQty, ReadyForAssembly,
                        CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
                 FROM Planning_JobCards
                 WHERE ProcessId = @ProcessId
@@ -160,6 +170,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
                        WorkInstructions, QualityCheckpoints, SpecialNotes,
                        Quantity, Status, Priority, ManufacturingDimensions,
+                       ProductionStatus, ActualStartTime, ActualEndTime,
+                       CompletedQty, RejectedQty, ReadyForAssembly,
                        CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
                 FROM Planning_JobCards
                 WHERE Status = @Status
@@ -420,6 +432,79 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return jobCards;
         }
 
+        public async Task<bool> UpdateProductionStatusAsync(int id, string productionStatus, DateTime? actualStartTime, DateTime? actualEndTime, int completedQty, int rejectedQty)
+        {
+            const string query = @"
+                UPDATE Planning_JobCards SET
+                    ProductionStatus = @ProductionStatus,
+                    ActualStartTime  = @ActualStartTime,
+                    ActualEndTime    = @ActualEndTime,
+                    CompletedQty     = @CompletedQty,
+                    RejectedQty      = @RejectedQty,
+                    UpdatedAt        = @UpdatedAt
+                WHERE Id = @Id";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", id);
+            command.Parameters.AddWithValue("@ProductionStatus", productionStatus);
+            command.Parameters.AddWithValue("@ActualStartTime", (object?)actualStartTime ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ActualEndTime", (object?)actualEndTime ?? DBNull.Value);
+            command.Parameters.AddWithValue("@CompletedQty", completedQty);
+            command.Parameters.AddWithValue("@RejectedQty", rejectedQty);
+            command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+
+            await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync() > 0;
+        }
+
+        public async Task<bool> SetReadyForAssemblyAsync(int id, bool ready)
+        {
+            const string query = @"
+                UPDATE Planning_JobCards SET ReadyForAssembly = @Ready, UpdatedAt = @UpdatedAt
+                WHERE Id = @Id";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", id);
+            command.Parameters.AddWithValue("@Ready", ready);
+            command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+
+            await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync() > 0;
+        }
+
+        public async Task<IEnumerable<JobCard>> GetByProductionStatusAsync(int orderId, string productionStatus)
+        {
+            const string query = @"
+                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo,
+                       DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
+                       ChildPartId, ChildPartName, ChildPartTemplateId,
+                       ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
+                       WorkInstructions, QualityCheckpoints, SpecialNotes,
+                       Quantity, Status, Priority, ManufacturingDimensions,
+                       ProductionStatus, ActualStartTime, ActualEndTime,
+                       CompletedQty, RejectedQty, ReadyForAssembly,
+                       CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
+                FROM Planning_JobCards
+                WHERE OrderId = @OrderId AND ProductionStatus = @ProductionStatus
+                ORDER BY StepNo";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@OrderId", orderId);
+            command.Parameters.AddWithValue("@ProductionStatus", productionStatus);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            var jobCards = new List<JobCard>();
+            while (await reader.ReadAsync())
+                jobCards.Add(MapToJobCard(reader));
+
+            return jobCards;
+        }
+
         public async Task<int> GetVersionAsync(int id)
         {
             const string query = "SELECT Version FROM Planning_JobCards WHERE Id = @Id";
@@ -463,6 +548,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 Status = reader.GetString(reader.GetOrdinal("Status")),
                 Priority = reader.GetString(reader.GetOrdinal("Priority")),
                 ManufacturingDimensions = reader.IsDBNull(reader.GetOrdinal("ManufacturingDimensions")) ? null : reader.GetString(reader.GetOrdinal("ManufacturingDimensions")),
+                ProductionStatus = reader.GetString(reader.GetOrdinal("ProductionStatus")),
+                ActualStartTime = reader.IsDBNull(reader.GetOrdinal("ActualStartTime")) ? null : reader.GetDateTime(reader.GetOrdinal("ActualStartTime")),
+                ActualEndTime = reader.IsDBNull(reader.GetOrdinal("ActualEndTime")) ? null : reader.GetDateTime(reader.GetOrdinal("ActualEndTime")),
+                CompletedQty = reader.GetInt32(reader.GetOrdinal("CompletedQty")),
+                RejectedQty = reader.GetInt32(reader.GetOrdinal("RejectedQty")),
+                ReadyForAssembly = reader.GetBoolean(reader.GetOrdinal("ReadyForAssembly")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
                 UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),

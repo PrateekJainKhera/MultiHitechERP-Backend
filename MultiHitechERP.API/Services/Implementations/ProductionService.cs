@@ -2,291 +2,380 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.DTOs.Response;
-using MultiHitechERP.API.Models.Production;
 using MultiHitechERP.API.Repositories.Interfaces;
 using MultiHitechERP.API.Services.Interfaces;
 
 namespace MultiHitechERP.API.Services.Implementations
 {
-    /// <summary>
-    /// ProductionService implementation with comprehensive execution logic
-    /// Validates machine/operator availability and enforces production workflow
-    /// </summary>
     public class ProductionService : IProductionService
     {
-        private readonly IJobCardExecutionRepository _executionRepository;
         private readonly IJobCardRepository _jobCardRepository;
-        private readonly IMachineRepository _machineRepository;
-        private readonly IOperatorRepository _operatorRepository;
+        private readonly IScheduleRepository _scheduleRepository;
+        private readonly IOrderRepository _orderRepository;
+        private readonly IProcessRepository _processRepository;
 
         public ProductionService(
-            IJobCardExecutionRepository executionRepository,
             IJobCardRepository jobCardRepository,
-            IMachineRepository machineRepository,
-            IOperatorRepository operatorRepository)
+            IScheduleRepository scheduleRepository,
+            IOrderRepository orderRepository,
+            IProcessRepository processRepository)
         {
-            _executionRepository = executionRepository;
             _jobCardRepository = jobCardRepository;
-            _machineRepository = machineRepository;
-            _operatorRepository = operatorRepository;
+            _scheduleRepository = scheduleRepository;
+            _orderRepository = orderRepository;
+            _processRepository = processRepository;
         }
 
-        public async Task<ApiResponse<JobCardExecution>> GetByIdAsync(int id)
+        // ─────────────────────────────────────────────────────────────────────
+        // 1. Production Dashboard — list of orders
+        // ─────────────────────────────────────────────────────────────────────
+        public async Task<ApiResponse<IEnumerable<ProductionOrderSummary>>> GetOrdersAsync()
         {
-            var execution = await _executionRepository.GetByIdAsync(id);
-            if (execution == null)
-                return ApiResponse<JobCardExecution>.ErrorResponse("Execution record not found");
-
-            return ApiResponse<JobCardExecution>.SuccessResponse(execution);
-        }
-
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetAllAsync()
-        {
-            var executions = await _executionRepository.GetAllAsync();
-            return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
-        }
-
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByJobCardIdAsync(int jobCardId)
-        {
-            var executions = await _executionRepository.GetByJobCardIdAsync(jobCardId);
-            return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
-        }
-
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByMachineIdAsync(int machineId)
-        {
-            var executions = await _executionRepository.GetByMachineIdAsync(machineId);
-            return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
-        }
-
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByOperatorIdAsync(int operatorId)
-        {
-            var executions = await _executionRepository.GetByOperatorIdAsync(operatorId);
-            return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
-        }
-
-        public async Task<ApiResponse<int>> CreateExecutionAsync(JobCardExecution execution)
-        {
-            var id = await _executionRepository.InsertAsync(execution);
-            return ApiResponse<int>.SuccessResponse(id, "Execution record created successfully");
-        }
-
-        public async Task<ApiResponse<bool>> UpdateExecutionAsync(JobCardExecution execution)
-        {
-            var existing = await _executionRepository.GetByIdAsync(execution.Id);
-            if (existing == null)
-                return ApiResponse<bool>.ErrorResponse("Execution record not found");
-
-            var success = await _executionRepository.UpdateAsync(execution);
-            if (!success)
-                return ApiResponse<bool>.ErrorResponse("Failed to update execution record");
-
-            return ApiResponse<bool>.SuccessResponse(true, "Execution record updated successfully");
-        }
-
-        public async Task<ApiResponse<bool>> DeleteExecutionAsync(int id)
-        {
-            var existing = await _executionRepository.GetByIdAsync(id);
-            if (existing == null)
-                return ApiResponse<bool>.ErrorResponse("Execution record not found");
-
-            var success = await _executionRepository.DeleteAsync(id);
-            if (!success)
-                return ApiResponse<bool>.ErrorResponse("Failed to delete execution record");
-
-            return ApiResponse<bool>.SuccessResponse(true, "Execution record deleted successfully");
-        }
-
-        public async Task<ApiResponse<int>> StartProductionAsync(int jobCardId, int machineId, int operatorId, int quantityStarted)
-        {
-            // Validate job card exists and is ready
-            var jobCard = await _jobCardRepository.GetByIdAsync(jobCardId);
-            if (jobCard == null)
-                return ApiResponse<int>.ErrorResponse("Job card not found");
-
-            if (jobCard.Status != "Ready" && jobCard.Status != "In Progress")
-                return ApiResponse<int>.ErrorResponse($"Cannot start production - job card status is '{jobCard.Status}'");
-
-            // Check if job card already has active execution
-            var currentExecution = await _executionRepository.GetCurrentExecutionForJobCardAsync(jobCardId);
-            if (currentExecution != null)
-                return ApiResponse<int>.ErrorResponse("Job card already has an active execution");
-
-            // Validate machine availability
-            var machine = await _machineRepository.GetByIdAsync(machineId);
-            if (machine == null)
-                return ApiResponse<int>.ErrorResponse("Machine not found");
-
-            // Validate operator availability
-            var operatorEntity = await _operatorRepository.GetByIdAsync(operatorId);
-            if (operatorEntity == null)
-                return ApiResponse<int>.ErrorResponse("Operator not found");
-
-            if (!operatorEntity.IsAvailable)
-                return ApiResponse<int>.ErrorResponse($"Operator '{operatorEntity.OperatorName}' is not available");
-
-            // Create execution record
-            var execution = new JobCardExecution
+            try
             {
-                JobCardId = jobCardId,
-                JobCardNo = jobCard.JobCardNo,
-                OrderNo = jobCard.OrderNo,
-                MachineId = machineId,
-                MachineName = machine.MachineName,
-                OperatorId = operatorId,
-                OperatorName = operatorEntity.OperatorName,
-                StartTime = DateTime.UtcNow,
-                QuantityStarted = quantityStarted,
-                ExecutionStatus = "Started"
-            };
+                // Get all orders
+                var orders = await _orderRepository.GetAllAsync();
+                var result = new List<ProductionOrderSummary>();
 
-            var executionId = await _executionRepository.InsertAsync(execution);
-
-            // Update job card status to In Progress
-            await _jobCardRepository.UpdateStatusAsync(jobCardId, "In Progress");
-
-            // Mark operator as unavailable
-            await _operatorRepository.AssignToJobCardAsync(operatorId, jobCardId, jobCard.JobCardNo, machineId);
-
-            return ApiResponse<int>.SuccessResponse(executionId, "Production started successfully");
-        }
-
-        public async Task<ApiResponse<bool>> PauseProductionAsync(int executionId)
-        {
-            var execution = await _executionRepository.GetByIdAsync(executionId);
-            if (execution == null)
-                return ApiResponse<bool>.ErrorResponse("Execution record not found");
-
-            if (execution.ExecutionStatus != "Started" && execution.ExecutionStatus != "InProgress")
-                return ApiResponse<bool>.ErrorResponse($"Cannot pause - execution status is '{execution.ExecutionStatus}'");
-
-            var success = await _executionRepository.PauseExecutionAsync(executionId, DateTime.UtcNow);
-            if (!success)
-                return ApiResponse<bool>.ErrorResponse("Failed to pause production");
-
-            return ApiResponse<bool>.SuccessResponse(true, "Production paused successfully");
-        }
-
-        public async Task<ApiResponse<bool>> ResumeProductionAsync(int executionId)
-        {
-            var execution = await _executionRepository.GetByIdAsync(executionId);
-            if (execution == null)
-                return ApiResponse<bool>.ErrorResponse("Execution record not found");
-
-            if (execution.ExecutionStatus != "Paused")
-                return ApiResponse<bool>.ErrorResponse($"Cannot resume - execution status is '{execution.ExecutionStatus}'");
-
-            var success = await _executionRepository.ResumeExecutionAsync(executionId, DateTime.UtcNow);
-            if (!success)
-                return ApiResponse<bool>.ErrorResponse("Failed to resume production");
-
-            return ApiResponse<bool>.SuccessResponse(true, "Production resumed successfully");
-        }
-
-        public async Task<ApiResponse<bool>> CompleteProductionAsync(int executionId, int quantityCompleted, int? quantityRejected)
-        {
-            var execution = await _executionRepository.GetByIdAsync(executionId);
-            if (execution == null)
-                return ApiResponse<bool>.ErrorResponse("Execution record not found");
-
-            if (execution.ExecutionStatus == "Completed")
-                return ApiResponse<bool>.ErrorResponse("Execution is already completed");
-
-            // Calculate total time
-            var totalTimeMin = (int)(DateTime.UtcNow - execution.StartTime).TotalMinutes;
-            if (execution.IdleTimeMin.HasValue)
-                totalTimeMin -= execution.IdleTimeMin.Value;
-
-            // Update execution record
-            var success = await _executionRepository.CompleteExecutionAsync(executionId, DateTime.UtcNow, totalTimeMin);
-            if (!success)
-                return ApiResponse<bool>.ErrorResponse("Failed to complete production");
-
-            // Update quantities
-            await _executionRepository.UpdateQuantitiesAsync(executionId, quantityCompleted, quantityRejected ?? 0, 0);
-
-            // Update job card status
-            var jobCard = await _jobCardRepository.GetByIdAsync(execution.JobCardId);
-            if (jobCard != null)
-            {
-                var totalCompleted = await _executionRepository.GetTotalCompletedQuantityForJobCardAsync(execution.JobCardId);
-
-                // If all quantity completed, mark job card as completed
-                if (totalCompleted >= jobCard.Quantity)
+                foreach (var order in orders)
                 {
-                    await _jobCardRepository.UpdateStatusAsync(execution.JobCardId, "Completed");
+                    // Only include orders that have at least one scheduled job card
+                    var jobCards = (await _jobCardRepository.GetByOrderIdAsync(order.Id)).ToList();
+                    var scheduledJcs = jobCards.Where(jc => jc.Status == "Scheduled").ToList();
+                    if (!scheduledJcs.Any()) continue;
+
+                    var nonAssemblyJcs = jobCards.Where(jc => jc.CreationType != "Assembly").ToList();
+                    var completedSteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Completed");
+                    var inProgressSteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "InProgress");
+                    var completedChildParts = nonAssemblyJcs
+                        .Where(jc => jc.ReadyForAssembly)
+                        .Select(jc => jc.ChildPartId)
+                        .Distinct()
+                        .Count();
+                    var totalChildParts = nonAssemblyJcs
+                        .Select(jc => jc.ChildPartId)
+                        .Distinct()
+                        .Count();
+
+                    string prodStatus;
+                    if (nonAssemblyJcs.All(jc => jc.ProductionStatus == "Completed"))
+                        prodStatus = "Completed";
+                    else if (inProgressSteps > 0 || completedSteps > 0)
+                        prodStatus = "InProgress";
+                    else
+                        prodStatus = "Pending";
+
+                    result.Add(new ProductionOrderSummary
+                    {
+                        OrderId = order.Id,
+                        OrderNo = order.OrderNo,
+                        CustomerName = order.CustomerName,
+                        ProductName = order.ProductName,
+                        Priority = order.Priority ?? "Medium",
+                        DueDate = order.DueDate,
+                        TotalSteps = nonAssemblyJcs.Count,
+                        CompletedSteps = completedSteps,
+                        InProgressSteps = inProgressSteps,
+                        ReadySteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Ready"),
+                        TotalChildParts = totalChildParts,
+                        CompletedChildParts = completedChildParts,
+                        ProductionStatus = prodStatus
+                    });
                 }
+
+                return ApiResponse<IEnumerable<ProductionOrderSummary>>.SuccessResponse(result);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<ProductionOrderSummary>>.ErrorResponse($"Error loading production orders: {ex.Message}");
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 2. Order detail — child parts + steps with schedule info
+        // ─────────────────────────────────────────────────────────────────────
+        public async Task<ApiResponse<ProductionOrderDetail>> GetOrderDetailAsync(int orderId)
+        {
+            try
+            {
+                var order = await _orderRepository.GetByIdAsync(orderId);
+                if (order == null)
+                    return ApiResponse<ProductionOrderDetail>.ErrorResponse("Order not found");
+
+                var jobCards = (await _jobCardRepository.GetByOrderIdAsync(orderId)).ToList();
+                if (!jobCards.Any())
+                    return ApiResponse<ProductionOrderDetail>.ErrorResponse("No job cards found for this order");
+
+                // Get OSP process IDs
+                var uniqueProcessIds = jobCards.Select(jc => jc.ProcessId).Distinct();
+                var ospProcessIds = new HashSet<int>();
+                foreach (var pid in uniqueProcessIds)
+                {
+                    var process = await _processRepository.GetByIdAsync(pid);
+                    if (process?.IsOutsourced == true)
+                        ospProcessIds.Add(pid);
+                }
+
+                // Load schedules for all job cards (for machine info)
+                var scheduleByJobCard = new Dictionary<int, (string? MachineName, string? MachineCode, DateTime? Start, DateTime? End, int? Duration)>();
+                foreach (var jc in jobCards)
+                {
+                    var schedules = await _scheduleRepository.GetByJobCardIdAsync(jc.Id);
+                    var active = schedules
+                        .Where(s => s.Status == "Scheduled" || s.Status == "InProgress")
+                        .OrderByDescending(s => s.CreatedAt)
+                        .FirstOrDefault();
+                    if (active != null)
+                        scheduleByJobCard[jc.Id] = (active.MachineName, active.MachineCode, active.ScheduledStartTime, active.ScheduledEndTime, active.EstimatedDurationMinutes);
+                }
+
+                // Separate assembly from child-part steps
+                var assemblyJcs = jobCards.Where(jc => jc.CreationType == "Assembly").ToList();
+                var childJcs = jobCards.Where(jc => jc.CreationType != "Assembly").ToList();
+
+                // Group child part steps
+                var childPartGroups = childJcs
+                    .GroupBy(jc => jc.ChildPartId ?? 0)
+                    .OrderBy(g => g.Key)
+                    .Select(g =>
+                    {
+                        var steps = g.OrderBy(jc => jc.StepNo ?? 999).ToList();
+                        var completedSteps = steps.Count(jc => jc.ProductionStatus == "Completed");
+                        var isReady = steps.All(jc => jc.ProductionStatus == "Completed");
+
+                        return new ProductionChildPartGroup
+                        {
+                            ChildPartId = g.Key == 0 ? null : g.Key,
+                            ChildPartName = steps.First().ChildPartName ?? "Unknown Part",
+                            TotalSteps = steps.Count,
+                            CompletedSteps = completedSteps,
+                            IsReadyForAssembly = isReady,
+                            Steps = steps.Select(jc => MapToStepItem(jc, scheduleByJobCard, ospProcessIds)).ToList()
+                        };
+                    }).ToList();
+
+                // Assembly step (first one)
+                ProductionStepItem? assemblyItem = null;
+                if (assemblyJcs.Any())
+                {
+                    var asmJc = assemblyJcs.First();
+                    assemblyItem = MapToStepItem(asmJc, scheduleByJobCard, ospProcessIds);
+                }
+
+                var allChildSteps = childJcs.Count;
+                var completedChildSteps = childJcs.Count(jc => jc.ProductionStatus == "Completed");
+                var inProgressChildSteps = childJcs.Count(jc => jc.ProductionStatus == "InProgress");
+                var canStartAssembly = childPartGroups.All(g => g.IsReadyForAssembly);
+
+                var detail = new ProductionOrderDetail
+                {
+                    OrderId = order.Id,
+                    OrderNo = order.OrderNo,
+                    CustomerName = order.CustomerName,
+                    ProductName = order.ProductName,
+                    Priority = order.Priority ?? "Medium",
+                    DueDate = order.DueDate,
+                    TotalSteps = allChildSteps,
+                    CompletedSteps = completedChildSteps,
+                    InProgressSteps = inProgressChildSteps,
+                    ChildParts = childPartGroups,
+                    Assembly = assemblyItem,
+                    CanStartAssembly = canStartAssembly
+                };
+
+                return ApiResponse<ProductionOrderDetail>.SuccessResponse(detail);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<ProductionOrderDetail>.ErrorResponse($"Error loading order detail: {ex.Message}");
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 3. Operator action: start | pause | resume | complete
+        // ─────────────────────────────────────────────────────────────────────
+        public async Task<ApiResponse<bool>> HandleActionAsync(int jobCardId, ProductionActionRequest request)
+        {
+            try
+            {
+                var jobCard = await _jobCardRepository.GetByIdAsync(jobCardId);
+                if (jobCard == null)
+                    return ApiResponse<bool>.ErrorResponse("Job card not found");
+
+                var action = request.Action?.ToLower();
+                string newStatus;
+                DateTime? actualStart = jobCard.ActualStartTime;
+                DateTime? actualEnd = jobCard.ActualEndTime;
+
+                switch (action)
+                {
+                    case "start":
+                        if (jobCard.ProductionStatus != "Ready")
+                            return ApiResponse<bool>.ErrorResponse($"Cannot start: job card is '{jobCard.ProductionStatus}', expected 'Ready'");
+                        newStatus = "InProgress";
+                        actualStart = DateTime.UtcNow;
+                        break;
+
+                    case "pause":
+                        if (jobCard.ProductionStatus != "InProgress")
+                            return ApiResponse<bool>.ErrorResponse($"Cannot pause: job card is '{jobCard.ProductionStatus}', expected 'InProgress'");
+                        newStatus = "Paused";
+                        break;
+
+                    case "resume":
+                        if (jobCard.ProductionStatus != "Paused")
+                            return ApiResponse<bool>.ErrorResponse($"Cannot resume: job card is '{jobCard.ProductionStatus}', expected 'Paused'");
+                        newStatus = "InProgress";
+                        break;
+
+                    case "complete":
+                        if (jobCard.ProductionStatus != "InProgress")
+                            return ApiResponse<bool>.ErrorResponse($"Cannot complete: job card is '{jobCard.ProductionStatus}', expected 'InProgress'");
+                        newStatus = "Completed";
+                        actualEnd = DateTime.UtcNow;
+                        break;
+
+                    default:
+                        return ApiResponse<bool>.ErrorResponse($"Unknown action '{request.Action}'. Use: start | pause | resume | complete");
+                }
+
+                // Update this job card
+                await _jobCardRepository.UpdateProductionStatusAsync(
+                    jobCardId,
+                    newStatus,
+                    actualStart,
+                    actualEnd,
+                    request.CompletedQty,
+                    request.RejectedQty
+                );
+
+                // On complete — cascade to unlock next step and check assembly readiness
+                if (action == "complete")
+                {
+                    await CascadeOnCompleteAsync(jobCard);
+                }
+
+                return ApiResponse<bool>.SuccessResponse(true, $"Job card {action}ed successfully");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResponse($"Error performing action: {ex.Message}");
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Cascade: when a step completes, unlock next step + check assembly
+        // ─────────────────────────────────────────────────────────────────────
+        private async Task CascadeOnCompleteAsync(Models.Planning.JobCard completedCard)
+        {
+            // Only cascade for non-assembly child part steps
+            if (completedCard.CreationType == "Assembly") return;
+
+            var allOrderCards = (await _jobCardRepository.GetByOrderIdAsync(completedCard.OrderId)).ToList();
+
+            // Find the next step in the SAME child part group (same ChildPartId, next StepNo)
+            var nextStep = allOrderCards
+                .Where(jc =>
+                    jc.ChildPartId == completedCard.ChildPartId &&
+                    jc.CreationType != "Assembly" &&
+                    jc.StepNo > completedCard.StepNo)
+                .OrderBy(jc => jc.StepNo)
+                .FirstOrDefault();
+
+            if (nextStep != null && nextStep.ProductionStatus == "Pending")
+            {
+                // Unlock: mark next step as Ready
+                await _jobCardRepository.UpdateProductionStatusAsync(
+                    nextStep.Id, "Ready",
+                    nextStep.ActualStartTime, nextStep.ActualEndTime,
+                    nextStep.CompletedQty, nextStep.RejectedQty
+                );
             }
 
-            // Release operator
-            if (execution.OperatorId.HasValue)
-                await _operatorRepository.ReleaseFromJobCardAsync(execution.OperatorId.Value);
+            // Check if ALL steps of this child part are now Completed
+            var childPartSteps = allOrderCards
+                .Where(jc => jc.ChildPartId == completedCard.ChildPartId && jc.CreationType != "Assembly")
+                .ToList();
 
-            return ApiResponse<bool>.SuccessResponse(true, "Production completed successfully");
+            // Re-fetch the completed step so its status is updated
+            var updatedCompleted = await _jobCardRepository.GetByIdAsync(completedCard.Id);
+            if (updatedCompleted == null) return;
+
+            // Replace in list for accurate check
+            var freshList = childPartSteps
+                .Select(jc => jc.Id == updatedCompleted.Id ? updatedCompleted : jc)
+                .ToList();
+
+            bool allDone = freshList.All(jc => jc.ProductionStatus == "Completed");
+
+            // Mark ReadyForAssembly for all steps of this child part
+            foreach (var jc in childPartSteps)
+            {
+                await _jobCardRepository.SetReadyForAssemblyAsync(jc.Id, allDone);
+            }
+
+            if (allDone)
+            {
+                // Check if ALL child parts across the order are done
+                var allChildCards = allOrderCards.Where(jc => jc.CreationType != "Assembly").ToList();
+
+                // Re-fetch to get latest status
+                var freshChildCards = new List<Models.Planning.JobCard>();
+                foreach (var jc in allChildCards)
+                {
+                    var fresh = await _jobCardRepository.GetByIdAsync(jc.Id);
+                    if (fresh != null) freshChildCards.Add(fresh);
+                }
+
+                bool allChildPartsDone = freshChildCards.All(jc => jc.ReadyForAssembly || jc.ProductionStatus == "Completed");
+
+                if (allChildPartsDone)
+                {
+                    // Unlock assembly step
+                    var assemblyCard = allOrderCards.FirstOrDefault(jc => jc.CreationType == "Assembly");
+                    if (assemblyCard != null && assemblyCard.ProductionStatus == "Pending")
+                    {
+                        await _jobCardRepository.UpdateProductionStatusAsync(
+                            assemblyCard.Id, "Ready",
+                            assemblyCard.ActualStartTime, assemblyCard.ActualEndTime,
+                            assemblyCard.CompletedQty, assemblyCard.RejectedQty
+                        );
+                    }
+                }
+            }
         }
 
-        public async Task<ApiResponse<bool>> UpdateQuantitiesAsync(int executionId, int? completed, int? rejected, int? inProgress)
+        // ─────────────────────────────────────────────────────────────────────
+        // Helper
+        // ─────────────────────────────────────────────────────────────────────
+        private static ProductionStepItem MapToStepItem(
+            Models.Planning.JobCard jc,
+            Dictionary<int, (string? MachineName, string? MachineCode, DateTime? Start, DateTime? End, int? Duration)> scheduleMap,
+            HashSet<int> ospProcessIds)
         {
-            var execution = await _executionRepository.GetByIdAsync(executionId);
-            if (execution == null)
-                return ApiResponse<bool>.ErrorResponse("Execution record not found");
-
-            var success = await _executionRepository.UpdateQuantitiesAsync(executionId, completed, rejected, inProgress);
-            if (!success)
-                return ApiResponse<bool>.ErrorResponse("Failed to update quantities");
-
-            return ApiResponse<bool>.SuccessResponse(true, "Quantities updated successfully");
-        }
-
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetActiveExecutionsAsync()
-        {
-            var executions = await _executionRepository.GetActiveExecutionsAsync();
-            return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
-        }
-
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByStatusAsync(string status)
-        {
-            if (string.IsNullOrWhiteSpace(status))
-                return ApiResponse<IEnumerable<JobCardExecution>>.ErrorResponse("Status is required");
-
-            var executions = await _executionRepository.GetByStatusAsync(status);
-            return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
-        }
-
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetByDateRangeAsync(DateTime startDate, DateTime endDate)
-        {
-            if (startDate > endDate)
-                return ApiResponse<IEnumerable<JobCardExecution>>.ErrorResponse("Start date must be before end date");
-
-            var executions = await _executionRepository.GetByDateRangeAsync(startDate, endDate);
-            return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
-        }
-
-        public async Task<ApiResponse<JobCardExecution>> GetCurrentExecutionForJobCardAsync(int jobCardId)
-        {
-            var execution = await _executionRepository.GetCurrentExecutionForJobCardAsync(jobCardId);
-            if (execution == null)
-                return ApiResponse<JobCardExecution>.ErrorResponse("No active execution found for this job card");
-
-            return ApiResponse<JobCardExecution>.SuccessResponse(execution);
-        }
-
-        public async Task<ApiResponse<IEnumerable<JobCardExecution>>> GetExecutionHistoryForJobCardAsync(int jobCardId)
-        {
-            var executions = await _executionRepository.GetExecutionHistoryForJobCardAsync(jobCardId);
-            return ApiResponse<IEnumerable<JobCardExecution>>.SuccessResponse(executions);
-        }
-
-        public async Task<ApiResponse<int>> GetTotalExecutionTimeForJobCardAsync(int jobCardId)
-        {
-            var totalTime = await _executionRepository.GetTotalExecutionTimeForJobCardAsync(jobCardId);
-            return ApiResponse<int>.SuccessResponse(totalTime);
-        }
-
-        public async Task<ApiResponse<int>> GetTotalCompletedQuantityForJobCardAsync(int jobCardId)
-        {
-            var totalCompleted = await _executionRepository.GetTotalCompletedQuantityForJobCardAsync(jobCardId);
-            return ApiResponse<int>.SuccessResponse(totalCompleted);
+            scheduleMap.TryGetValue(jc.Id, out var sched);
+            return new ProductionStepItem
+            {
+                JobCardId = jc.Id,
+                JobCardNo = jc.JobCardNo,
+                StepNo = jc.StepNo,
+                ProcessName = jc.ProcessName,
+                ProcessCode = jc.ProcessCode,
+                IsOsp = ospProcessIds.Contains(jc.ProcessId),
+                ProductionStatus = jc.ProductionStatus,
+                ActualStartTime = jc.ActualStartTime,
+                ActualEndTime = jc.ActualEndTime,
+                Quantity = jc.Quantity,
+                CompletedQty = jc.CompletedQty,
+                RejectedQty = jc.RejectedQty,
+                ScheduledStartTime = sched.Start,
+                ScheduledEndTime = sched.End,
+                MachineName = sched.MachineName,
+                MachineCode = sched.MachineCode,
+                EstimatedDurationMinutes = sched.Duration
+            };
         }
     }
 }

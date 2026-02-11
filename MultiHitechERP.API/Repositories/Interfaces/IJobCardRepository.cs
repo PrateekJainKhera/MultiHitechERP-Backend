@@ -36,5 +36,10 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         // Optimistic Locking
         Task<bool> UpdateWithVersionCheckAsync(JobCard jobCard);
         Task<int> GetVersionAsync(int id);
+
+        // Production Execution
+        Task<bool> UpdateProductionStatusAsync(int id, string productionStatus, DateTime? actualStartTime, DateTime? actualEndTime, int completedQty, int rejectedQty);
+        Task<bool> SetReadyForAssemblyAsync(int id, bool ready);
+        Task<IEnumerable<JobCard>> GetByProductionStatusAsync(int orderId, string productionStatus);
     }
 }

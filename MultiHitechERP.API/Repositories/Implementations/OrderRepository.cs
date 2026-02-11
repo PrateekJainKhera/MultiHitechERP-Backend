@@ -546,7 +546,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     ? null : reader.GetDateTime(reader.GetOrdinal("AdjustedDueDate")),
 
                 CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                CustomerName = reader.IsDBNull(reader.GetOrdinal("CustomerName")) ? null : reader.GetString(reader.GetOrdinal("CustomerName")),
                 ProductId = reader.GetInt32(reader.GetOrdinal("ProductId")),
+                ProductName = reader.IsDBNull(reader.GetOrdinal("ProductName")) ? null : reader.GetString(reader.GetOrdinal("ProductName")),
 
                 Quantity = reader.GetInt32(reader.GetOrdinal("Quantity")),
                 OriginalQuantity = reader.GetInt32(reader.GetOrdinal("OriginalQuantity")),
