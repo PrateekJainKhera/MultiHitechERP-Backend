@@ -13,8 +13,8 @@ namespace MultiHitechERP.API.Models.Scheduling
         public int JobCardId { get; set; }
         public string? JobCardNo { get; set; }
 
-        // Machine assignment
-        public int MachineId { get; set; }
+        // Machine assignment (null = OSP — no machine assigned for outside service processes)
+        public int? MachineId { get; set; }
         public string? MachineCode { get; set; }
         public string? MachineName { get; set; }
 

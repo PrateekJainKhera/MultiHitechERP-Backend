@@ -38,12 +38,15 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? ProcessCode { get; set; }
         public int? StepNo { get; set; }
 
+        // OSP flag — true when this step is outsourced (no machine needed)
+        public bool IsOsp { get; set; }
+
         // Production info
         public int Quantity { get; set; }
         public string Priority { get; set; } = string.Empty;
         public string JobCardStatus { get; set; } = string.Empty;
 
-        // Machine assignment (null = not yet assigned)
+        // Machine assignment (null = not yet assigned; 0 = OSP, no machine)
         public int? ScheduleId { get; set; }
         public int? AssignedMachineId { get; set; }
         public string? AssignedMachineCode { get; set; }

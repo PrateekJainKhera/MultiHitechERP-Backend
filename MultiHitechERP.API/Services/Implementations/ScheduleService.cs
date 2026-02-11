@@ -16,17 +16,20 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IJobCardRepository _jobCardRepository;
         private readonly IProcessMachineCapabilityRepository _capabilityRepository;
         private readonly IMachineRepository _machineRepository;
+        private readonly IProcessRepository _processRepository;
 
         public ScheduleService(
             IScheduleRepository scheduleRepository,
             IJobCardRepository jobCardRepository,
             IProcessMachineCapabilityRepository capabilityRepository,
-            IMachineRepository machineRepository)
+            IMachineRepository machineRepository,
+            IProcessRepository processRepository)
         {
             _scheduleRepository = scheduleRepository;
             _jobCardRepository = jobCardRepository;
             _capabilityRepository = capabilityRepository;
             _machineRepository = machineRepository;
+            _processRepository = processRepository;
         }
 
         public async Task<ApiResponse<ScheduleResponse>> GetByIdAsync(int id)
@@ -119,6 +122,16 @@ namespace MultiHitechERP.API.Services.Implementations
                 var orderNo = jobCardList[0].OrderNo ?? $"Order-{orderId}";
                 var priority = jobCardList[0].Priority ?? "MEDIUM";
 
+                // Fetch IsOutsourced flag for each unique process used by these job cards
+                var uniqueProcessIds = jobCardList.Select(jc => jc.ProcessId).Distinct().ToList();
+                var ospProcessIds = new HashSet<int>();
+                foreach (var pid in uniqueProcessIds)
+                {
+                    var process = await _processRepository.GetByIdAsync(pid);
+                    if (process != null && process.IsOutsourced)
+                        ospProcessIds.Add(pid);
+                }
+
                 // For each job card, get its existing machine schedule (first active one)
                 var stepItems = new List<ProcessStepSchedulingItem>();
                 foreach (var jc in jobCardList)
@@ -137,6 +150,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         ProcessName = jc.ProcessName,
                         ProcessCode = jc.ProcessCode,
                         StepNo = jc.StepNo,
+                        IsOsp = ospProcessIds.Contains(jc.ProcessId),
                         Quantity = jc.Quantity,
                         Priority = jc.Priority,
                         JobCardStatus = jc.Status,
@@ -173,7 +187,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         GroupName = group.Key,
                         CreationType = "ChildPart",
                         TotalSteps = groupSteps.Count,
-                        ScheduledSteps = groupSteps.Count(s => s.AssignedMachineId.HasValue),
+                        ScheduledSteps = groupSteps.Count(s => s.ScheduleId.HasValue),
                         Steps = groupSteps
                     });
                 }
@@ -196,13 +210,13 @@ namespace MultiHitechERP.API.Services.Implementations
                         GroupName = group.Key,
                         CreationType = "Assembly",
                         TotalSteps = groupSteps.Count,
-                        ScheduledSteps = groupSteps.Count(s => s.AssignedMachineId.HasValue),
+                        ScheduledSteps = groupSteps.Count(s => s.ScheduleId.HasValue),
                         Steps = groupSteps
                     });
                 }
 
                 var totalSteps = stepItems.Count;
-                var scheduledSteps = stepItems.Count(s => s.AssignedMachineId.HasValue);
+                var scheduledSteps = stepItems.Count(s => s.ScheduleId.HasValue);
 
                 var tree = new OrderSchedulingTreeResponse
                 {
@@ -332,34 +346,43 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (jobCard == null)
                     return ApiResponse<int>.ErrorResponse("Job card not found");
 
-                // Get machine
-                var machine = await _machineRepository.GetByIdAsync(request.MachineId);
-                if (machine == null)
-                    return ApiResponse<int>.ErrorResponse("Machine not found");
+                string machineCode = "OSP";
+                string machineName = "Outside Service Process";
 
-                // Check for scheduling conflicts
-                var hasConflict = await _scheduleRepository.HasConflictAsync(
-                    request.MachineId,
-                    request.ScheduledStartTime,
-                    request.ScheduledEndTime
-                );
+                if (!request.IsOsp)
+                {
+                    // Get machine
+                    var machine = await _machineRepository.GetByIdAsync(request.MachineId);
+                    if (machine == null)
+                        return ApiResponse<int>.ErrorResponse("Machine not found");
 
-                if (hasConflict)
-                    return ApiResponse<int>.ErrorResponse("Schedule conflict: Machine already has overlapping schedule for this time period");
+                    machineCode = machine.MachineCode;
+                    machineName = machine.MachineName;
+
+                    // Check for scheduling conflicts (not needed for OSP)
+                    var hasConflict = await _scheduleRepository.HasConflictAsync(
+                        request.MachineId,
+                        request.ScheduledStartTime,
+                        request.ScheduledEndTime
+                    );
+
+                    if (hasConflict)
+                        return ApiResponse<int>.ErrorResponse("Schedule conflict: Machine already has overlapping schedule for this time period");
+                }
 
                 // Create schedule
                 var schedule = new MachineSchedule
                 {
                     JobCardId = request.JobCardId,
                     JobCardNo = jobCard.JobCardNo,
-                    MachineId = request.MachineId,
-                    MachineCode = machine.MachineCode,
-                    MachineName = machine.MachineName,
+                    MachineId = request.IsOsp ? (int?)null : request.MachineId,
+                    MachineCode = machineCode,
+                    MachineName = machineName,
                     ScheduledStartTime = request.ScheduledStartTime,
                     ScheduledEndTime = request.ScheduledEndTime,
                     EstimatedDurationMinutes = request.EstimatedDurationMinutes,
                     Status = "Scheduled",
-                    SchedulingMethod = request.SchedulingMethod ?? "Semi-Automatic",
+                    SchedulingMethod = request.IsOsp ? "OSP" : (request.SchedulingMethod ?? "Semi-Automatic"),
                     SuggestedBySystem = request.SuggestedBySystem,
                     ConfirmedBy = request.CreatedBy,
                     ConfirmedAt = DateTime.UtcNow,
@@ -461,16 +484,19 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (existingSchedule == null)
                     return ApiResponse<bool>.ErrorResponse("Schedule not found");
 
-                // Check for conflicts
-                var hasConflict = await _scheduleRepository.HasConflictAsync(
-                    existingSchedule.MachineId,
-                    newStartTime,
-                    newEndTime,
-                    scheduleId
-                );
+                // Check for conflicts (skip for OSP schedules that have no machine)
+                if (existingSchedule.MachineId.HasValue)
+                {
+                    var hasConflict = await _scheduleRepository.HasConflictAsync(
+                        existingSchedule.MachineId.Value,
+                        newStartTime,
+                        newEndTime,
+                        scheduleId
+                    );
 
-                if (hasConflict)
-                    return ApiResponse<bool>.ErrorResponse("Cannot reschedule: Conflict detected");
+                    if (hasConflict)
+                        return ApiResponse<bool>.ErrorResponse("Cannot reschedule: Conflict detected");
+                }
 
                 existingSchedule.ScheduledStartTime = newStartTime;
                 existingSchedule.ScheduledEndTime = newEndTime;

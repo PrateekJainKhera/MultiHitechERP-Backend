@@ -11,7 +11,7 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required(ErrorMessage = "Job Card ID is required")]
         public int JobCardId { get; set; }
 
-        [Required(ErrorMessage = "Machine ID is required")]
+        // MachineId = 0 when IsOsp = true (no machine for outside service processes)
         public int MachineId { get; set; }
 
         [Required(ErrorMessage = "Scheduled start time is required")]
@@ -26,6 +26,8 @@ namespace MultiHitechERP.API.DTOs.Request
 
         public string? SchedulingMethod { get; set; } = "Semi-Automatic";
         public bool SuggestedBySystem { get; set; }
+        // True for Outside Service Process (OSP) steps — skips machine lookup and conflict check
+        public bool IsOsp { get; set; }
         public string? Notes { get; set; }
         public string? CreatedBy { get; set; }
     }
