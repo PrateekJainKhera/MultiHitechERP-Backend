@@ -54,6 +54,12 @@ namespace MultiHitechERP.API.Models.Stores
         /// </summary>
         public string? SelectedPieceIds { get; set; }
 
+        /// <summary>
+        /// Comma-separated list of cut quantities (in MM) for each selected piece.
+        /// Order matches SelectedPieceIds. E.g., "300,500,200" means cut 300mm from piece 1, 500mm from piece 2, etc.
+        /// </summary>
+        public string? SelectedPieceQuantities { get; set; }
+
         public string? Remarks { get; set; }
         public DateTime CreatedAt { get; set; }
     }

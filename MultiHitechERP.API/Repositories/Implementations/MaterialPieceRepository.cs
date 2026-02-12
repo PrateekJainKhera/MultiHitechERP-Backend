@@ -232,5 +232,102 @@ namespace MultiHitechERP.API.Repositories.Implementations
             var result = await GetConnection().ExecuteAsync(sql, new { Id = pieceId, JobCardId = jobCardId, IssuedBy = issuedBy });
             return result > 0;
         }
+
+        public async Task<int> ConsumePiecesByJobCardAsync(int jobCardId)
+        {
+            var sql = @"
+                UPDATE Stores_MaterialPieces
+                SET Status = 'Consumed',
+                    UpdatedAt = GETUTCDATE()
+                WHERE IssuedToJobCardId = @JobCardId
+                  AND Status = 'Issued'";
+
+            return await GetConnection().ExecuteAsync(sql, new { JobCardId = jobCardId });
+        }
+
+        public async Task<bool> CutPieceAsync(
+            int pieceId,
+            decimal lengthToCutMM,
+            int jobCardId,
+            string cutByOperator,
+            string? orderNo = null,
+            string? childPartName = null,
+            int minimumUsableLengthMM = 300)
+        {
+            var connection = GetConnection();
+
+            // 1. Get current piece info
+            var piece = await GetByIdAsync(pieceId);
+            if (piece == null) return false;
+
+            // 2. Calculate new length
+            var newLengthMM = piece.CurrentLengthMM - lengthToCutMM;
+            if (newLengthMM < 0) return false; // Can't cut more than available
+
+            // 3. Calculate new weight (proportional to length)
+            var newWeightKG = piece.OriginalLengthMM > 0
+                ? piece.OriginalWeightKG * (newLengthMM / piece.OriginalLengthMM)
+                : piece.CurrentWeightKG - (piece.CurrentWeightKG * (lengthToCutMM / piece.CurrentLengthMM));
+
+            // 4. Check if piece becomes wastage
+            var becomesWastage = newLengthMM < minimumUsableLengthMM;
+            var newStatus = becomesWastage ? "Scrap" : "Available";
+
+            // 5. Update the piece
+            var updateSql = @"
+                UPDATE Stores_MaterialPieces
+                SET CurrentLengthMM = @NewLengthMM,
+                    CurrentWeightKG = @NewWeightKG,
+                    Status = @NewStatus,
+                    IsWastage = @IsWastage,
+                    WastageReason = @WastageReason,
+                    UpdatedAt = GETUTCDATE(),
+                    UpdatedBy = @UpdatedBy
+                WHERE Id = @PieceId";
+
+            var wastageReason = becomesWastage
+                ? $"Remaining length ({newLengthMM:F0}mm) below minimum usable ({minimumUsableLengthMM}mm)"
+                : null;
+
+            var updateResult = await connection.ExecuteAsync(updateSql, new
+            {
+                PieceId = pieceId,
+                NewLengthMM = newLengthMM,
+                NewWeightKG = newWeightKG,
+                NewStatus = newStatus,
+                IsWastage = becomesWastage,
+                WastageReason = wastageReason,
+                UpdatedBy = cutByOperator
+            });
+
+            if (updateResult == 0) return false;
+
+            // 6. Create usage history record
+            var usageHistorySql = @"
+                INSERT INTO Stores_MaterialUsageHistory (
+                    MaterialPieceId, PieceNo, OrderNo, ChildPartName,
+                    JobCardId, LengthUsedMM, LengthRemainingMM,
+                    CuttingDate, CutByOperator, CreatedAt, CreatedBy
+                ) VALUES (
+                    @MaterialPieceId, @PieceNo, @OrderNo, @ChildPartName,
+                    @JobCardId, @LengthUsedMM, @LengthRemainingMM,
+                    GETUTCDATE(), @CutByOperator, GETUTCDATE(), @CreatedBy
+                )";
+
+            await connection.ExecuteAsync(usageHistorySql, new
+            {
+                MaterialPieceId = pieceId,
+                PieceNo = piece.PieceNo,
+                OrderNo = orderNo,
+                ChildPartName = childPartName,
+                JobCardId = jobCardId,
+                LengthUsedMM = lengthToCutMM,
+                LengthRemainingMM = newLengthMM,
+                CutByOperator = cutByOperator,
+                CreatedBy = cutByOperator
+            });
+
+            return true;
+        }
     }
 }

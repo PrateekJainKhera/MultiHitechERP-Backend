@@ -415,14 +415,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
                  [RequestedQuantity], [IssuedQuantity],
                  [QuantityRequired], [UOM], [LengthRequiredMM], [DiameterMM], [NumberOfPieces],
                  [QuantityAllocated], [QuantityIssued], [QuantityPending], [Status],
-                 [JobCardId], [JobCardNo], [ProcessId], [ProcessName], [SelectedPieceIds], [Remarks], [CreatedAt])
+                 [JobCardId], [JobCardNo], [ProcessId], [ProcessName], [SelectedPieceIds], [SelectedPieceQuantities], [Remarks], [CreatedAt])
                 VALUES
                 (@RequisitionId, @LineNo, @MaterialId, @MaterialCode, @MaterialName, @MaterialGrade,
                  @ComponentId, @ComponentCode, @ComponentName,
                  @RequestedQuantity, @IssuedQuantity,
                  @QuantityRequired, @UOM, @LengthRequiredMM, @DiameterMM, @NumberOfPieces,
                  @QuantityAllocated, @QuantityIssued, @QuantityPending, @Status,
-                 @JobCardId, @JobCardNo, @ProcessId, @ProcessName, @SelectedPieceIds, @Remarks, @CreatedAt);
+                 @JobCardId, @JobCardNo, @ProcessId, @ProcessName, @SelectedPieceIds, @SelectedPieceQuantities, @Remarks, @CreatedAt);
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             item.CreatedAt = DateTime.UtcNow;
@@ -458,6 +458,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@ProcessId", (object?)item.ProcessId ?? DBNull.Value);
             command.Parameters.AddWithValue("@ProcessName", (object?)item.ProcessName ?? DBNull.Value);
             command.Parameters.AddWithValue("@SelectedPieceIds", (object?)item.SelectedPieceIds ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SelectedPieceQuantities", (object?)item.SelectedPieceQuantities ?? DBNull.Value);
             command.Parameters.AddWithValue("@Remarks", (object?)item.Remarks ?? DBNull.Value);
             command.Parameters.AddWithValue("@CreatedAt", item.CreatedAt);
 
@@ -551,6 +552,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 JobCardNo = reader.IsDBNull(reader.GetOrdinal("JobCardNo")) ? null : reader.GetString(reader.GetOrdinal("JobCardNo")),
                 ProcessId = reader.IsDBNull(reader.GetOrdinal("ProcessId")) ? null : reader.GetInt32(reader.GetOrdinal("ProcessId")),
                 ProcessName = reader.IsDBNull(reader.GetOrdinal("ProcessName")) ? null : reader.GetString(reader.GetOrdinal("ProcessName")),
+                SelectedPieceIds = reader.IsDBNull(reader.GetOrdinal("SelectedPieceIds")) ? null : reader.GetString(reader.GetOrdinal("SelectedPieceIds")),
+                SelectedPieceQuantities = reader.IsDBNull(reader.GetOrdinal("SelectedPieceQuantities")) ? null : reader.GetString(reader.GetOrdinal("SelectedPieceQuantities")),
                 Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
             };

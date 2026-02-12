@@ -30,5 +30,19 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<bool> AllocatePieceAsync(int pieceId, int requisitionId);
         Task<bool> ReturnPieceAsync(int pieceId);
         Task<bool> IssuePieceAsync(int pieceId, int jobCardId, System.DateTime issuedDate, string issuedBy);
+
+        // Production completion: mark all pieces issued to a job card as Consumed
+        Task<int> ConsumePiecesByJobCardAsync(int jobCardId);
+
+        // Partial cutting: cut specified length from a piece
+        Task<bool> CutPieceAsync(
+            int pieceId,
+            decimal lengthToCutMM,
+            int jobCardId,
+            string cutByOperator,
+            string? orderNo = null,
+            string? childPartName = null,
+            int minimumUsableLengthMM = 300
+        );
     }
 }

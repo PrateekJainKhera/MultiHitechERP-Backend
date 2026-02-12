@@ -701,6 +701,28 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
+        public async Task<bool> DeductRawMaterialStockAsync(int materialId, decimal lengthMM, string updatedBy)
+        {
+            const string query = @"
+                UPDATE Inventory_Stock
+                SET CurrentStock = CASE WHEN CurrentStock >= @LengthMM THEN CurrentStock - @LengthMM ELSE 0 END,
+                    LastUpdated = @LastUpdated,
+                    UpdatedBy = @UpdatedBy
+                WHERE ItemType = 'RawMaterial' AND ItemId = @MaterialId";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@MaterialId", materialId);
+            command.Parameters.AddWithValue("@LengthMM", lengthMM);
+            command.Parameters.AddWithValue("@LastUpdated", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@UpdatedBy", (object?)updatedBy ?? DBNull.Value);
+
+            await connection.OpenAsync();
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+
+            return rowsAffected > 0;
+        }
+
         public async Task<bool> UpsertFromGRNAsync(
             int materialId,
             string materialCode,

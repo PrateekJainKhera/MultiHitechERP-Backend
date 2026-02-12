@@ -15,17 +15,20 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IScheduleRepository _scheduleRepository;
         private readonly IOrderRepository _orderRepository;
         private readonly IProcessRepository _processRepository;
+        private readonly IMaterialPieceRepository _pieceRepository;
 
         public ProductionService(
             IJobCardRepository jobCardRepository,
             IScheduleRepository scheduleRepository,
             IOrderRepository orderRepository,
-            IProcessRepository processRepository)
+            IProcessRepository processRepository,
+            IMaterialPieceRepository pieceRepository)
         {
             _jobCardRepository = jobCardRepository;
             _scheduleRepository = scheduleRepository;
             _orderRepository = orderRepository;
             _processRepository = processRepository;
+            _pieceRepository = pieceRepository;
         }
 
         // Helper: stable key for grouping job cards by child part
@@ -260,10 +263,11 @@ namespace MultiHitechERP.API.Services.Implementations
                     request.RejectedQty
                 );
 
-                // On complete — cascade to unlock next step and check assembly readiness
+                // On complete — cascade to unlock next step + mark issued pieces as Consumed
                 if (action == "complete")
                 {
                     await CascadeOnCompleteAsync(jobCard);
+                    await _pieceRepository.ConsumePiecesByJobCardAsync(jobCardId);
                 }
 
                 return ApiResponse<bool>.SuccessResponse(true, $"Job card {action}ed successfully");
