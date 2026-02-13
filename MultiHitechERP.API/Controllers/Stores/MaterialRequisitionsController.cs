@@ -228,6 +228,9 @@ namespace MultiHitechERP.API.Controllers.Stores
                     SelectedPieceIds = item.SelectedPieceIds != null && item.SelectedPieceIds.Count > 0
                         ? string.Join(",", item.SelectedPieceIds)
                         : null,
+                    SelectedPieceQuantities = item.SelectedPieceQuantities != null && item.SelectedPieceQuantities.Count > 0
+                        ? string.Join(",", item.SelectedPieceQuantities)
+                        : null,
                     Remarks = item.Remarks
                 }).ToList();
 

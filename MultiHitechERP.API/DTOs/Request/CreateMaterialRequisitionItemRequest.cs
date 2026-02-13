@@ -45,6 +45,12 @@ namespace MultiHitechERP.API.DTOs.Request
         /// </summary>
         public List<int>? SelectedPieceIds { get; set; }
 
+        /// <summary>
+        /// Optional list of cut quantities (in MM) for each selected piece.
+        /// Order matches SelectedPieceIds. E.g., [300, 500, 200] means cut 300mm from piece 1, 500mm from piece 2, etc.
+        /// </summary>
+        public List<decimal>? SelectedPieceQuantities { get; set; }
+
         public string? Remarks { get; set; }
     }
 }
