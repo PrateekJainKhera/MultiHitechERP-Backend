@@ -10,7 +10,11 @@ namespace MultiHitechERP.API.Models.Masters
         public int Id { get; set; }
         public string PartCode { get; set; } = string.Empty;
         public string? CustomerName { get; set; }
-        public string ModelName { get; set; } = string.Empty;
+
+        // Machine Model
+        public int ModelId { get; set; }
+        public string ModelName { get; set; } = string.Empty; // Kept for backward compatibility
+
         public string RollerType { get; set; } = string.Empty;
 
         // Dimensions
@@ -28,7 +32,7 @@ namespace MultiHitechERP.API.Models.Masters
         public string? RevisionDate { get; set; }
 
         // Additional Properties
-        public int? NumberOfTeeth { get; set; }
+        public int NumberOfTeeth { get; set; }
 
         // Process Reference
         public int ProcessTemplateId { get; set; }

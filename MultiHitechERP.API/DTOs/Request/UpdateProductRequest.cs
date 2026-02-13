@@ -12,8 +12,8 @@ namespace MultiHitechERP.API.DTOs.Request
 
         public string? CustomerName { get; set; }
 
-        [Required]
-        public string ModelName { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Machine model is required")]
+        public int ModelId { get; set; }
 
         [Required]
         public string RollerType { get; set; } = string.Empty;
@@ -28,7 +28,10 @@ namespace MultiHitechERP.API.DTOs.Request
         public string? DrawingNo { get; set; }
         public string? RevisionNo { get; set; }
         public string? RevisionDate { get; set; }
-        public int? NumberOfTeeth { get; set; }
+
+        [Required(ErrorMessage = "Number of teeth is required")]
+        public int NumberOfTeeth { get; set; }
+
         public string? SurfaceFinish { get; set; }
         public string? Hardness { get; set; }
 

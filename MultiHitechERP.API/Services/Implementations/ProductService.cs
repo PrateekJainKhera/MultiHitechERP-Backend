@@ -13,10 +13,14 @@ namespace MultiHitechERP.API.Services.Implementations
     public class ProductService : IProductService
     {
         private readonly IProductRepository _productRepository;
+        private readonly IMachineModelRepository _machineModelRepository;
 
-        public ProductService(IProductRepository productRepository)
+        public ProductService(
+            IProductRepository productRepository,
+            IMachineModelRepository machineModelRepository)
         {
             _productRepository = productRepository;
+            _machineModelRepository = machineModelRepository;
         }
 
         public async Task<ApiResponse<ProductResponse>> GetByIdAsync(int id)
@@ -69,14 +73,10 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                // Business validation: Validate required fields
-                if (string.IsNullOrWhiteSpace(request.ModelName))
-                    return ApiResponse<int>.ErrorResponse("Model name is required");
-
-                // Business validation: Only Printing Roller or Magnetic Roller allowed
-                var validRollerTypes = new[] { "Printing Roller", "Magnetic Roller" };
+                // Business validation: Only Printing Roller, Magnetic Roller, or Other allowed
+                var validRollerTypes = new[] { "Printing Roller", "Magnetic Roller", "Other" };
                 if (!validRollerTypes.Contains(request.RollerType))
-                    return ApiResponse<int>.ErrorResponse("Roller type must be either 'Printing Roller' or 'Magnetic Roller'");
+                    return ApiResponse<int>.ErrorResponse("Roller type must be either 'Printing Roller', 'Magnetic Roller', or 'Other'");
 
                 // Business validation: Validate dimensions
                 if (request.Diameter <= 0)
@@ -84,6 +84,11 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 if (request.Length <= 0)
                     return ApiResponse<int>.ErrorResponse("Length must be greater than 0");
+
+                // Validate and get machine model
+                var machineModel = await _machineModelRepository.GetByIdAsync(request.ModelId);
+                if (machineModel == null)
+                    return ApiResponse<int>.ErrorResponse($"Machine model with ID {request.ModelId} not found");
 
                 // Auto-generate PartCode based on roller type
                 string partCodePrefix = request.RollerType == "Magnetic Roller" ? "MAG" : "PRT";
@@ -95,7 +100,8 @@ namespace MultiHitechERP.API.Services.Implementations
                 {
                     PartCode = generatedPartCode,
                     CustomerName = request.CustomerName?.Trim(),
-                    ModelName = request.ModelName.Trim(),
+                    ModelId = request.ModelId,
+                    ModelName = machineModel.ModelName, // Populated from MachineModel
                     RollerType = request.RollerType.Trim(),
                     Diameter = request.Diameter,
                     Length = request.Length,
@@ -128,10 +134,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (existingProduct == null)
                     return ApiResponse<bool>.ErrorResponse($"Product with ID {request.Id} not found");
 
-                // Business validation: Only Printing Roller or Magnetic Roller allowed
-                var validRollerTypes = new[] { "Printing Roller", "Magnetic Roller" };
+                // Business validation: Only Printing Roller, Magnetic Roller, or Other allowed
+                var validRollerTypes = new[] { "Printing Roller", "Magnetic Roller", "Other" };
                 if (!validRollerTypes.Contains(request.RollerType))
-                    return ApiResponse<bool>.ErrorResponse("Roller type must be either 'Printing Roller' or 'Magnetic Roller'");
+                    return ApiResponse<bool>.ErrorResponse("Roller type must be either 'Printing Roller', 'Magnetic Roller', or 'Other'");
 
                 // Business validation: Check if part code already exists (if changed)
                 if (existingProduct.PartCode != request.PartCode)
@@ -148,10 +154,16 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (request.Length <= 0)
                     return ApiResponse<bool>.ErrorResponse("Length must be greater than 0");
 
+                // Validate and get machine model
+                var machineModel = await _machineModelRepository.GetByIdAsync(request.ModelId);
+                if (machineModel == null)
+                    return ApiResponse<bool>.ErrorResponse($"Machine model with ID {request.ModelId} not found");
+
                 // Update product entity
                 existingProduct.PartCode = request.PartCode.Trim().ToUpper();
                 existingProduct.CustomerName = request.CustomerName?.Trim();
-                existingProduct.ModelName = request.ModelName.Trim();
+                existingProduct.ModelId = request.ModelId;
+                existingProduct.ModelName = machineModel.ModelName;
                 existingProduct.RollerType = request.RollerType.Trim();
                 existingProduct.Diameter = request.Diameter;
                 existingProduct.Length = request.Length;

@@ -258,7 +258,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 DrawingNo = reader.IsDBNull(reader.GetOrdinal("DrawingNo")) ? null : reader.GetString(reader.GetOrdinal("DrawingNo")),
                 RevisionNo = reader.IsDBNull(reader.GetOrdinal("RevisionNo")) ? null : reader.GetString(reader.GetOrdinal("RevisionNo")),
                 RevisionDate = reader.IsDBNull(reader.GetOrdinal("RevisionDate")) ? null : reader.GetString(reader.GetOrdinal("RevisionDate")),
-                NumberOfTeeth = reader.IsDBNull(reader.GetOrdinal("NumberOfTeeth")) ? null : reader.GetInt32(reader.GetOrdinal("NumberOfTeeth")),
+                NumberOfTeeth = reader.IsDBNull(reader.GetOrdinal("NumberOfTeeth")) ? 0 : reader.GetInt32(reader.GetOrdinal("NumberOfTeeth")),
                 ProcessTemplateId = reader.GetInt32(reader.GetOrdinal("ProcessTemplateId")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
