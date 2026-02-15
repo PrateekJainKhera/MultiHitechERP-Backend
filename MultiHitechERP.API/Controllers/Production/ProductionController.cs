@@ -18,7 +18,7 @@ namespace MultiHitechERP.API.Controllers.Production
 
         /// <summary>
         /// GET /api/production/orders
-        /// Production dashboard — all orders with at least one scheduled job card
+        /// Production dashboard — all orders with at least one scheduled job card (LEGACY)
         /// </summary>
         [HttpGet("orders")]
         public async Task<IActionResult> GetOrders()
@@ -28,13 +28,35 @@ namespace MultiHitechERP.API.Controllers.Production
         }
 
         /// <summary>
+        /// GET /api/production/order-items
+        /// Production dashboard — all order items with at least one scheduled job card (NEW)
+        /// </summary>
+        [HttpGet("order-items")]
+        public async Task<IActionResult> GetOrderItems()
+        {
+            var result = await _productionService.GetOrderItemsAsync();
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
         /// GET /api/production/orders/{orderId}
-        /// Full production detail for one order: child parts → steps → assembly
+        /// Full production detail for one order: child parts → steps → assembly (LEGACY)
         /// </summary>
         [HttpGet("orders/{orderId:int}")]
         public async Task<IActionResult> GetOrderDetail(int orderId)
         {
             var result = await _productionService.GetOrderDetailAsync(orderId);
+            return result.Success ? Ok(result) : NotFound(result);
+        }
+
+        /// <summary>
+        /// GET /api/production/order-items/{orderItemId}
+        /// Full production detail for one order item: child parts → steps → assembly (NEW)
+        /// </summary>
+        [HttpGet("order-items/{orderItemId:int}")]
+        public async Task<IActionResult> GetOrderItemDetail(int orderItemId)
+        {
+            var result = await _productionService.GetOrderItemDetailAsync(orderItemId);
             return result.Success ? Ok(result) : NotFound(result);
         }
 

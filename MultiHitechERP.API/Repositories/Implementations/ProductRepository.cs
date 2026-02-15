@@ -68,15 +68,23 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Products (
-                    PartCode, CustomerName, ModelName, RollerType,
+                    PartCode, CustomerName, ModelId, ModelName, RollerType,
                     Diameter, Length, MaterialGrade, SurfaceFinish, Hardness,
-                    DrawingNo, RevisionNo, RevisionDate, NumberOfTeeth,
-                    ProcessTemplateId, CreatedAt, CreatedBy, UpdatedAt
+                    DrawingNo, RevisionNo, RevisionDate,
+                    AssemblyDrawingId, CustomerProvidedDrawingId,
+                    DrawingReviewStatus, DrawingReviewedBy, DrawingReviewedAt, DrawingReviewNotes,
+                    DrawingRequestedAt, DrawingRequestedBy,
+                    NumberOfTeeth, ProductTemplateId, ProcessTemplateId,
+                    CreatedAt, CreatedBy, UpdatedAt
                 ) VALUES (
-                    @PartCode, @CustomerName, @ModelName, @RollerType,
+                    @PartCode, @CustomerName, @ModelId, @ModelName, @RollerType,
                     @Diameter, @Length, @MaterialGrade, @SurfaceFinish, @Hardness,
-                    @DrawingNo, @RevisionNo, @RevisionDate, @NumberOfTeeth,
-                    @ProcessTemplateId, @CreatedAt, @CreatedBy, @UpdatedAt
+                    @DrawingNo, @RevisionNo, @RevisionDate,
+                    @AssemblyDrawingId, @CustomerProvidedDrawingId,
+                    @DrawingReviewStatus, @DrawingReviewedBy, @DrawingReviewedAt, @DrawingReviewNotes,
+                    @DrawingRequestedAt, @DrawingRequestedBy,
+                    @NumberOfTeeth, @ProductTemplateId, @ProcessTemplateId,
+                    @CreatedAt, @CreatedBy, @UpdatedAt
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -88,6 +96,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
             command.Parameters.AddWithValue("@PartCode", product.PartCode);
             command.Parameters.AddWithValue("@CustomerName", (object?)product.CustomerName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ModelId", product.ModelId);
             command.Parameters.AddWithValue("@ModelName", product.ModelName);
             command.Parameters.AddWithValue("@RollerType", product.RollerType);
             command.Parameters.AddWithValue("@Diameter", product.Diameter);
@@ -98,7 +107,16 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@DrawingNo", (object?)product.DrawingNo ?? DBNull.Value);
             command.Parameters.AddWithValue("@RevisionNo", (object?)product.RevisionNo ?? DBNull.Value);
             command.Parameters.AddWithValue("@RevisionDate", (object?)product.RevisionDate ?? DBNull.Value);
+            command.Parameters.AddWithValue("@AssemblyDrawingId", (object?)product.AssemblyDrawingId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@CustomerProvidedDrawingId", (object?)product.CustomerProvidedDrawingId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingReviewStatus", product.DrawingReviewStatus);
+            command.Parameters.AddWithValue("@DrawingReviewedBy", (object?)product.DrawingReviewedBy ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingReviewedAt", (object?)product.DrawingReviewedAt ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingReviewNotes", (object?)product.DrawingReviewNotes ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingRequestedAt", (object?)product.DrawingRequestedAt ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingRequestedBy", (object?)product.DrawingRequestedBy ?? DBNull.Value);
             command.Parameters.AddWithValue("@NumberOfTeeth", (object?)product.NumberOfTeeth ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProductTemplateId", (object?)product.ProductTemplateId ?? DBNull.Value);
             command.Parameters.AddWithValue("@ProcessTemplateId", product.ProcessTemplateId);
             command.Parameters.AddWithValue("@CreatedAt", product.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", product.CreatedBy);
@@ -127,7 +145,16 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     DrawingNo = @DrawingNo,
                     RevisionNo = @RevisionNo,
                     RevisionDate = @RevisionDate,
+                    AssemblyDrawingId = @AssemblyDrawingId,
+                    CustomerProvidedDrawingId = @CustomerProvidedDrawingId,
+                    DrawingReviewStatus = @DrawingReviewStatus,
+                    DrawingReviewedBy = @DrawingReviewedBy,
+                    DrawingReviewedAt = @DrawingReviewedAt,
+                    DrawingReviewNotes = @DrawingReviewNotes,
+                    DrawingRequestedAt = @DrawingRequestedAt,
+                    DrawingRequestedBy = @DrawingRequestedBy,
                     NumberOfTeeth = @NumberOfTeeth,
+                    ProductTemplateId = @ProductTemplateId,
                     ProcessTemplateId = @ProcessTemplateId,
                     UpdatedAt = @UpdatedAt
                 WHERE Id = @Id";
@@ -150,7 +177,16 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@DrawingNo", (object?)product.DrawingNo ?? DBNull.Value);
             command.Parameters.AddWithValue("@RevisionNo", (object?)product.RevisionNo ?? DBNull.Value);
             command.Parameters.AddWithValue("@RevisionDate", (object?)product.RevisionDate ?? DBNull.Value);
+            command.Parameters.AddWithValue("@AssemblyDrawingId", (object?)product.AssemblyDrawingId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@CustomerProvidedDrawingId", (object?)product.CustomerProvidedDrawingId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingReviewStatus", product.DrawingReviewStatus);
+            command.Parameters.AddWithValue("@DrawingReviewedBy", (object?)product.DrawingReviewedBy ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingReviewedAt", (object?)product.DrawingReviewedAt ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingReviewNotes", (object?)product.DrawingReviewNotes ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingRequestedAt", (object?)product.DrawingRequestedAt ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DrawingRequestedBy", (object?)product.DrawingRequestedBy ?? DBNull.Value);
             command.Parameters.AddWithValue("@NumberOfTeeth", (object?)product.NumberOfTeeth ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProductTemplateId", (object?)product.ProductTemplateId ?? DBNull.Value);
             command.Parameters.AddWithValue("@ProcessTemplateId", product.ProcessTemplateId);
             command.Parameters.AddWithValue("@UpdatedAt", product.UpdatedAt);
 
@@ -216,6 +252,34 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return products;
         }
 
+        public async Task<IEnumerable<Product>> SearchByCriteriaAsync(int modelId, string rollerType, int numberOfTeeth)
+        {
+            const string query = @"
+                SELECT * FROM Masters_Products
+                WHERE ModelId = @ModelId
+                  AND RollerType = @RollerType
+                  AND NumberOfTeeth = @NumberOfTeeth
+                ORDER BY PartCode";
+
+            var products = new List<Product>();
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@ModelId", modelId);
+            command.Parameters.AddWithValue("@RollerType", rollerType);
+            command.Parameters.AddWithValue("@NumberOfTeeth", numberOfTeeth);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                products.Add(MapToProduct(reader));
+            }
+
+            return products;
+        }
+
         public async Task<bool> ExistsAsync(string partCode)
         {
             const string query = "SELECT COUNT(1) FROM Masters_Products WHERE PartCode = @PartCode";
@@ -248,6 +312,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 PartCode = reader.GetString(reader.GetOrdinal("PartCode")),
                 CustomerName = reader.IsDBNull(reader.GetOrdinal("CustomerName")) ? null : reader.GetString(reader.GetOrdinal("CustomerName")),
+                ModelId = reader.GetInt32(reader.GetOrdinal("ModelId")),
                 ModelName = reader.GetString(reader.GetOrdinal("ModelName")),
                 RollerType = reader.GetString(reader.GetOrdinal("RollerType")),
                 Diameter = reader.GetDecimal(reader.GetOrdinal("Diameter")),
@@ -258,7 +323,16 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 DrawingNo = reader.IsDBNull(reader.GetOrdinal("DrawingNo")) ? null : reader.GetString(reader.GetOrdinal("DrawingNo")),
                 RevisionNo = reader.IsDBNull(reader.GetOrdinal("RevisionNo")) ? null : reader.GetString(reader.GetOrdinal("RevisionNo")),
                 RevisionDate = reader.IsDBNull(reader.GetOrdinal("RevisionDate")) ? null : reader.GetString(reader.GetOrdinal("RevisionDate")),
+                AssemblyDrawingId = reader.IsDBNull(reader.GetOrdinal("AssemblyDrawingId")) ? null : reader.GetInt32(reader.GetOrdinal("AssemblyDrawingId")),
+                CustomerProvidedDrawingId = reader.IsDBNull(reader.GetOrdinal("CustomerProvidedDrawingId")) ? null : reader.GetInt32(reader.GetOrdinal("CustomerProvidedDrawingId")),
+                DrawingReviewStatus = reader.GetString(reader.GetOrdinal("DrawingReviewStatus")),
+                DrawingReviewedBy = reader.IsDBNull(reader.GetOrdinal("DrawingReviewedBy")) ? null : reader.GetString(reader.GetOrdinal("DrawingReviewedBy")),
+                DrawingReviewedAt = reader.IsDBNull(reader.GetOrdinal("DrawingReviewedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("DrawingReviewedAt")),
+                DrawingReviewNotes = reader.IsDBNull(reader.GetOrdinal("DrawingReviewNotes")) ? null : reader.GetString(reader.GetOrdinal("DrawingReviewNotes")),
+                DrawingRequestedAt = reader.IsDBNull(reader.GetOrdinal("DrawingRequestedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("DrawingRequestedAt")),
+                DrawingRequestedBy = reader.IsDBNull(reader.GetOrdinal("DrawingRequestedBy")) ? null : reader.GetString(reader.GetOrdinal("DrawingRequestedBy")),
                 NumberOfTeeth = reader.IsDBNull(reader.GetOrdinal("NumberOfTeeth")) ? 0 : reader.GetInt32(reader.GetOrdinal("NumberOfTeeth")),
+                ProductTemplateId = reader.IsDBNull(reader.GetOrdinal("ProductTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("ProductTemplateId")),
                 ProcessTemplateId = reader.GetInt32(reader.GetOrdinal("ProcessTemplateId")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),

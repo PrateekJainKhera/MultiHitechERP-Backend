@@ -26,16 +26,31 @@ namespace MultiHitechERP.API.Models.Masters
         public string? SurfaceFinish { get; set; }
         public string? Hardness { get; set; }
 
-        // Drawing Reference
+        // Drawing Reference (Legacy fields - kept for backward compatibility)
         public string? DrawingNo { get; set; }
         public string? RevisionNo { get; set; }
         public string? RevisionDate { get; set; }
 
+        // Drawing Linkage (Product-Level)
+        public int? AssemblyDrawingId { get; set; } // FK to Masters_Drawings - Main assembly drawing
+        public int? CustomerProvidedDrawingId { get; set; } // FK to Masters_Drawings - Optional customer reference drawing
+
+        // Drawing Review Status (PRODUCT-LEVEL GATE)
+        public string DrawingReviewStatus { get; set; } = "Pending"; // Pending, UnderReview, Approved, Rejected, RevisionRequired
+        public string? DrawingReviewedBy { get; set; }
+        public DateTime? DrawingReviewedAt { get; set; }
+        public string? DrawingReviewNotes { get; set; }
+
+        // Drawing Request Tracking (NEW WORKFLOW)
+        public DateTime? DrawingRequestedAt { get; set; } // When drawing was requested from team
+        public string? DrawingRequestedBy { get; set; } // Who requested the drawing
+
         // Additional Properties
         public int NumberOfTeeth { get; set; }
 
-        // Process Reference
-        public int ProcessTemplateId { get; set; }
+        // Template References
+        public int? ProductTemplateId { get; set; } // Which product template was used
+        public int ProcessTemplateId { get; set; } // Inherited from product template
 
         // Audit
         public DateTime CreatedAt { get; set; }

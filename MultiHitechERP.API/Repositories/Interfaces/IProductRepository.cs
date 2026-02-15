@@ -23,6 +23,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         // Queries
         Task<IEnumerable<Product>> SearchByNameAsync(string name);
         Task<IEnumerable<Product>> GetByRollerTypeAsync(string rollerType);
+        Task<IEnumerable<Product>> SearchByCriteriaAsync(int modelId, string rollerType, int numberOfTeeth);
         Task<bool> ExistsAsync(string partCode);
 
         // Code Generation

@@ -192,13 +192,15 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Scheduling_MachineSchedules (
-                    JobCardId, JobCardNo, MachineId, MachineCode, MachineName,
+                    JobCardId, JobCardNo, OrderId, OrderNo, OrderItemId, ItemSequence,
+                    MachineId, MachineCode, MachineName,
                     ScheduledStartTime, ScheduledEndTime, EstimatedDurationMinutes,
                     Status, SchedulingMethod, SuggestedBySystem, ConfirmedBy, ConfirmedAt,
                     ProcessId, ProcessName, ProcessCode,
                     Notes, CreatedAt, CreatedBy
                 ) VALUES (
-                    @JobCardId, @JobCardNo, @MachineId, @MachineCode, @MachineName,
+                    @JobCardId, @JobCardNo, @OrderId, @OrderNo, @OrderItemId, @ItemSequence,
+                    @MachineId, @MachineCode, @MachineName,
                     @ScheduledStartTime, @ScheduledEndTime, @EstimatedDurationMinutes,
                     @Status, @SchedulingMethod, @SuggestedBySystem, @ConfirmedBy, @ConfirmedAt,
                     @ProcessId, @ProcessName, @ProcessCode,
@@ -287,6 +289,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 JobCardId = reader.GetInt32(reader.GetOrdinal("JobCardId")),
                 JobCardNo = reader.IsDBNull(reader.GetOrdinal("JobCardNo")) ? null : reader.GetString(reader.GetOrdinal("JobCardNo")),
+                OrderId = reader.IsDBNull(reader.GetOrdinal("OrderId")) ? null : reader.GetInt32(reader.GetOrdinal("OrderId")),
+                OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo")) ? null : reader.GetString(reader.GetOrdinal("OrderNo")),
+                OrderItemId = reader.IsDBNull(reader.GetOrdinal("OrderItemId")) ? null : reader.GetInt32(reader.GetOrdinal("OrderItemId")),
+                ItemSequence = reader.IsDBNull(reader.GetOrdinal("ItemSequence")) ? null : reader.GetString(reader.GetOrdinal("ItemSequence")),
                 MachineId = reader.IsDBNull(reader.GetOrdinal("MachineId")) ? (int?)null : reader.GetInt32(reader.GetOrdinal("MachineId")),
                 MachineCode = reader.IsDBNull(reader.GetOrdinal("MachineCode")) ? null : reader.GetString(reader.GetOrdinal("MachineCode")),
                 MachineName = reader.IsDBNull(reader.GetOrdinal("MachineName")) ? null : reader.GetString(reader.GetOrdinal("MachineName")),
@@ -322,6 +328,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Id", schedule.Id);
             command.Parameters.AddWithValue("@JobCardId", schedule.JobCardId);
             command.Parameters.AddWithValue("@JobCardNo", (object?)schedule.JobCardNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@OrderId", (object?)schedule.OrderId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@OrderNo", (object?)schedule.OrderNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@OrderItemId", (object?)schedule.OrderItemId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ItemSequence", (object?)schedule.ItemSequence ?? DBNull.Value);
             command.Parameters.AddWithValue("@MachineId", (object?)schedule.MachineId ?? DBNull.Value);
             command.Parameters.AddWithValue("@MachineCode", (object?)schedule.MachineCode ?? DBNull.Value);
             command.Parameters.AddWithValue("@MachineName", (object?)schedule.MachineName ?? DBNull.Value);

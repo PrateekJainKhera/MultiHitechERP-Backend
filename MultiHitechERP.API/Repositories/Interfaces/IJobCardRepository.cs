@@ -15,6 +15,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<JobCard?> GetByJobCardNoAsync(string jobCardNo);
         Task<IEnumerable<JobCard>> GetAllAsync();
         Task<IEnumerable<JobCard>> GetByOrderIdAsync(int orderId);
+        Task<IEnumerable<JobCard>> GetByOrderItemIdAsync(int orderItemId);
         Task<IEnumerable<JobCard>> GetByProcessIdAsync(int processId);
         Task<IEnumerable<JobCard>> GetByStatusAsync(string status);
 

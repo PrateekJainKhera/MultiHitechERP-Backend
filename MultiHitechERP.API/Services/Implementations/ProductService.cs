@@ -112,12 +112,22 @@ namespace MultiHitechERP.API.Services.Implementations
                     RevisionNo = request.RevisionNo?.Trim(),
                     RevisionDate = request.RevisionDate?.Trim(),
                     NumberOfTeeth = request.NumberOfTeeth,
+                    ProductTemplateId = request.ProductTemplateId,
                     ProcessTemplateId = request.ProcessTemplateId,
-                    CreatedBy = request.CreatedBy?.Trim() ?? "System"
+                    CreatedBy = request.CreatedBy?.Trim() ?? "System",
+                    // Drawing request handling
+                    DrawingReviewStatus = request.RequestDrawing ? "UnderReview" : "Pending",
+                    DrawingRequestedAt = request.RequestDrawing ? DateTime.UtcNow : (DateTime?)null,
+                    DrawingRequestedBy = request.RequestDrawing ? (request.CreatedBy?.Trim() ?? "System") : null
                 };
 
                 var productId = await _productRepository.InsertAsync(product);
-                return ApiResponse<int>.SuccessResponse(productId, $"Product '{generatedPartCode}' created successfully");
+
+                string successMessage = request.RequestDrawing
+                    ? $"Product '{generatedPartCode}' created and drawing requested successfully"
+                    : $"Product '{generatedPartCode}' created successfully";
+
+                return ApiResponse<int>.SuccessResponse(productId, successMessage);
             }
             catch (Exception ex)
             {
@@ -174,7 +184,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 existingProduct.RevisionNo = request.RevisionNo?.Trim();
                 existingProduct.RevisionDate = request.RevisionDate?.Trim();
                 existingProduct.NumberOfTeeth = request.NumberOfTeeth;
+                existingProduct.ProductTemplateId = request.ProductTemplateId;
                 existingProduct.ProcessTemplateId = request.ProcessTemplateId;
+                existingProduct.AssemblyDrawingId = request.AssemblyDrawingId;
+                existingProduct.CustomerProvidedDrawingId = request.CustomerProvidedDrawingId;
 
                 var success = await _productRepository.UpdateAsync(existingProduct);
                 if (!success)
@@ -239,6 +252,82 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<IEnumerable<ProductResponse>>> SearchByCriteriaAsync(int modelId, string rollerType, int numberOfTeeth)
+        {
+            try
+            {
+                var products = await _productRepository.SearchByCriteriaAsync(modelId, rollerType, numberOfTeeth);
+                var responses = products.Select(MapToResponse).ToList();
+                return ApiResponse<IEnumerable<ProductResponse>>.SuccessResponse(responses);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<ProductResponse>>.ErrorResponse($"Error searching products by criteria: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<bool>> UpdateDrawingReviewStatusAsync(int productId, string status, string? notes, string reviewedBy)
+        {
+            try
+            {
+                // Verify product exists
+                var product = await _productRepository.GetByIdAsync(productId);
+                if (product == null)
+                    return ApiResponse<bool>.ErrorResponse($"Product with ID {productId} not found");
+
+                // Validate status
+                var validStatuses = new[] { "Pending", "UnderReview", "Approved", "Rejected", "RevisionRequired" };
+                if (!validStatuses.Contains(status))
+                    return ApiResponse<bool>.ErrorResponse($"Invalid status. Must be one of: {string.Join(", ", validStatuses)}");
+
+                // Update drawing review fields
+                product.DrawingReviewStatus = status;
+                product.DrawingReviewNotes = notes?.Trim();
+                product.DrawingReviewedBy = reviewedBy?.Trim();
+                product.DrawingReviewedAt = DateTime.UtcNow;
+
+                var success = await _productRepository.UpdateAsync(product);
+                if (!success)
+                    return ApiResponse<bool>.ErrorResponse("Failed to update drawing review status");
+
+                return ApiResponse<bool>.SuccessResponse(true, $"Drawing review status updated to '{status}' successfully");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResponse($"Error updating drawing review status: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<bool>> RequestDrawingAsync(int productId, string requestedBy)
+        {
+            try
+            {
+                // Verify product exists
+                var product = await _productRepository.GetByIdAsync(productId);
+                if (product == null)
+                    return ApiResponse<bool>.ErrorResponse($"Product with ID {productId} not found");
+
+                // Validate current status - can only request drawing if status is Pending
+                if (product.DrawingReviewStatus != "Pending")
+                    return ApiResponse<bool>.ErrorResponse($"Cannot request drawing. Current status is '{product.DrawingReviewStatus}'. Drawing can only be requested for products with 'Pending' status.");
+
+                // Update status to UnderReview and set request tracking fields
+                product.DrawingReviewStatus = "UnderReview";
+                product.DrawingRequestedAt = DateTime.UtcNow;
+                product.DrawingRequestedBy = requestedBy?.Trim();
+
+                var success = await _productRepository.UpdateAsync(product);
+                if (!success)
+                    return ApiResponse<bool>.ErrorResponse("Failed to request drawing");
+
+                return ApiResponse<bool>.SuccessResponse(true, $"Drawing request sent to drawing team successfully for product '{product.PartCode}'");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResponse($"Error requesting drawing: {ex.Message}");
+            }
+        }
+
         private static ProductResponse MapToResponse(Product product)
         {
             return new ProductResponse
@@ -246,6 +335,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 Id = product.Id,
                 PartCode = product.PartCode,
                 CustomerName = product.CustomerName,
+                ModelId = product.ModelId,
                 ModelName = product.ModelName,
                 RollerType = product.RollerType,
                 Diameter = product.Diameter,
@@ -253,10 +343,24 @@ namespace MultiHitechERP.API.Services.Implementations
                 MaterialGrade = product.MaterialGrade,
                 SurfaceFinish = product.SurfaceFinish,
                 Hardness = product.Hardness,
+
+                // Legacy drawing fields
                 DrawingNo = product.DrawingNo,
                 RevisionNo = product.RevisionNo,
                 RevisionDate = product.RevisionDate,
+
+                // Product-Level Drawing Review
+                AssemblyDrawingId = product.AssemblyDrawingId,
+                CustomerProvidedDrawingId = product.CustomerProvidedDrawingId,
+                DrawingReviewStatus = product.DrawingReviewStatus,
+                DrawingReviewedBy = product.DrawingReviewedBy,
+                DrawingReviewedAt = product.DrawingReviewedAt,
+                DrawingReviewNotes = product.DrawingReviewNotes,
+                DrawingRequestedAt = product.DrawingRequestedAt,
+                DrawingRequestedBy = product.DrawingRequestedBy,
+
                 NumberOfTeeth = product.NumberOfTeeth,
+                ProductTemplateId = product.ProductTemplateId,
                 ProcessTemplateId = product.ProcessTemplateId,
                 CreatedAt = product.CreatedAt,
                 UpdatedAt = product.UpdatedAt,

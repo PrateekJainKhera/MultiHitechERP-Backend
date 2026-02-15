@@ -18,5 +18,9 @@ namespace MultiHitechERP.API.Services.Interfaces
 
         Task<ApiResponse<IEnumerable<ProductResponse>>> SearchByNameAsync(string searchTerm);
         Task<ApiResponse<IEnumerable<ProductResponse>>> GetByRollerTypeAsync(string rollerType);
+        Task<ApiResponse<IEnumerable<ProductResponse>>> SearchByCriteriaAsync(int modelId, string rollerType, int numberOfTeeth);
+
+        Task<ApiResponse<bool>> UpdateDrawingReviewStatusAsync(int productId, string status, string? notes, string reviewedBy);
+        Task<ApiResponse<bool>> RequestDrawingAsync(int productId, string requestedBy);
     }
 }

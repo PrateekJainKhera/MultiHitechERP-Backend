@@ -16,15 +16,18 @@ namespace MultiHitechERP.API.Services.Implementations
     public class OrderService : IOrderService
     {
         private readonly IOrderRepository _orderRepository;
+        private readonly IOrderItemRepository _orderItemRepository;
         private readonly ICustomerRepository _customerRepository;
         private readonly IProductRepository _productRepository;
 
         public OrderService(
             IOrderRepository orderRepository,
+            IOrderItemRepository orderItemRepository,
             ICustomerRepository customerRepository,
             IProductRepository productRepository)
         {
             _orderRepository = orderRepository;
+            _orderItemRepository = orderItemRepository;
             _customerRepository = customerRepository;
             _productRepository = productRepository;
         }
@@ -131,6 +134,8 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
+                // ===== COMMON VALIDATIONS =====
+
                 // Business Rule 1: Validate Customer exists and is active
                 var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
                 if (customer == null)
@@ -142,33 +147,14 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<int>.ErrorResponse("Customer is inactive");
                 }
 
-                // Business Rule 2: Validate Product exists
-                var product = await _productRepository.GetByIdAsync(request.ProductId);
-                if (product == null)
-                {
-                    return ApiResponse<int>.ErrorResponse("Product not found");
-                }
-
-                // Business Rule 3: Validate Due Date is in future
-                if (request.DueDate <= DateTime.UtcNow)
-                {
-                    return ApiResponse<int>.ErrorResponse("Due date must be in the future");
-                }
-
-                // Business Rule 4: Validate Quantity
-                if (request.Quantity <= 0)
-                {
-                    return ApiResponse<int>.ErrorResponse("Quantity must be greater than 0");
-                }
-
-                // Business Rule 5: Validate Order Source
+                // Business Rule 2: Validate Order Source
                 var validOrderSources = new[] { "Direct", "Agent", "Dealer", "Distributor" };
                 if (!validOrderSources.Contains(request.OrderSource))
                 {
                     return ApiResponse<int>.ErrorResponse($"Invalid order source. Must be one of: {string.Join(", ", validOrderSources)}");
                 }
 
-                // Business Rule 6: Validate Agent Customer if provided (optional for future use)
+                // Business Rule 3: Validate Agent Customer if provided
                 if (request.AgentCustomerId.HasValue)
                 {
                     var agentCustomer = await _customerRepository.GetByIdAsync(request.AgentCustomerId.Value);
@@ -182,72 +168,231 @@ namespace MultiHitechERP.API.Services.Implementations
                     }
                 }
 
-                // Business Rule 7: Validate Scheduling Strategy
+                // Business Rule 4: Validate Scheduling Strategy
                 var validStrategies = new[] { "Due Date", "Priority Flag", "Customer Importance", "Resource Availability" };
                 if (!validStrategies.Contains(request.SchedulingStrategy))
                 {
                     return ApiResponse<int>.ErrorResponse($"Invalid scheduling strategy. Must be one of: {string.Join(", ", validStrategies)}");
                 }
 
-                // Business Rule 8: Validate Drawing Source if provided
-                if (!string.IsNullOrEmpty(request.DrawingSource))
-                {
-                    var validDrawingSources = new[] { "customer", "company" };
-                    if (!validDrawingSources.Contains(request.DrawingSource))
-                    {
-                        return ApiResponse<int>.ErrorResponse($"Invalid drawing source. Must be one of: {string.Join(", ", validDrawingSources)}");
-                    }
-                }
-
                 // Generate Order Number
                 var orderNo = await GenerateOrderNoInternalAsync();
 
-                // Create Order
-                var order = new Order
+                // ===== MULTI-PRODUCT ORDER (NEW FLOW) =====
+                if (request.Items != null && request.Items.Any())
                 {
-                    OrderNo = orderNo,
-                    OrderDate = request.OrderDate ?? DateTime.UtcNow, // Default to current date if not provided
-                    DueDate = request.DueDate,
-                    CustomerId = request.CustomerId,
-                    ProductId = request.ProductId,
-                    Quantity = request.Quantity,
-                    OriginalQuantity = request.Quantity,
-                    Status = "Pending",
-                    Priority = request.Priority,
-                    PlanningStatus = "Not Planned",
-                    DrawingReviewStatus = "Pending",
+                    // Validate Items
+                    if (request.Items.Count == 0)
+                    {
+                        return ApiResponse<int>.ErrorResponse("At least one item is required");
+                    }
 
-                    // Order Source & Agent
-                    OrderSource = request.OrderSource,
-                    AgentCustomerId = request.AgentCustomerId,
-                    AgentCommission = request.AgentCommission,
-                    SchedulingStrategy = request.SchedulingStrategy,
+                    // Validate all items and collect products
+                    var productIds = new HashSet<int>();
+                    var products = new List<Models.Masters.Product>();
 
-                    // Drawing Linkage
-                    PrimaryDrawingId = request.PrimaryDrawingId,
-                    DrawingSource = request.DrawingSource,
-                    DrawingReviewNotes = request.DrawingNotes,
+                    foreach (var item in request.Items)
+                    {
+                        // Check for duplicate products
+                        if (productIds.Contains(item.ProductId))
+                        {
+                            return ApiResponse<int>.ErrorResponse($"Duplicate product detected. Same product cannot be added multiple times in one order.");
+                        }
+                        productIds.Add(item.ProductId);
 
-                    // Template Linkage
-                    LinkedProductTemplateId = request.LinkedProductTemplateId,
+                        // Validate product exists
+                        var product = await _productRepository.GetByIdAsync(item.ProductId);
+                        if (product == null)
+                        {
+                            return ApiResponse<int>.ErrorResponse($"Product with ID {item.ProductId} not found");
+                        }
+                        products.Add(product);
 
-                    // Customer Requirements
-                    CustomerMachine = request.CustomerMachine,
-                    MaterialGradeRemark = request.MaterialGradeRemark,
+                        // Validate quantity
+                        if (item.Quantity <= 0)
+                        {
+                            return ApiResponse<int>.ErrorResponse($"Quantity must be greater than 0 for product {product.PartCode}");
+                        }
 
-                    // Financial (Optional - for future use)
-                    OrderValue = request.OrderValue,
-                    AdvancePayment = request.AdvancePayment,
-                    BalancePayment = request.OrderValue.HasValue ? request.OrderValue - (request.AdvancePayment ?? 0) : null,
+                        // Validate due date
+                        if (item.DueDate <= DateTime.UtcNow)
+                        {
+                            return ApiResponse<int>.ErrorResponse($"Due date must be in the future for product {product.PartCode}");
+                        }
 
-                    // Audit
-                    CreatedBy = request.CreatedBy,
-                    Version = 1
-                };
+                        // Validate priority
+                        var validPriorities = new[] { "Low", "Medium", "High", "Urgent" };
+                        if (!validPriorities.Contains(item.Priority))
+                        {
+                            return ApiResponse<int>.ErrorResponse($"Invalid priority for product {product.PartCode}. Must be one of: {string.Join(", ", validPriorities)}");
+                        }
+                    }
 
-                var orderId = await _orderRepository.InsertAsync(order);
+                    // Check if all products have approved drawings
+                    bool allProductDrawingsApproved = products.All(p => p.DrawingReviewStatus == "Approved");
+                    string orderDrawingReviewStatus = allProductDrawingsApproved ? "Approved" : "Pending";
 
-                return ApiResponse<int>.SuccessResponse(orderId, $"Order {orderNo} created successfully");
+                    // Create Order (Header)
+                    var order = new Order
+                    {
+                        OrderNo = orderNo,
+                        OrderDate = request.OrderDate ?? DateTime.UtcNow,
+                        CustomerId = request.CustomerId,
+                        CustomerName = customer.CustomerName,
+                        Status = "Pending",
+                        PlanningStatus = "Not Planned",
+                        DrawingReviewStatus = orderDrawingReviewStatus,
+                        OrderSource = request.OrderSource,
+                        AgentCustomerId = request.AgentCustomerId,
+                        AgentCommission = request.AgentCommission,
+                        SchedulingStrategy = request.SchedulingStrategy,
+                        CustomerMachine = request.CustomerMachine,
+                        OrderValue = request.OrderValue,
+                        AdvancePayment = request.AdvancePayment,
+                        BalancePayment = request.OrderValue.HasValue ? request.OrderValue - (request.AdvancePayment ?? 0) : null,
+                        CreatedBy = request.CreatedBy,
+                        Version = 1,
+
+                        // Legacy fields kept for compatibility - will be aggregate of first item or defaults
+                        ProductId = request.Items.First().ProductId,
+                        DueDate = request.Items.First().DueDate,
+                        Priority = request.Items.First().Priority,
+                        Quantity = request.Items.Sum(i => i.Quantity),
+                        OriginalQuantity = request.Items.Sum(i => i.Quantity)
+                    };
+
+                    var orderId = await _orderRepository.InsertAsync(order);
+
+                    // Create OrderItems with sequences (A, B, C...)
+                    var itemSequence = 'A';
+                    var orderItems = new List<OrderItem>();
+
+                    foreach (var itemRequest in request.Items)
+                    {
+                        var product = await _productRepository.GetByIdAsync(itemRequest.ProductId);
+
+                        var orderItem = new OrderItem
+                        {
+                            OrderId = orderId,
+                            ItemSequence = itemSequence.ToString(),
+                            ProductId = itemRequest.ProductId,
+                            ProductName = product?.PartCode,
+                            Quantity = itemRequest.Quantity,
+                            QtyCompleted = 0,
+                            QtyRejected = 0,
+                            QtyInProgress = 0,
+                            QtyScrap = 0,
+                            DueDate = itemRequest.DueDate,
+                            Priority = itemRequest.Priority,
+                            Status = "Pending",
+                            PlanningStatus = "Not Planned",
+                            PrimaryDrawingId = itemRequest.PrimaryDrawingId,
+                            DrawingSource = itemRequest.DrawingSource,
+                            LinkedProductTemplateId = itemRequest.LinkedProductTemplateId,
+                            MaterialGradeRemark = itemRequest.MaterialGradeRemark,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = request.CreatedBy ?? "System"
+                        };
+
+                        orderItems.Add(orderItem);
+                        itemSequence++;
+                    }
+
+                    // Insert all items
+                    await _orderItemRepository.CreateBatchAsync(orderItems);
+
+                    return ApiResponse<int>.SuccessResponse(orderId, $"Multi-product order {orderNo} created successfully with {request.Items.Count} items");
+                }
+                // ===== LEGACY SINGLE-PRODUCT ORDER (BACKWARD COMPATIBLE) =====
+                else
+                {
+                    // Validate legacy fields
+                    if (!request.ProductId.HasValue || request.ProductId.Value <= 0)
+                    {
+                        return ApiResponse<int>.ErrorResponse("Product ID is required for single-product orders");
+                    }
+                    if (!request.Quantity.HasValue || request.Quantity.Value <= 0)
+                    {
+                        return ApiResponse<int>.ErrorResponse("Quantity must be greater than 0");
+                    }
+                    if (!request.DueDate.HasValue || request.DueDate.Value <= DateTime.UtcNow)
+                    {
+                        return ApiResponse<int>.ErrorResponse("Due date is required and must be in the future");
+                    }
+
+                    // Validate product exists
+                    var product = await _productRepository.GetByIdAsync(request.ProductId.Value);
+                    if (product == null)
+                    {
+                        return ApiResponse<int>.ErrorResponse("Product not found");
+                    }
+
+                    // Check if product drawing is approved
+                    string orderDrawingReviewStatus = product.DrawingReviewStatus == "Approved" ? "Approved" : "Pending";
+
+                    // Create Order (Legacy format)
+                    var order = new Order
+                    {
+                        OrderNo = orderNo,
+                        OrderDate = request.OrderDate ?? DateTime.UtcNow,
+                        DueDate = request.DueDate.Value,
+                        CustomerId = request.CustomerId,
+                        CustomerName = customer.CustomerName,
+                        ProductId = request.ProductId.Value,
+                        ProductName = product.PartCode,
+                        Quantity = request.Quantity.Value,
+                        OriginalQuantity = request.Quantity.Value,
+                        Status = "Pending",
+                        Priority = request.Priority ?? "Medium",
+                        PlanningStatus = "Not Planned",
+                        DrawingReviewStatus = orderDrawingReviewStatus,
+                        OrderSource = request.OrderSource,
+                        AgentCustomerId = request.AgentCustomerId,
+                        AgentCommission = request.AgentCommission,
+                        SchedulingStrategy = request.SchedulingStrategy,
+                        PrimaryDrawingId = request.PrimaryDrawingId,
+                        DrawingSource = request.DrawingSource,
+                        DrawingReviewNotes = request.DrawingNotes,
+                        LinkedProductTemplateId = request.LinkedProductTemplateId,
+                        CustomerMachine = request.CustomerMachine,
+                        MaterialGradeRemark = request.MaterialGradeRemark,
+                        OrderValue = request.OrderValue,
+                        AdvancePayment = request.AdvancePayment,
+                        BalancePayment = request.OrderValue.HasValue ? request.OrderValue - (request.AdvancePayment ?? 0) : null,
+                        CreatedBy = request.CreatedBy,
+                        Version = 1
+                    };
+
+                    var orderId = await _orderRepository.InsertAsync(order);
+
+                    // Create single OrderItem with sequence 'A' for backward compatibility
+                    var orderItem = new OrderItem
+                    {
+                        OrderId = orderId,
+                        ItemSequence = "A",
+                        ProductId = request.ProductId.Value,
+                        ProductName = product.PartCode,
+                        Quantity = request.Quantity.Value,
+                        QtyCompleted = 0,
+                        QtyRejected = 0,
+                        QtyInProgress = 0,
+                        QtyScrap = 0,
+                        DueDate = request.DueDate.Value,
+                        Priority = request.Priority ?? "Medium",
+                        Status = "Pending",
+                        PlanningStatus = "Not Planned",
+                        PrimaryDrawingId = request.PrimaryDrawingId,
+                        DrawingSource = request.DrawingSource,
+                        LinkedProductTemplateId = request.LinkedProductTemplateId,
+                        MaterialGradeRemark = request.MaterialGradeRemark,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = request.CreatedBy ?? "System"
+                    };
+
+                    await _orderItemRepository.CreateAsync(orderItem);
+
+                    return ApiResponse<int>.SuccessResponse(orderId, $"Order {orderNo} created successfully");
+                }
             }
             catch (Exception ex)
             {
@@ -627,6 +772,48 @@ namespace MultiHitechERP.API.Services.Implementations
                 ? (decimal)order.QtyCompleted / order.OriginalQuantity * 100
                 : 0;
 
+            // Load OrderItems for multi-product support
+            var orderItems = await _orderItemRepository.GetByOrderIdAsync(order.Id);
+            List<OrderItemResponse>? itemResponses = null;
+
+            if (orderItems != null && orderItems.Any())
+            {
+                itemResponses = new List<OrderItemResponse>();
+                foreach (var item in orderItems)
+                {
+                    var itemProduct = await _productRepository.GetByIdAsync(item.ProductId);
+                    itemResponses.Add(new OrderItemResponse
+                    {
+                        Id = item.Id,
+                        OrderId = item.OrderId,
+                        ItemSequence = item.ItemSequence,
+                        ProductId = item.ProductId,
+                        ProductName = itemProduct?.ModelName,
+                        PartCode = itemProduct?.PartCode,
+                        Quantity = item.Quantity,
+                        OriginalQuantity = item.Quantity, // Use Quantity as OriginalQuantity
+                        QtyCompleted = item.QtyCompleted,
+                        QtyRejected = item.QtyRejected,
+                        QtyInProgress = item.QtyInProgress,
+                        QtyScrap = item.QtyScrap,
+                        DueDate = item.DueDate,
+                        AdjustedDueDate = null, // OrderItem doesn't track adjusted due date
+                        Priority = item.Priority,
+                        Status = item.Status,
+                        PrimaryDrawingId = item.PrimaryDrawingId,
+                        LinkedProductTemplateId = item.LinkedProductTemplateId,
+                        MaterialGradeApproved = item.MaterialGradeApproved,
+                        MaterialGradeApprovalDate = item.MaterialGradeApprovalDate,
+                        MaterialGradeApprovedBy = item.MaterialGradeApprovedBy,
+                        MaterialGradeRemark = item.MaterialGradeRemark,
+                        CreatedAt = item.CreatedAt,
+                        CreatedBy = item.CreatedBy,
+                        UpdatedAt = item.UpdatedAt,
+                        UpdatedBy = item.UpdatedBy
+                    });
+                }
+            }
+
             return new OrderResponse
             {
                 Id = order.Id,
@@ -696,7 +883,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 CreatedBy = order.CreatedBy,
                 UpdatedAt = order.UpdatedAt,
                 UpdatedBy = order.UpdatedBy,
-                Version = order.Version
+                Version = order.Version,
+
+                // Multi-Product Support
+                Items = itemResponses
             };
         }
     }

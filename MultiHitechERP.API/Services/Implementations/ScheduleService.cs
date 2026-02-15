@@ -241,6 +241,144 @@ namespace MultiHitechERP.API.Services.Implementations
         }
 
         /// <summary>
+        /// Get the full scheduling tree for an ORDER ITEM: OrderItem → ChildPart groups → Process steps
+        /// For multi-product orders (schedules specific order item, e.g., ORD-007-A)
+        /// </summary>
+        public async Task<ApiResponse<OrderSchedulingTreeResponse>> GetOrderItemSchedulingTreeAsync(int orderItemId)
+        {
+            try
+            {
+                // Get all job cards for this order item
+                var jobCards = await _jobCardRepository.GetByOrderItemIdAsync(orderItemId);
+                var jobCardList = jobCards.ToList();
+
+                if (!jobCardList.Any())
+                    return ApiResponse<OrderSchedulingTreeResponse>.ErrorResponse($"No job cards found for order item {orderItemId}");
+
+                var orderNo = jobCardList[0].OrderNo ?? "Unknown Order";
+                var itemSequence = jobCardList[0].ItemSequence ?? "";
+                var fullOrderRef = orderNo + (string.IsNullOrEmpty(itemSequence) ? "" : $"-{itemSequence}");
+                var priority = jobCardList[0].Priority ?? "MEDIUM";
+
+                // Fetch IsOutsourced + IsManual flags for each unique process
+                var uniqueProcessIds = jobCardList.Select(jc => jc.ProcessId).Distinct().ToList();
+                var ospProcessIds = new HashSet<int>();
+                var manualProcessIds = new HashSet<int>();
+                foreach (var pid in uniqueProcessIds)
+                {
+                    var process = await _processRepository.GetByIdAsync(pid);
+                    if (process == null) continue;
+                    if (process.IsOutsourced) ospProcessIds.Add(pid);
+                    if (process.IsManual) manualProcessIds.Add(pid);
+                }
+
+                // For each job card, get its existing machine schedule (first active one)
+                var stepItems = new List<ProcessStepSchedulingItem>();
+                foreach (var jc in jobCardList)
+                {
+                    var schedules = await _scheduleRepository.GetByJobCardIdAsync(jc.Id);
+                    var activeSchedule = schedules
+                        .Where(s => s.Status == "Scheduled" || s.Status == "InProgress")
+                        .OrderByDescending(s => s.CreatedAt)
+                        .FirstOrDefault();
+
+                    stepItems.Add(new ProcessStepSchedulingItem
+                    {
+                        JobCardId = jc.Id,
+                        JobCardNo = jc.JobCardNo,
+                        ProcessId = jc.ProcessId,
+                        ProcessName = jc.ProcessName,
+                        ProcessCode = jc.ProcessCode,
+                        StepNo = jc.StepNo,
+                        IsOsp = ospProcessIds.Contains(jc.ProcessId),
+                        IsManual = manualProcessIds.Contains(jc.ProcessId),
+                        Quantity = jc.Quantity,
+                        Priority = jc.Priority,
+                        JobCardStatus = jc.Status,
+                        // Machine assignment from existing schedule
+                        ScheduleId = activeSchedule?.Id,
+                        AssignedMachineId = activeSchedule?.MachineId,
+                        AssignedMachineCode = activeSchedule?.MachineCode,
+                        AssignedMachineName = activeSchedule?.MachineName,
+                        ScheduledStartTime = activeSchedule?.ScheduledStartTime,
+                        ScheduledEndTime = activeSchedule?.ScheduledEndTime,
+                        ScheduleStatus = activeSchedule?.Status,
+                        EstimatedDurationMinutes = activeSchedule?.EstimatedDurationMinutes
+                    });
+                }
+
+                // Group by child part name; assembly (CreationType = "Assembly") goes last
+                var groups = new List<ChildPartGroupResponse>();
+
+                // Child part groups
+                var childPartGroups = jobCardList
+                    .Where(jc => jc.CreationType != "Assembly")
+                    .GroupBy(jc => jc.ChildPartName ?? "Unknown Part")
+                    .OrderBy(g => g.Key);
+
+                foreach (var group in childPartGroups)
+                {
+                    var groupSteps = stepItems
+                        .Where(s => group.Any(jc => jc.Id == s.JobCardId))
+                        .OrderBy(s => s.StepNo ?? 999)
+                        .ToList();
+
+                    groups.Add(new ChildPartGroupResponse
+                    {
+                        GroupName = group.Key,
+                        CreationType = "ChildPart",
+                        TotalSteps = groupSteps.Count,
+                        ScheduledSteps = groupSteps.Count(s => s.ScheduleId.HasValue),
+                        Steps = groupSteps
+                    });
+                }
+
+                // Assembly groups last
+                var assemblyGroups = jobCardList
+                    .Where(jc => jc.CreationType == "Assembly")
+                    .GroupBy(jc => jc.ChildPartName ?? "Assembly")
+                    .OrderBy(g => g.Key);
+
+                foreach (var group in assemblyGroups)
+                {
+                    var groupSteps = stepItems
+                        .Where(s => group.Any(jc => jc.Id == s.JobCardId))
+                        .OrderBy(s => s.StepNo ?? 999)
+                        .ToList();
+
+                    groups.Add(new ChildPartGroupResponse
+                    {
+                        GroupName = group.Key,
+                        CreationType = "Assembly",
+                        TotalSteps = groupSteps.Count,
+                        ScheduledSteps = groupSteps.Count(s => s.ScheduleId.HasValue),
+                        Steps = groupSteps
+                    });
+                }
+
+                var totalSteps = stepItems.Count;
+                var scheduledSteps = stepItems.Count(s => s.ScheduleId.HasValue);
+
+                var tree = new OrderSchedulingTreeResponse
+                {
+                    OrderId = jobCardList[0].OrderId,
+                    OrderNo = fullOrderRef, // Includes item sequence (e.g., "ORD-007-A")
+                    Priority = priority,
+                    TotalSteps = totalSteps,
+                    ScheduledSteps = scheduledSteps,
+                    PendingSteps = totalSteps - scheduledSteps,
+                    Groups = groups
+                };
+
+                return ApiResponse<OrderSchedulingTreeResponse>.SuccessResponse(tree);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<OrderSchedulingTreeResponse>.ErrorResponse($"Error building order item scheduling tree: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// SEMI-AUTOMATIC SCHEDULING: Get intelligent machine suggestions for a job card
         /// </summary>
         public async Task<ApiResponse<IEnumerable<MachineSuggestionResponse>>> GetMachineSuggestionsAsync(int jobCardId)
@@ -380,6 +518,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 {
                     JobCardId = request.JobCardId,
                     JobCardNo = jobCard.JobCardNo,
+                    OrderId = jobCard.OrderId,
+                    OrderNo = jobCard.OrderNo,
+                    OrderItemId = jobCard.OrderItemId,
+                    ItemSequence = jobCard.ItemSequence,
                     MachineId = noMachine ? (int?)null : request.MachineId,
                     MachineCode = machineCode,
                     MachineName = machineName,
@@ -563,6 +705,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 Id = schedule.Id,
                 JobCardId = schedule.JobCardId,
                 JobCardNo = schedule.JobCardNo,
+                OrderId = schedule.OrderId,
+                OrderNo = schedule.OrderNo,
+                OrderItemId = schedule.OrderItemId,
+                ItemSequence = schedule.ItemSequence,
                 MachineId = schedule.MachineId,
                 MachineCode = schedule.MachineCode,
                 MachineName = schedule.MachineName,

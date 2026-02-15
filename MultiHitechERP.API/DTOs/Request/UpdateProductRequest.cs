@@ -35,7 +35,13 @@ namespace MultiHitechERP.API.DTOs.Request
         public string? SurfaceFinish { get; set; }
         public string? Hardness { get; set; }
 
+        public int? ProductTemplateId { get; set; }
+
         [Required]
         public int ProcessTemplateId { get; set; }
+
+        // Drawing linkage
+        public int? AssemblyDrawingId { get; set; }
+        public int? CustomerProvidedDrawingId { get; set; }
     }
 }

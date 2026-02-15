@@ -16,6 +16,10 @@ namespace MultiHitechERP.API.DTOs.Request
         public int OrderId { get; set; }
         public string? OrderNo { get; set; }
 
+        // Order Item Reference (for multi-product orders)
+        public int? OrderItemId { get; set; }
+        public string? ItemSequence { get; set; }  // A, B, C, D...
+
         // Drawing
         public int? DrawingId { get; set; }
         public string? DrawingNumber { get; set; }

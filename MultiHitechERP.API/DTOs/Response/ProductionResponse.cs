@@ -7,6 +7,7 @@ namespace MultiHitechERP.API.DTOs.Response
     public class ProductionOrderSummary
     {
         public int OrderId { get; set; }
+        public int? OrderItemId { get; set; }  // For multi-product orders
         public string OrderNo { get; set; } = string.Empty;
         public string? CustomerName { get; set; }
         public string? ProductName { get; set; }

@@ -13,6 +13,12 @@ namespace MultiHitechERP.API.DTOs.Response
         public int JobCardId { get; set; }
         public string? JobCardNo { get; set; }
 
+        // Order info (for multi-product order support)
+        public int? OrderId { get; set; }
+        public string? OrderNo { get; set; }
+        public int? OrderItemId { get; set; }
+        public string? ItemSequence { get; set; }
+
         // Machine info (null for OSP steps)
         public int? MachineId { get; set; }
         public string? MachineCode { get; set; }

@@ -14,6 +14,7 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IJobCardRepository _jobCardRepository;
         private readonly IScheduleRepository _scheduleRepository;
         private readonly IOrderRepository _orderRepository;
+        private readonly IOrderItemRepository _orderItemRepository;
         private readonly IProcessRepository _processRepository;
         private readonly IMaterialPieceRepository _pieceRepository;
 
@@ -21,12 +22,14 @@ namespace MultiHitechERP.API.Services.Implementations
             IJobCardRepository jobCardRepository,
             IScheduleRepository scheduleRepository,
             IOrderRepository orderRepository,
+            IOrderItemRepository orderItemRepository,
             IProcessRepository processRepository,
             IMaterialPieceRepository pieceRepository)
         {
             _jobCardRepository = jobCardRepository;
             _scheduleRepository = scheduleRepository;
             _orderRepository = orderRepository;
+            _orderItemRepository = orderItemRepository;
             _processRepository = processRepository;
             _pieceRepository = pieceRepository;
         }
@@ -98,6 +101,80 @@ namespace MultiHitechERP.API.Services.Implementations
             catch (Exception ex)
             {
                 return ApiResponse<IEnumerable<ProductionOrderSummary>>.ErrorResponse($"Error loading production orders: {ex.Message}");
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 1.5. Production Dashboard — list of ORDER ITEMS (NEW - for multi-product orders)
+        // ─────────────────────────────────────────────────────────────────────
+        public async Task<ApiResponse<IEnumerable<ProductionOrderSummary>>> GetOrderItemsAsync()
+        {
+            try
+            {
+                // Get all order items
+                var orderItems = await _orderItemRepository.GetAllAsync();
+                var result = new List<ProductionOrderSummary>();
+
+                foreach (var orderItem in orderItems)
+                {
+                    // Get job cards for this specific order item
+                    var jobCards = (await _jobCardRepository.GetByOrderItemIdAsync(orderItem.Id)).ToList();
+                    var scheduledJcs = jobCards.Where(jc => jc.Status == "Scheduled").ToList();
+                    if (!scheduledJcs.Any()) continue;
+
+                    var nonAssemblyJcs = jobCards.Where(jc => jc.CreationType != "Assembly").ToList();
+                    var completedSteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Completed");
+                    var inProgressSteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "InProgress");
+                    var completedChildParts = nonAssemblyJcs
+                        .Where(jc => jc.ReadyForAssembly)
+                        .Select(jc => ChildPartKey(jc))
+                        .Distinct()
+                        .Count();
+                    var totalChildParts = nonAssemblyJcs
+                        .Select(jc => ChildPartKey(jc))
+                        .Distinct()
+                        .Count();
+
+                    string prodStatus;
+                    if (nonAssemblyJcs.All(jc => jc.ProductionStatus == "Completed"))
+                        prodStatus = "Completed";
+                    else if (inProgressSteps > 0 || completedSteps > 0)
+                        prodStatus = "InProgress";
+                    else
+                        prodStatus = "Pending";
+
+                    // Get order for customer and product names
+                    var order = await _orderRepository.GetByIdAsync(orderItem.OrderId);
+
+                    // Build full order reference with item sequence (e.g., ORD-202602-0001-A)
+                    var fullOrderRef = order?.OrderNo ?? orderItem.OrderId.ToString();
+                    if (!string.IsNullOrEmpty(orderItem.ItemSequence))
+                        fullOrderRef = $"{fullOrderRef}-{orderItem.ItemSequence}";
+
+                    result.Add(new ProductionOrderSummary
+                    {
+                        OrderId = orderItem.OrderId,
+                        OrderItemId = orderItem.Id,  // Order item ID for navigation
+                        OrderNo = fullOrderRef,  // Include item sequence
+                        CustomerName = order?.CustomerName,
+                        ProductName = orderItem.ProductName,  // From OrderItem
+                        Priority = orderItem.Priority ?? "Medium",
+                        DueDate = orderItem.DueDate,
+                        TotalSteps = nonAssemblyJcs.Count,
+                        CompletedSteps = completedSteps,
+                        InProgressSteps = inProgressSteps,
+                        ReadySteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Ready"),
+                        TotalChildParts = totalChildParts,
+                        CompletedChildParts = completedChildParts,
+                        ProductionStatus = prodStatus
+                    });
+                }
+
+                return ApiResponse<IEnumerable<ProductionOrderSummary>>.SuccessResponse(result);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<ProductionOrderSummary>>.ErrorResponse($"Error loading production order items: {ex.Message}");
             }
         }
 
@@ -206,6 +283,120 @@ namespace MultiHitechERP.API.Services.Implementations
         }
 
         // ─────────────────────────────────────────────────────────────────────
+        // 2.5. Order ITEM detail — child parts + steps with schedule info (NEW)
+        // ─────────────────────────────────────────────────────────────────────
+        public async Task<ApiResponse<ProductionOrderDetail>> GetOrderItemDetailAsync(int orderItemId)
+        {
+            try
+            {
+                var orderItem = await _orderItemRepository.GetByIdAsync(orderItemId);
+                if (orderItem == null)
+                    return ApiResponse<ProductionOrderDetail>.ErrorResponse("Order item not found");
+
+                var order = await _orderRepository.GetByIdAsync(orderItem.OrderId);
+                if (order == null)
+                    return ApiResponse<ProductionOrderDetail>.ErrorResponse("Order not found");
+
+                // Get job cards for this specific order item
+                var jobCards = (await _jobCardRepository.GetByOrderItemIdAsync(orderItemId)).ToList();
+                if (!jobCards.Any())
+                    return ApiResponse<ProductionOrderDetail>.ErrorResponse("No job cards found for this order item");
+
+                // Get OSP process IDs
+                var uniqueProcessIds = jobCards.Select(jc => jc.ProcessId).Distinct();
+                var ospProcessIds = new HashSet<int>();
+                foreach (var pid in uniqueProcessIds)
+                {
+                    var process = await _processRepository.GetByIdAsync(pid);
+                    if (process?.IsOutsourced == true)
+                        ospProcessIds.Add(pid);
+                }
+
+                // Load schedules for all job cards (for machine info)
+                var scheduleByJobCard = new Dictionary<int, (string? MachineName, string? MachineCode, DateTime? Start, DateTime? End, int? Duration)>();
+                foreach (var jc in jobCards)
+                {
+                    var schedules = await _scheduleRepository.GetByJobCardIdAsync(jc.Id);
+                    var active = schedules
+                        .Where(s => s.Status == "Scheduled" || s.Status == "InProgress")
+                        .OrderByDescending(s => s.CreatedAt)
+                        .FirstOrDefault();
+                    if (active != null)
+                        scheduleByJobCard[jc.Id] = (active.MachineName, active.MachineCode, active.ScheduledStartTime, active.ScheduledEndTime, active.EstimatedDurationMinutes);
+                }
+
+                // Only show job cards that have been scheduled (machine assigned)
+                var scheduledCards = jobCards.Where(jc => jc.Status == "Scheduled").ToList();
+
+                // Separate assembly from child-part steps
+                var assemblyJcs = scheduledCards.Where(jc => jc.CreationType == "Assembly").ToList();
+                var childJcs = scheduledCards.Where(jc => jc.CreationType != "Assembly").ToList();
+
+                // Group child part steps by ChildPartKey (id when available, name otherwise)
+                var childPartGroups = childJcs
+                    .GroupBy(jc => ChildPartKey(jc))
+                    .OrderBy(g => g.Key)
+                    .Select(g =>
+                    {
+                        var steps = g.OrderBy(jc => jc.StepNo ?? 999).ToList();
+                        var completedSteps = steps.Count(jc => jc.ProductionStatus == "Completed");
+                        var isReady = steps.All(jc => jc.ProductionStatus == "Completed");
+                        var first = steps.First();
+
+                        return new ProductionChildPartGroup
+                        {
+                            ChildPartId = first.ChildPartId,
+                            ChildPartName = first.ChildPartName ?? "Unknown Part",
+                            TotalSteps = steps.Count,
+                            CompletedSteps = completedSteps,
+                            IsReadyForAssembly = isReady,
+                            Steps = steps.Select(jc => MapToStepItem(jc, scheduleByJobCard, ospProcessIds)).ToList()
+                        };
+                    }).ToList();
+
+                // Assembly step (first one)
+                ProductionStepItem? assemblyItem = null;
+                if (assemblyJcs.Any())
+                {
+                    var asmJc = assemblyJcs.First();
+                    assemblyItem = MapToStepItem(asmJc, scheduleByJobCard, ospProcessIds);
+                }
+
+                var allChildSteps = childJcs.Count;
+                var completedChildSteps = childJcs.Count(jc => jc.ProductionStatus == "Completed");
+                var inProgressChildSteps = childJcs.Count(jc => jc.ProductionStatus == "InProgress" || jc.ProductionStatus == "Paused");
+                var canStartAssembly = childPartGroups.All(g => g.IsReadyForAssembly);
+
+                // Build full order reference with item sequence (e.g., ORD-202602-0001-A)
+                var fullOrderRef = order.OrderNo;
+                if (!string.IsNullOrEmpty(orderItem.ItemSequence))
+                    fullOrderRef = $"{fullOrderRef}-{orderItem.ItemSequence}";
+
+                var detail = new ProductionOrderDetail
+                {
+                    OrderId = order.Id,
+                    OrderNo = fullOrderRef,  // Include item sequence
+                    CustomerName = order.CustomerName,
+                    ProductName = orderItem.ProductName,  // From OrderItem
+                    Priority = orderItem.Priority ?? "Medium",
+                    DueDate = orderItem.DueDate,
+                    TotalSteps = allChildSteps,
+                    CompletedSteps = completedChildSteps,
+                    InProgressSteps = inProgressChildSteps,
+                    ChildParts = childPartGroups,
+                    Assembly = assemblyItem,
+                    CanStartAssembly = canStartAssembly
+                };
+
+                return ApiResponse<ProductionOrderDetail>.SuccessResponse(detail);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<ProductionOrderDetail>.ErrorResponse($"Error loading order item detail: {ex.Message}");
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
         // 3. Operator action: start | pause | resume | complete
         // ─────────────────────────────────────────────────────────────────────
         public async Task<ApiResponse<bool>> HandleActionAsync(int jobCardId, ProductionActionRequest request)
@@ -286,7 +477,11 @@ namespace MultiHitechERP.API.Services.Implementations
             // Only cascade for non-assembly child part steps
             if (completedCard.CreationType == "Assembly") return;
 
-            var allOrderCards = (await _jobCardRepository.GetByOrderIdAsync(completedCard.OrderId)).ToList();
+            // For multi-product orders: only cascade within the same order item
+            // For legacy orders: OrderItemId will be null, so we use OrderId
+            var allOrderCards = completedCard.OrderItemId.HasValue
+                ? (await _jobCardRepository.GetByOrderItemIdAsync(completedCard.OrderItemId.Value)).ToList()
+                : (await _jobCardRepository.GetByOrderIdAsync(completedCard.OrderId)).ToList();
 
             var completedKey = ChildPartKey(completedCard);
 

@@ -26,6 +26,11 @@ namespace MultiHitechERP.API.DTOs.Request
         [StringLength(50)]
         public string? OrderNo { get; set; }
 
+        public int? OrderItemId { get; set; } // For multi-product orders
+
+        [StringLength(10)]
+        public string? ItemSequence { get; set; } // A, B, C, D...
+
         [StringLength(200)]
         public string? CustomerName { get; set; }
 

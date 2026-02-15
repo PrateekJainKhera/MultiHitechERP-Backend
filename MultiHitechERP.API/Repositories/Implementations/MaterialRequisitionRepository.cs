@@ -232,10 +232,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Stores_MaterialRequisitions
-                (RequisitionNo, RequisitionDate, JobCardId, JobCardNo, OrderId, OrderNo, CustomerName,
+                (RequisitionNo, RequisitionDate, JobCardId, JobCardNo, OrderId, OrderNo, OrderItemId, ItemSequence, CustomerName,
                  Status, Priority, DueDate, RequestedBy, ApprovedBy, ApprovalDate, Remarks, CreatedAt, CreatedBy)
                 VALUES
-                (@RequisitionNo, @RequisitionDate, @JobCardId, @JobCardNo, @OrderId, @OrderNo, @CustomerName,
+                (@RequisitionNo, @RequisitionDate, @JobCardId, @JobCardNo, @OrderId, @OrderNo, @OrderItemId, @ItemSequence, @CustomerName,
                  @Status, @Priority, @DueDate, @RequestedBy, @ApprovedBy, @ApprovalDate, @Remarks, @CreatedAt, @CreatedBy);
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -262,6 +262,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     JobCardNo = @JobCardNo,
                     OrderId = @OrderId,
                     OrderNo = @OrderNo,
+                    OrderItemId = @OrderItemId,
+                    ItemSequence = @ItemSequence,
                     CustomerName = @CustomerName,
                     Status = @Status,
                     Priority = @Priority,
@@ -371,6 +373,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 JobCardNo = reader.IsDBNull(reader.GetOrdinal("JobCardNo")) ? null : reader.GetString(reader.GetOrdinal("JobCardNo")),
                 OrderId = reader.IsDBNull(reader.GetOrdinal("OrderId")) ? null : reader.GetInt32(reader.GetOrdinal("OrderId")),
                 OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo")) ? null : reader.GetString(reader.GetOrdinal("OrderNo")),
+                OrderItemId = reader.IsDBNull(reader.GetOrdinal("OrderItemId")) ? null : reader.GetInt32(reader.GetOrdinal("OrderItemId")),
+                ItemSequence = reader.IsDBNull(reader.GetOrdinal("ItemSequence")) ? null : reader.GetString(reader.GetOrdinal("ItemSequence")),
                 CustomerName = reader.IsDBNull(reader.GetOrdinal("CustomerName")) ? null : reader.GetString(reader.GetOrdinal("CustomerName")),
                 Status = reader.GetString(reader.GetOrdinal("Status")),
                 Priority = reader.GetString(reader.GetOrdinal("Priority")),
@@ -393,6 +397,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@JobCardNo", (object?)requisition.JobCardNo ?? DBNull.Value);
             command.Parameters.AddWithValue("@OrderId", (object?)requisition.OrderId ?? DBNull.Value);
             command.Parameters.AddWithValue("@OrderNo", (object?)requisition.OrderNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@OrderItemId", (object?)requisition.OrderItemId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ItemSequence", (object?)requisition.ItemSequence ?? DBNull.Value);
             command.Parameters.AddWithValue("@CustomerName", (object?)requisition.CustomerName ?? DBNull.Value);
             command.Parameters.AddWithValue("@Status", requisition.Status);
             command.Parameters.AddWithValue("@Priority", requisition.Priority);

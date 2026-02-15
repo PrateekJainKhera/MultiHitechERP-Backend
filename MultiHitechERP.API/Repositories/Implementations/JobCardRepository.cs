@@ -23,7 +23,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<JobCard?> GetByIdAsync(int id)
         {
             const string query = @"
-                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo,
+                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
                        DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
                        ChildPartId, ChildPartName, ChildPartTemplateId,
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
@@ -47,7 +47,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<JobCard?> GetByJobCardNoAsync(string jobCardNo)
         {
             const string query = @"
-                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo,
+                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
                        DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
                        ChildPartId, ChildPartName, ChildPartTemplateId,
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
@@ -71,7 +71,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<JobCard>> GetAllAsync()
         {
             const string query = @"
-                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo,
+                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
                        DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
                        ChildPartId, ChildPartName, ChildPartTemplateId,
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
@@ -100,7 +100,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<JobCard>> GetByOrderIdAsync(int orderId)
         {
             const string query = @"
-                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo,
+                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
                        DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
                        ChildPartId, ChildPartName, ChildPartTemplateId,
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
@@ -129,10 +129,42 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return jobCards;
         }
 
+        public async Task<IEnumerable<JobCard>> GetByOrderItemIdAsync(int orderItemId)
+        {
+            const string query = @"
+                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
+                       DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
+                       ChildPartId, ChildPartName, ChildPartTemplateId,
+                       ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
+                       WorkInstructions, QualityCheckpoints, SpecialNotes,
+                       Quantity, Status, Priority, ManufacturingDimensions,
+                       ProductionStatus, ActualStartTime, ActualEndTime,
+                       CompletedQty, RejectedQty, ReadyForAssembly,
+                       CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
+                FROM Planning_JobCards
+                WHERE OrderItemId = @OrderItemId
+                ORDER BY StepNo, CreatedAt";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@OrderItemId", orderItemId);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            var jobCards = new List<JobCard>();
+            while (await reader.ReadAsync())
+            {
+                jobCards.Add(MapToJobCard(reader));
+            }
+
+            return jobCards;
+        }
+
         public async Task<IEnumerable<JobCard>> GetByProcessIdAsync(int processId)
         {
             const string query = @"
-                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo,
+                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
                        DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
                        ChildPartId, ChildPartName, ChildPartTemplateId,
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
@@ -164,7 +196,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<JobCard>> GetByStatusAsync(string status)
         {
             const string query = @"
-                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo,
+                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
                        DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
                        ChildPartId, ChildPartName, ChildPartTemplateId,
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
@@ -404,12 +436,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<JobCard>> GetBlockedJobCardsAsync()
         {
             const string query = @"
-                SELECT DISTINCT jc.Id, jc.JobCardNo, jc.CreationType, jc.OrderId, jc.OrderNo,
+                SELECT DISTINCT jc.Id, jc.JobCardNo, jc.CreationType, jc.OrderId, jc.OrderNo, jc.OrderItemId, jc.ItemSequence,
                        jc.DrawingId, jc.DrawingNumber, jc.DrawingRevision, jc.DrawingName, jc.DrawingSelectionType,
                        jc.ChildPartId, jc.ChildPartName, jc.ChildPartTemplateId,
                        jc.ProcessId, jc.ProcessName, jc.ProcessCode, jc.StepNo, jc.ProcessTemplateId,
                        jc.WorkInstructions, jc.QualityCheckpoints, jc.SpecialNotes,
                        jc.Quantity, jc.Status, jc.Priority, jc.ManufacturingDimensions,
+                       jc.ProductionStatus, jc.ActualStartTime, jc.ActualEndTime,
+                       jc.CompletedQty, jc.RejectedQty, jc.ReadyForAssembly,
                        jc.CreatedAt, jc.CreatedBy, jc.UpdatedAt, jc.UpdatedBy, jc.Version
                 FROM Planning_JobCards jc
                 INNER JOIN Planning_JobCardDependencies dep ON dep.DependentJobCardId = jc.Id
@@ -477,7 +511,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<JobCard>> GetByProductionStatusAsync(int orderId, string productionStatus)
         {
             const string query = @"
-                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo,
+                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
                        DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
                        ChildPartId, ChildPartName, ChildPartTemplateId,
                        ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
@@ -528,6 +562,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 CreationType = reader.GetString(reader.GetOrdinal("CreationType")),
                 OrderId = reader.GetInt32(reader.GetOrdinal("OrderId")),
                 OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo")) ? null : reader.GetString(reader.GetOrdinal("OrderNo")),
+                OrderItemId = reader.IsDBNull(reader.GetOrdinal("OrderItemId")) ? null : reader.GetInt32(reader.GetOrdinal("OrderItemId")),
+                ItemSequence = reader.IsDBNull(reader.GetOrdinal("ItemSequence")) ? null : reader.GetString(reader.GetOrdinal("ItemSequence")),
                 DrawingId = reader.IsDBNull(reader.GetOrdinal("DrawingId")) ? null : reader.GetInt32(reader.GetOrdinal("DrawingId")),
                 DrawingNumber = reader.IsDBNull(reader.GetOrdinal("DrawingNumber")) ? null : reader.GetString(reader.GetOrdinal("DrawingNumber")),
                 DrawingRevision = reader.IsDBNull(reader.GetOrdinal("DrawingRevision")) ? null : reader.GetString(reader.GetOrdinal("DrawingRevision")),
@@ -569,6 +605,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@CreationType", jobCard.CreationType);
             command.Parameters.AddWithValue("@OrderId", jobCard.OrderId);
             command.Parameters.AddWithValue("@OrderNo", (object?)jobCard.OrderNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@OrderItemId", (object?)jobCard.OrderItemId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ItemSequence", (object?)jobCard.ItemSequence ?? DBNull.Value);
             command.Parameters.AddWithValue("@DrawingId", (object?)jobCard.DrawingId ?? DBNull.Value);
             command.Parameters.AddWithValue("@DrawingNumber", (object?)jobCard.DrawingNumber ?? DBNull.Value);
             command.Parameters.AddWithValue("@DrawingRevision", (object?)jobCard.DrawingRevision ?? DBNull.Value);

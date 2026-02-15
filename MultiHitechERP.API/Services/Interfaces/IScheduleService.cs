@@ -17,6 +17,9 @@ namespace MultiHitechERP.API.Services.Interfaces
         // Order scheduling tree - groups job cards by child part for the UI
         Task<ApiResponse<OrderSchedulingTreeResponse>> GetOrderSchedulingTreeAsync(int orderId);
 
+        // Order Item scheduling tree - for multi-product orders (groups job cards for specific order item)
+        Task<ApiResponse<OrderSchedulingTreeResponse>> GetOrderItemSchedulingTreeAsync(int orderItemId);
+
         // Semi-automatic scheduling - the core feature!
         Task<ApiResponse<IEnumerable<MachineSuggestionResponse>>> GetMachineSuggestionsAsync(int jobCardId);
         Task<ApiResponse<int>> CreateScheduleAsync(CreateScheduleRequest request);

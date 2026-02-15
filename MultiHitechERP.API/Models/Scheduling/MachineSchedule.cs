@@ -13,6 +13,12 @@ namespace MultiHitechERP.API.Models.Scheduling
         public int JobCardId { get; set; }
         public string? JobCardNo { get; set; }
 
+        // Order linkage (for multi-product order support)
+        public int? OrderId { get; set; }
+        public string? OrderNo { get; set; }
+        public int? OrderItemId { get; set; }
+        public string? ItemSequence { get; set; }
+
         // Machine assignment (null = OSP — no machine assigned for outside service processes)
         public int? MachineId { get; set; }
         public string? MachineCode { get; set; }

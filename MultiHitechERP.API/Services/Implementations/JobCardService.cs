@@ -15,15 +15,24 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IJobCardRepository _jobCardRepository;
         private readonly IJobCardDependencyRepository _dependencyRepository;
         private readonly IJobCardMaterialRequirementRepository _materialRequirementRepository;
+        private readonly IOrderRepository _orderRepository;
+        private readonly IOrderItemRepository _orderItemRepository;
+        private readonly IProductRepository _productRepository;
 
         public JobCardService(
             IJobCardRepository jobCardRepository,
             IJobCardDependencyRepository dependencyRepository,
-            IJobCardMaterialRequirementRepository materialRequirementRepository)
+            IJobCardMaterialRequirementRepository materialRequirementRepository,
+            IOrderRepository orderRepository,
+            IOrderItemRepository orderItemRepository,
+            IProductRepository productRepository)
         {
             _jobCardRepository = jobCardRepository;
             _dependencyRepository = dependencyRepository;
             _materialRequirementRepository = materialRequirementRepository;
+            _orderRepository = orderRepository;
+            _orderItemRepository = orderItemRepository;
+            _productRepository = productRepository;
         }
 
         public async Task<ApiResponse<JobCardResponse>> GetByIdAsync(int id)
@@ -151,12 +160,49 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (existing != null)
                     return ApiResponse<int>.ErrorResponse($"Job card {request.JobCardNo} already exists");
 
+                // GATE: Validate PRODUCT-level drawing review status
+                // Get product from OrderItem (multi-product) or Order (legacy)
+                int? productId = null;
+
+                if (request.OrderItemId.HasValue && request.OrderItemId.Value > 0)
+                {
+                    // Multi-product order: Get product from OrderItem
+                    var orderItem = await _orderItemRepository.GetByIdAsync(request.OrderItemId.Value);
+                    if (orderItem == null)
+                        return ApiResponse<int>.ErrorResponse("Order item not found");
+                    productId = orderItem.ProductId;
+                }
+                else if (request.OrderId > 0)
+                {
+                    // Legacy single-product order: Get product from Order
+                    var order = await _orderRepository.GetByIdAsync(request.OrderId);
+                    if (order == null)
+                        return ApiResponse<int>.ErrorResponse("Order not found");
+                    productId = order.ProductId;
+                }
+
+                // Validate product drawing status
+                if (productId.HasValue)
+                {
+                    var product = await _productRepository.GetByIdAsync(productId.Value);
+                    if (product == null)
+                        return ApiResponse<int>.ErrorResponse("Product not found");
+
+                    if (product.DrawingReviewStatus != "Approved")
+                    {
+                        return ApiResponse<int>.ErrorResponse(
+                            $"Cannot create job card: Product '{product.PartCode}' drawing review must be approved first (current status: {product.DrawingReviewStatus})");
+                    }
+                }
+
                 var jobCard = new JobCard
                 {
                     JobCardNo = request.JobCardNo.Trim().ToUpper(),
                     CreationType = request.CreationType,
                     OrderId = request.OrderId,
                     OrderNo = request.OrderNo?.Trim(),
+                    OrderItemId = request.OrderItemId,
+                    ItemSequence = request.ItemSequence?.Trim(),
                     DrawingId = request.DrawingId,
                     DrawingNumber = request.DrawingNumber?.Trim(),
                     DrawingRevision = request.DrawingRevision?.Trim(),
@@ -263,6 +309,8 @@ namespace MultiHitechERP.API.Services.Implementations
                 existingJobCard.CreationType = request.CreationType;
                 existingJobCard.OrderId = request.OrderId;
                 existingJobCard.OrderNo = request.OrderNo?.Trim();
+                existingJobCard.OrderItemId = request.OrderItemId;
+                existingJobCard.ItemSequence = request.ItemSequence?.Trim();
                 existingJobCard.DrawingId = request.DrawingId;
                 existingJobCard.DrawingNumber = request.DrawingNumber?.Trim();
                 existingJobCard.DrawingRevision = request.DrawingRevision?.Trim();
@@ -452,6 +500,8 @@ namespace MultiHitechERP.API.Services.Implementations
                 CreationType = jobCard.CreationType,
                 OrderId = jobCard.OrderId,
                 OrderNo = jobCard.OrderNo,
+                OrderItemId = jobCard.OrderItemId,
+                ItemSequence = jobCard.ItemSequence,
                 DrawingId = jobCard.DrawingId,
                 DrawingNumber = jobCard.DrawingNumber,
                 DrawingRevision = jobCard.DrawingRevision,

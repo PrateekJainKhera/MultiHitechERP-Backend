@@ -15,6 +15,8 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? JobCardNo { get; set; }
         public int? OrderId { get; set; }
         public string? OrderNo { get; set; }
+        public int? OrderItemId { get; set; } // For multi-product orders
+        public string? ItemSequence { get; set; } // A, B, C, D...
         public string? CustomerName { get; set; }
 
         public string Status { get; set; } = string.Empty;

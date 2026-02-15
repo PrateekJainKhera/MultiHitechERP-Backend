@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MultiHitechERP.API.DTOs.Response
 {
@@ -90,5 +91,8 @@ namespace MultiHitechERP.API.DTOs.Response
         public DateTime? UpdatedAt { get; set; }
         public string? UpdatedBy { get; set; }
         public int Version { get; set; }
+
+        // Multi-Product Support
+        public List<OrderItemResponse>? Items { get; set; }
     }
 }
