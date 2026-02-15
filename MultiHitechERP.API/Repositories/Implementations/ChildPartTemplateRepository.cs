@@ -394,10 +394,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 INSERT INTO Masters_ChildPartTemplateMaterialRequirements (
                     ChildPartTemplateId, RawMaterialId, RawMaterialName,
-                    MaterialGrade, QuantityRequired, Unit, WastagePercent
+                    MaterialGrade, QuantityRequired, Unit, WastageMM
                 ) VALUES (
                     @ChildPartTemplateId, @RawMaterialId, @RawMaterialName,
-                    @MaterialGrade, @QuantityRequired, @Unit, @WastagePercent
+                    @MaterialGrade, @QuantityRequired, @Unit, @WastageMM
                 )";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -412,7 +412,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 command.Parameters.AddWithValue("@MaterialGrade", requirement.MaterialGrade);
                 command.Parameters.AddWithValue("@QuantityRequired", requirement.QuantityRequired);
                 command.Parameters.AddWithValue("@Unit", requirement.Unit);
-                command.Parameters.AddWithValue("@WastagePercent", requirement.WastagePercent);
+                command.Parameters.AddWithValue("@WastageMM", requirement.WastageMM);
 
                 await command.ExecuteNonQueryAsync();
             }
@@ -537,7 +537,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 MaterialGrade = reader.GetString(reader.GetOrdinal("MaterialGrade")),
                 QuantityRequired = reader.GetDecimal(reader.GetOrdinal("QuantityRequired")),
                 Unit = reader.GetString(reader.GetOrdinal("Unit")),
-                WastagePercent = reader.GetDecimal(reader.GetOrdinal("WastagePercent"))
+                WastageMM = reader.GetDecimal(reader.GetOrdinal("WastageMM"))
             };
         }
 

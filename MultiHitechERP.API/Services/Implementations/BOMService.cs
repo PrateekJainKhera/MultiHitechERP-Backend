@@ -195,10 +195,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 return ApiResponse<int>.ErrorResponse("Quantity required must be greater than zero");
 
             // Calculate net quantity if scrap/wastage is provided
-            if (item.ScrapPercentage.HasValue || item.WastagePercentage.HasValue)
+            if (item.ScrapPercentage.HasValue || item.WastageMM.HasValue)
             {
                 var scrap = item.ScrapPercentage ?? 0;
-                var wastage = item.WastagePercentage ?? 0;
+                var wastage = item.WastageMM ?? 0;
                 item.NetQuantityRequired = item.QuantityRequired * (1 + (scrap + wastage) / 100);
             }
             else
@@ -217,10 +217,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 return ApiResponse<bool>.ErrorResponse("Quantity required must be greater than zero");
 
             // Recalculate net quantity
-            if (item.ScrapPercentage.HasValue || item.WastagePercentage.HasValue)
+            if (item.ScrapPercentage.HasValue || item.WastageMM.HasValue)
             {
                 var scrap = item.ScrapPercentage ?? 0;
-                var wastage = item.WastagePercentage ?? 0;
+                var wastage = item.WastageMM ?? 0;
                 item.NetQuantityRequired = item.QuantityRequired * (1 + (scrap + wastage) / 100);
             }
             else
@@ -358,7 +358,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     LengthRequiredMM = item.LengthRequiredMM,
                     ScrapPercentage = item.ScrapPercentage,
                     ScrapQuantity = item.ScrapQuantity,
-                    WastagePercentage = item.WastagePercentage,
+                    WastageMM = item.WastageMM,
                     NetQuantityRequired = item.NetQuantityRequired,
                     ReferenceDesignator = item.ReferenceDesignator,
                     Notes = item.Notes

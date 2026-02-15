@@ -36,7 +36,7 @@ namespace MultiHitechERP.API.Models.Masters
         public decimal? ScrapQuantity { get; set; }
 
         // Wastage
-        public decimal? WastagePercentage { get; set; }
+        public decimal? WastageMM { get; set; }
 
         // Net Quantity (including scrap + wastage)
         public decimal? NetQuantityRequired { get; set; }

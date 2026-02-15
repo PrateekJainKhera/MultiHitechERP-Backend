@@ -79,12 +79,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 INSERT INTO Planning_JobCardMaterialRequirements (
                     JobCardId, JobCardNo, RawMaterialId, RawMaterialName, MaterialGrade,
-                    RequiredQuantity, Unit, WastagePercent, TotalQuantityWithWastage,
+                    RequiredQuantity, Unit, WastageMM, TotalQuantityWithWastage,
                     Source, ConfirmedBy, ConfirmedAt, CreatedAt, CreatedBy
                 )
                 VALUES (
                     @JobCardId, @JobCardNo, @RawMaterialId, @RawMaterialName, @MaterialGrade,
-                    @RequiredQuantity, @Unit, @WastagePercent, @TotalQuantityWithWastage,
+                    @RequiredQuantity, @Unit, @WastageMM, @TotalQuantityWithWastage,
                     @Source, @ConfirmedBy, @ConfirmedAt, GETUTCDATE(), @CreatedBy
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
@@ -99,7 +99,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@MaterialGrade", requirement.MaterialGrade);
             command.Parameters.AddWithValue("@RequiredQuantity", requirement.RequiredQuantity);
             command.Parameters.AddWithValue("@Unit", requirement.Unit);
-            command.Parameters.AddWithValue("@WastagePercent", requirement.WastagePercent);
+            command.Parameters.AddWithValue("@WastageMM", requirement.WastageMM);
             command.Parameters.AddWithValue("@TotalQuantityWithWastage", requirement.TotalQuantityWithWastage);
             command.Parameters.AddWithValue("@Source", requirement.Source);
             command.Parameters.AddWithValue("@ConfirmedBy", requirement.ConfirmedBy);
@@ -123,12 +123,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     const string query = @"
                         INSERT INTO Planning_JobCardMaterialRequirements (
                             JobCardId, JobCardNo, RawMaterialId, RawMaterialName, MaterialGrade,
-                            RequiredQuantity, Unit, WastagePercent, TotalQuantityWithWastage,
+                            RequiredQuantity, Unit, WastageMM, TotalQuantityWithWastage,
                             Source, ConfirmedBy, ConfirmedAt, CreatedAt, CreatedBy
                         )
                         VALUES (
                             @JobCardId, @JobCardNo, @RawMaterialId, @RawMaterialName, @MaterialGrade,
-                            @RequiredQuantity, @Unit, @WastagePercent, @TotalQuantityWithWastage,
+                            @RequiredQuantity, @Unit, @WastageMM, @TotalQuantityWithWastage,
                             @Source, @ConfirmedBy, @ConfirmedAt, GETUTCDATE(), @CreatedBy
                         )";
 
@@ -141,7 +141,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     command.Parameters.AddWithValue("@MaterialGrade", requirement.MaterialGrade);
                     command.Parameters.AddWithValue("@RequiredQuantity", requirement.RequiredQuantity);
                     command.Parameters.AddWithValue("@Unit", requirement.Unit);
-                    command.Parameters.AddWithValue("@WastagePercent", requirement.WastagePercent);
+                    command.Parameters.AddWithValue("@WastageMM", requirement.WastageMM);
                     command.Parameters.AddWithValue("@TotalQuantityWithWastage", requirement.TotalQuantityWithWastage);
                     command.Parameters.AddWithValue("@Source", requirement.Source);
                     command.Parameters.AddWithValue("@ConfirmedBy", requirement.ConfirmedBy);
@@ -170,7 +170,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     MaterialGrade = @MaterialGrade,
                     RequiredQuantity = @RequiredQuantity,
                     Unit = @Unit,
-                    WastagePercent = @WastagePercent,
+                    WastageMM = @WastageMM,
                     TotalQuantityWithWastage = @TotalQuantityWithWastage,
                     Source = @Source,
                     ConfirmedBy = @ConfirmedBy,
@@ -186,7 +186,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@MaterialGrade", requirement.MaterialGrade);
             command.Parameters.AddWithValue("@RequiredQuantity", requirement.RequiredQuantity);
             command.Parameters.AddWithValue("@Unit", requirement.Unit);
-            command.Parameters.AddWithValue("@WastagePercent", requirement.WastagePercent);
+            command.Parameters.AddWithValue("@WastageMM", requirement.WastageMM);
             command.Parameters.AddWithValue("@TotalQuantityWithWastage", requirement.TotalQuantityWithWastage);
             command.Parameters.AddWithValue("@Source", requirement.Source);
             command.Parameters.AddWithValue("@ConfirmedBy", requirement.ConfirmedBy);
@@ -232,7 +232,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 MaterialGrade = reader.GetString("MaterialGrade"),
                 RequiredQuantity = reader.GetDecimal("RequiredQuantity"),
                 Unit = reader.GetString("Unit"),
-                WastagePercent = reader.GetDecimal("WastagePercent"),
+                WastageMM = reader.GetDecimal("WastageMM"),
                 TotalQuantityWithWastage = reader.GetDecimal("TotalQuantityWithWastage"),
                 Source = reader.GetString("Source"),
                 ConfirmedBy = reader.GetString("ConfirmedBy"),

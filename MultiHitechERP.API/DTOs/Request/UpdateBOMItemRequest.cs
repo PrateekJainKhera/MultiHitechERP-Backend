@@ -35,7 +35,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public decimal? ScrapQuantity { get; set; }
 
         [Range(0, 100)]
-        public decimal? WastagePercentage { get; set; }
+        public decimal? WastageMM { get; set; }
 
         [StringLength(50)]
         public string? ReferenceDesignator { get; set; }

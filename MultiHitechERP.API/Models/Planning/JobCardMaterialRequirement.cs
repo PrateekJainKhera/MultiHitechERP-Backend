@@ -23,8 +23,8 @@ namespace MultiHitechERP.API.Models.Planning
         public decimal RequiredQuantity { get; set; }
         public string Unit { get; set; } = string.Empty;
 
-        // Wastage calculation
-        public decimal WastagePercent { get; set; }
+        // Wastage calculation (in millimeters)
+        public decimal WastageMM { get; set; } = 5;
         public decimal TotalQuantityWithWastage { get; set; }
 
         // Source tracking

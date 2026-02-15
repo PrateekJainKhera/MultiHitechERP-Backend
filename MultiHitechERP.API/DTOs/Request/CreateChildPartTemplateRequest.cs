@@ -59,7 +59,7 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required]
         public string Unit { get; set; } = string.Empty;
 
-        public decimal WastagePercent { get; set; } = 0;
+        public decimal WastageMM { get; set; } = 5;
     }
 
     public class CreateChildPartTemplateProcessStepRequest

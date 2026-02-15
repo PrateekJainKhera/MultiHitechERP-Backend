@@ -48,7 +48,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public string MaterialGrade { get; set; } = string.Empty;
         public decimal QuantityRequired { get; set; }
         public string Unit { get; set; } = string.Empty;
-        public decimal WastagePercent { get; set; }
+        public decimal WastageMM { get; set; }
     }
 
     public class ChildPartTemplateProcessStepResponse

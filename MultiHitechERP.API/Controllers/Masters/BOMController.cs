@@ -351,7 +351,7 @@ namespace MultiHitechERP.API.Controllers.Masters
                 LengthRequiredMM = request.LengthRequiredMM,
                 ScrapPercentage = request.ScrapPercentage,
                 ScrapQuantity = request.ScrapQuantity,
-                WastagePercentage = request.WastagePercentage,
+                WastageMM = request.WastageMM,
                 ReferenceDesignator = request.ReferenceDesignator,
                 Notes = request.Notes
             };
@@ -387,7 +387,7 @@ namespace MultiHitechERP.API.Controllers.Masters
                 LengthRequiredMM = request.LengthRequiredMM,
                 ScrapPercentage = request.ScrapPercentage,
                 ScrapQuantity = request.ScrapQuantity,
-                WastagePercentage = request.WastagePercentage,
+                WastageMM = request.WastageMM,
                 ReferenceDesignator = request.ReferenceDesignator,
                 Notes = request.Notes
             };
@@ -472,7 +472,7 @@ namespace MultiHitechERP.API.Controllers.Masters
                 LengthRequiredMM = item.LengthRequiredMM,
                 ScrapPercentage = item.ScrapPercentage,
                 ScrapQuantity = item.ScrapQuantity,
-                WastagePercentage = item.WastagePercentage,
+                WastageMM = item.WastageMM,
                 NetQuantityRequired = item.NetQuantityRequired,
                 ReferenceDesignator = item.ReferenceDesignator,
                 Notes = item.Notes,

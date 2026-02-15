@@ -367,7 +367,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     ChildPartId, ChildPartCode, ChildPartName,
                     QuantityRequired, UOM,
                     LengthRequiredMM, ScrapPercentage, ScrapQuantity,
-                    WastagePercentage, NetQuantityRequired,
+                    WastageMM, NetQuantityRequired,
                     ReferenceDesignator, Notes, CreatedAt
                 )
                 VALUES (
@@ -376,7 +376,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     @ChildPartId, @ChildPartCode, @ChildPartName,
                     @QuantityRequired, @UOM,
                     @LengthRequiredMM, @ScrapPercentage, @ScrapQuantity,
-                    @WastagePercentage, @NetQuantityRequired,
+                    @WastageMM, @NetQuantityRequired,
                     @ReferenceDesignator, @Notes, @CreatedAt
                 )";
 
@@ -399,7 +399,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LengthRequiredMM", (object?)item.LengthRequiredMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@ScrapPercentage", (object?)item.ScrapPercentage ?? DBNull.Value);
             command.Parameters.AddWithValue("@ScrapQuantity", (object?)item.ScrapQuantity ?? DBNull.Value);
-            command.Parameters.AddWithValue("@WastagePercentage", (object?)item.WastagePercentage ?? DBNull.Value);
+            command.Parameters.AddWithValue("@WastageMM", (object?)item.WastageMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@NetQuantityRequired", (object?)item.NetQuantityRequired ?? DBNull.Value);
             command.Parameters.AddWithValue("@ReferenceDesignator", (object?)item.ReferenceDesignator ?? DBNull.Value);
             command.Parameters.AddWithValue("@Notes", (object?)item.Notes ?? DBNull.Value);
@@ -428,7 +428,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     LengthRequiredMM = @LengthRequiredMM,
                     ScrapPercentage = @ScrapPercentage,
                     ScrapQuantity = @ScrapQuantity,
-                    WastagePercentage = @WastagePercentage,
+                    WastageMM = @WastageMM,
                     NetQuantityRequired = @NetQuantityRequired,
                     ReferenceDesignator = @ReferenceDesignator,
                     Notes = @Notes
@@ -451,7 +451,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LengthRequiredMM", (object?)item.LengthRequiredMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@ScrapPercentage", (object?)item.ScrapPercentage ?? DBNull.Value);
             command.Parameters.AddWithValue("@ScrapQuantity", (object?)item.ScrapQuantity ?? DBNull.Value);
-            command.Parameters.AddWithValue("@WastagePercentage", (object?)item.WastagePercentage ?? DBNull.Value);
+            command.Parameters.AddWithValue("@WastageMM", (object?)item.WastageMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@NetQuantityRequired", (object?)item.NetQuantityRequired ?? DBNull.Value);
             command.Parameters.AddWithValue("@ReferenceDesignator", (object?)item.ReferenceDesignator ?? DBNull.Value);
             command.Parameters.AddWithValue("@Notes", (object?)item.Notes ?? DBNull.Value);
@@ -687,7 +687,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 LengthRequiredMM = reader.IsDBNull(reader.GetOrdinal("LengthRequiredMM")) ? null : reader.GetDecimal(reader.GetOrdinal("LengthRequiredMM")),
                 ScrapPercentage = reader.IsDBNull(reader.GetOrdinal("ScrapPercentage")) ? null : reader.GetDecimal(reader.GetOrdinal("ScrapPercentage")),
                 ScrapQuantity = reader.IsDBNull(reader.GetOrdinal("ScrapQuantity")) ? null : reader.GetDecimal(reader.GetOrdinal("ScrapQuantity")),
-                WastagePercentage = reader.IsDBNull(reader.GetOrdinal("WastagePercentage")) ? null : reader.GetDecimal(reader.GetOrdinal("WastagePercentage")),
+                WastageMM = reader.IsDBNull(reader.GetOrdinal("WastageMM")) ? null : reader.GetDecimal(reader.GetOrdinal("WastageMM")),
                 NetQuantityRequired = reader.IsDBNull(reader.GetOrdinal("NetQuantityRequired")) ? null : reader.GetDecimal(reader.GetOrdinal("NetQuantityRequired")),
                 ReferenceDesignator = reader.IsDBNull(reader.GetOrdinal("ReferenceDesignator")) ? null : reader.GetString(reader.GetOrdinal("ReferenceDesignator")),
                 Notes = reader.IsDBNull(reader.GetOrdinal("Notes")) ? null : reader.GetString(reader.GetOrdinal("Notes")),

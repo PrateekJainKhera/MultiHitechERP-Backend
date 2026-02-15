@@ -19,7 +19,7 @@ namespace MultiHitechERP.API.DTOs.Response
         // Quantity Required
         public decimal RequiredQuantity { get; set; }
         public string Unit { get; set; } = string.Empty;
-        public decimal WastagePercent { get; set; }
+        public decimal WastageMM { get; set; }
         public decimal TotalQuantityWithWastage { get; set; }
 
         // Source tracking

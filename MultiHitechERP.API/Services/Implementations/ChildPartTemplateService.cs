@@ -327,7 +327,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 MaterialGrade = req.MaterialGrade,
                 QuantityRequired = req.QuantityRequired,
                 Unit = req.Unit,
-                WastagePercent = req.WastagePercent
+                WastageMM = req.WastageMM
             };
         }
 

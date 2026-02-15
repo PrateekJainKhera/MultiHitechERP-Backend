@@ -23,9 +23,9 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required(ErrorMessage = "Unit is required")]
         public string Unit { get; set; } = string.Empty;
 
-        // Wastage
-        [Range(0, 100, ErrorMessage = "Wastage percent must be between 0 and 100")]
-        public decimal WastagePercent { get; set; } = 0;
+        // Wastage (in millimeters)
+        [Range(0, 1000, ErrorMessage = "Wastage must be between 0 and 1000 mm")]
+        public decimal WastageMM { get; set; } = 5;
 
         // Source tracking
         public string Source { get; set; } = "Template"; // Template | Manual
