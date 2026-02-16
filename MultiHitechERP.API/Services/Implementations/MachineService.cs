@@ -27,7 +27,8 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (machine == null)
                     return ApiResponse<MachineResponse>.ErrorResponse($"Machine with ID {id} not found");
 
-                return ApiResponse<MachineResponse>.SuccessResponse(MapToResponse(machine));
+                var response = await LoadAndMapToResponseAsync(machine);
+                return ApiResponse<MachineResponse>.SuccessResponse(response);
             }
             catch (Exception ex)
             {
@@ -43,7 +44,8 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (machine == null)
                     return ApiResponse<MachineResponse>.ErrorResponse($"Machine {machineCode} not found");
 
-                return ApiResponse<MachineResponse>.SuccessResponse(MapToResponse(machine));
+                var response = await LoadAndMapToResponseAsync(machine);
+                return ApiResponse<MachineResponse>.SuccessResponse(response);
             }
             catch (Exception ex)
             {
@@ -56,7 +58,14 @@ namespace MultiHitechERP.API.Services.Implementations
             try
             {
                 var machines = await _machineRepository.GetAllAsync();
-                return ApiResponse<IEnumerable<MachineResponse>>.SuccessResponse(machines.Select(MapToResponse).ToList());
+                var responses = new List<MachineResponse>();
+
+                foreach (var machine in machines)
+                {
+                    responses.Add(await LoadAndMapToResponseAsync(machine));
+                }
+
+                return ApiResponse<IEnumerable<MachineResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
             {
@@ -69,7 +78,14 @@ namespace MultiHitechERP.API.Services.Implementations
             try
             {
                 var machines = await _machineRepository.GetActiveMachinesAsync();
-                return ApiResponse<IEnumerable<MachineResponse>>.SuccessResponse(machines.Select(MapToResponse).ToList());
+                var responses = new List<MachineResponse>();
+
+                foreach (var machine in machines)
+                {
+                    responses.Add(await LoadAndMapToResponseAsync(machine));
+                }
+
+                return ApiResponse<IEnumerable<MachineResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
             {
@@ -82,7 +98,14 @@ namespace MultiHitechERP.API.Services.Implementations
             try
             {
                 var machines = await _machineRepository.GetByMachineTypeAsync(machineType);
-                return ApiResponse<IEnumerable<MachineResponse>>.SuccessResponse(machines.Select(MapToResponse).ToList());
+                var responses = new List<MachineResponse>();
+
+                foreach (var machine in machines)
+                {
+                    responses.Add(await LoadAndMapToResponseAsync(machine));
+                }
+
+                return ApiResponse<IEnumerable<MachineResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
             {
@@ -95,7 +118,14 @@ namespace MultiHitechERP.API.Services.Implementations
             try
             {
                 var machines = await _machineRepository.GetByDepartmentAsync(department);
-                return ApiResponse<IEnumerable<MachineResponse>>.SuccessResponse(machines.Select(MapToResponse).ToList());
+                var responses = new List<MachineResponse>();
+
+                foreach (var machine in machines)
+                {
+                    responses.Add(await LoadAndMapToResponseAsync(machine));
+                }
+
+                return ApiResponse<IEnumerable<MachineResponse>>.SuccessResponse(responses);
             }
             catch (Exception ex)
             {
@@ -118,11 +148,19 @@ namespace MultiHitechERP.API.Services.Implementations
                     Department = request.Department?.Trim(),
                     Status = request.Status?.Trim() ?? "Idle",
                     Notes = request.Notes?.Trim(),
+                    DailyCapacityHours = request.DailyCapacityHours,
                     IsActive = true,
                     CreatedBy = "System"
                 };
 
                 var machineId = await _machineRepository.InsertAsync(machine);
+
+                // Save process category mappings
+                if (request.ProcessCategoryIds != null && request.ProcessCategoryIds.Count > 0)
+                {
+                    await _machineRepository.SaveProcessCategoriesAsync(machineId, request.ProcessCategoryIds);
+                }
+
                 return ApiResponse<int>.SuccessResponse(machineId, $"Machine '{machine.MachineCode}' created successfully");
             }
             catch (Exception ex)
@@ -145,12 +183,16 @@ namespace MultiHitechERP.API.Services.Implementations
                 existingMachine.Department = request.Department?.Trim();
                 existingMachine.Status = request.Status?.Trim();
                 existingMachine.Notes = request.Notes?.Trim();
+                existingMachine.DailyCapacityHours = request.DailyCapacityHours;
                 existingMachine.IsActive = request.IsActive;
                 existingMachine.UpdatedBy = "System";
 
                 var success = await _machineRepository.UpdateAsync(existingMachine);
                 if (!success)
                     return ApiResponse<bool>.ErrorResponse("Failed to update machine");
+
+                // Save process category mappings
+                await _machineRepository.SaveProcessCategoriesAsync(request.Id, request.ProcessCategoryIds ?? new List<int>());
 
                 return ApiResponse<bool>.SuccessResponse(true, "Machine updated successfully");
             }
@@ -180,6 +222,15 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        /// <summary>
+        /// Loads process categories for a machine and maps it to response
+        /// </summary>
+        private async Task<MachineResponse> LoadAndMapToResponseAsync(Machine machine)
+        {
+            await _machineRepository.LoadProcessCategoriesAsync(machine);
+            return MapToResponse(machine);
+        }
+
         private static MachineResponse MapToResponse(Machine machine)
         {
             return new MachineResponse
@@ -192,6 +243,9 @@ namespace MultiHitechERP.API.Services.Implementations
                 Department = machine.Department,
                 Status = machine.Status,
                 Notes = machine.Notes,
+                DailyCapacityHours = machine.DailyCapacityHours,
+                ProcessCategoryIds = machine.ProcessCategoryIds,
+                ProcessCategoryNames = machine.ProcessCategoryNames,
                 IsActive = machine.IsActive,
                 CreatedAt = machine.CreatedAt,
                 CreatedBy = machine.CreatedBy,

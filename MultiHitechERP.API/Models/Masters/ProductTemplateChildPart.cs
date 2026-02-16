@@ -17,5 +17,6 @@ namespace MultiHitechERP.API.Models.Masters
         public string? Notes { get; set; }
         public int SequenceNo { get; set; } // Order in which parts are needed
         public int? ChildPartTemplateId { get; set; } // Optional link to Child Part Template
+        public bool IsPurchased { get; set; } = false; // If true, no drawing required
     }
 }

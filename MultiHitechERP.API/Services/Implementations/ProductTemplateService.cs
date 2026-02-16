@@ -321,6 +321,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 ChildPartTemplateName = childPart.ChildPartName,
                 ChildPartTemplateCode = childPart.ChildPartCode,
                 ChildPartType = childPart.ChildPartType,
+                IsPurchased = childPart.IsPurchased,
                 Quantity = (int)childPart.Quantity,
                 Notes = childPart.Notes,
                 SequenceNumber = childPart.SequenceNo

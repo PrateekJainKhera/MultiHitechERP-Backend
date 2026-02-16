@@ -90,28 +90,28 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (string.IsNullOrWhiteSpace(request.ProcessName))
                     return ApiResponse<int>.ErrorResponse("Process name is required");
 
-                if (string.IsNullOrWhiteSpace(request.Category))
-                    return ApiResponse<int>.ErrorResponse("Category is required");
+                if (request.ProcessCategoryId <= 0)
+                    return ApiResponse<int>.ErrorResponse("Process category is required");
+
+                if (request.CycleTimePerPieceHours <= 0)
+                    return ApiResponse<int>.ErrorResponse("Cycle time per piece must be greater than 0");
 
                 // Auto-generate ProcessCode: Use first 3 letters of ProcessName + sequence
                 string processNamePrefix = request.ProcessName.Length >= 3
                     ? request.ProcessName.Substring(0, 3).ToUpper()
                     : request.ProcessName.ToUpper();
 
-                // Get next sequence number for this category
-                int nextSequence = await _processRepository.GetNextSequenceNumberAsync(request.Category);
+                // Get next sequence number based on process name prefix
+                int nextSequence = await _processRepository.GetNextSequenceNumberAsync(processNamePrefix);
                 string generatedCode = $"{processNamePrefix}-{nextSequence:D3}";
 
                 var process = new Models.Masters.Process
                 {
                     ProcessCode = generatedCode,
                     ProcessName = request.ProcessName.Trim(),
-                    Category = request.Category.Trim(),
-                    DefaultMachine = request.DefaultMachine?.Trim(),
-                    DefaultMachineId = request.DefaultMachineId,
-                    DefaultSetupTimeHours = request.DefaultSetupTimeHours ?? 0.5m,
-                    DefaultCycleTimePerPieceHours = request.DefaultCycleTimePerPieceHours ?? 0.1m,
+                    ProcessCategoryId = request.ProcessCategoryId,
                     StandardSetupTimeMin = request.StandardSetupTimeMin,
+                    CycleTimePerPieceHours = request.CycleTimePerPieceHours,
                     RestTimeHours = request.RestTimeHours,
                     Description = request.Description?.Trim(),
                     IsOutsourced = request.IsOutsourced,
@@ -122,18 +122,6 @@ namespace MultiHitechERP.API.Services.Implementations
                 };
 
                 var processId = await _processRepository.InsertAsync(process);
-
-                // Automatically create ProcessMachineCapability if DefaultMachineId is set
-                if (request.DefaultMachineId.HasValue)
-                {
-                    await CreateProcessMachineCapabilityAsync(
-                        processId,
-                        request.DefaultMachineId.Value,
-                        request.DefaultSetupTimeHours ?? 0.5m,
-                        request.DefaultCycleTimePerPieceHours ?? 0.1m,
-                        request.CreatedBy
-                    );
-                }
 
                 return ApiResponse<int>.SuccessResponse(processId, $"Process '{generatedCode}' created successfully");
             }
@@ -151,6 +139,9 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (existingProcess == null)
                     return ApiResponse<bool>.ErrorResponse("Process not found");
 
+                if (request.CycleTimePerPieceHours <= 0)
+                    return ApiResponse<bool>.ErrorResponse("Cycle time per piece must be greater than 0");
+
                 if (existingProcess.ProcessCode != request.ProcessCode)
                 {
                     var exists = await _processRepository.ExistsAsync(request.ProcessCode);
@@ -158,18 +149,11 @@ namespace MultiHitechERP.API.Services.Implementations
                         return ApiResponse<bool>.ErrorResponse($"Process code '{request.ProcessCode}' already exists");
                 }
 
-                // Track if DefaultMachineId is changing
-                var defaultMachineChanged = existingProcess.DefaultMachineId != request.DefaultMachineId;
-                var oldMachineId = existingProcess.DefaultMachineId;
-
                 existingProcess.ProcessCode = request.ProcessCode.Trim().ToUpper();
                 existingProcess.ProcessName = request.ProcessName.Trim();
-                existingProcess.Category = request.Category?.Trim();
-                existingProcess.DefaultMachine = request.DefaultMachine?.Trim();
-                existingProcess.DefaultMachineId = request.DefaultMachineId;
-                existingProcess.DefaultSetupTimeHours = request.DefaultSetupTimeHours ?? 0.5m;
-                existingProcess.DefaultCycleTimePerPieceHours = request.DefaultCycleTimePerPieceHours ?? 0.1m;
+                existingProcess.ProcessCategoryId = request.ProcessCategoryId;
                 existingProcess.StandardSetupTimeMin = request.StandardSetupTimeMin;
+                existingProcess.CycleTimePerPieceHours = request.CycleTimePerPieceHours;
                 existingProcess.RestTimeHours = request.RestTimeHours;
                 existingProcess.Description = request.Description?.Trim();
                 existingProcess.IsOutsourced = request.IsOutsourced;
@@ -181,53 +165,6 @@ namespace MultiHitechERP.API.Services.Implementations
                 var success = await _processRepository.UpdateAsync(existingProcess);
                 if (!success)
                     return ApiResponse<bool>.ErrorResponse("Failed to update process");
-
-                // Handle ProcessMachineCapability changes if DefaultMachineId changed
-                if (defaultMachineChanged)
-                {
-                    // Unmark old preferred machine if it exists
-                    if (oldMachineId.HasValue)
-                    {
-                        var oldCapability = await _capabilityRepository.GetByProcessAndMachineAsync(request.Id, oldMachineId.Value);
-                        if (oldCapability != null)
-                        {
-                            oldCapability.IsPreferredMachine = false;
-                            await _capabilityRepository.UpdateAsync(oldCapability);
-                        }
-                    }
-
-                    // Create or update capability for new default machine
-                    if (request.DefaultMachineId.HasValue)
-                    {
-                        var existingCapability = await _capabilityRepository.GetByProcessAndMachineAsync(
-                            request.Id,
-                            request.DefaultMachineId.Value
-                        );
-
-                        if (existingCapability != null)
-                        {
-                            // Update existing capability to mark as preferred
-                            existingCapability.IsPreferredMachine = true;
-                            existingCapability.SetupTimeHours = request.DefaultSetupTimeHours ?? 0.5m;
-                            existingCapability.CycleTimePerPieceHours = request.DefaultCycleTimePerPieceHours ?? 0.1m;
-                            existingCapability.PreferenceLevel = 1;
-                            existingCapability.UpdatedAt = DateTime.UtcNow;
-                            existingCapability.UpdatedBy = request.UpdatedBy ?? "System";
-                            await _capabilityRepository.UpdateAsync(existingCapability);
-                        }
-                        else
-                        {
-                            // Create new capability
-                            await CreateProcessMachineCapabilityAsync(
-                                request.Id,
-                                request.DefaultMachineId.Value,
-                                request.DefaultSetupTimeHours ?? 0.5m,
-                                request.DefaultCycleTimePerPieceHours ?? 0.1m,
-                                request.UpdatedBy
-                            );
-                        }
-                    }
-                }
 
                 return ApiResponse<bool>.SuccessResponse(true, "Process updated successfully");
             }
@@ -388,14 +325,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 Id = process.Id,
                 ProcessCode = process.ProcessCode,
                 ProcessName = process.ProcessName,
-                Category = process.Category,
-                DefaultMachine = process.DefaultMachine,
-                DefaultMachineId = process.DefaultMachineId,
-                DefaultMachineName = process.DefaultMachineName,
-                DefaultMachineCode = process.DefaultMachineCode,
-                DefaultSetupTimeHours = process.DefaultSetupTimeHours,
-                DefaultCycleTimePerPieceHours = process.DefaultCycleTimePerPieceHours,
+                ProcessCategoryId = process.ProcessCategoryId,
+                ProcessCategoryName = process.ProcessCategoryName,
                 StandardSetupTimeMin = process.StandardSetupTimeMin,
+                CycleTimePerPieceHours = process.CycleTimePerPieceHours,
                 RestTimeHours = process.RestTimeHours,
                 Description = process.Description,
                 IsOutsourced = process.IsOutsourced,

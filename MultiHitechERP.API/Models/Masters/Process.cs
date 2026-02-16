@@ -3,7 +3,7 @@ using System;
 namespace MultiHitechERP.API.Models.Masters
 {
     /// <summary>
-    /// Represents a manufacturing process master record (simplified schema)
+    /// Represents a manufacturing process master record
     /// </summary>
     public class Process
     {
@@ -12,16 +12,14 @@ namespace MultiHitechERP.API.Models.Masters
         public string ProcessName { get; set; } = string.Empty;
         public string? Category { get; set; }
 
-        // Legacy field - kept for backward compatibility
-        public string? DefaultMachine { get; set; }
+        // Process Category (links process to a category for capacity scheduling)
+        public int? ProcessCategoryId { get; set; }
 
-        // New FK fields for machine relationship
-        public int? DefaultMachineId { get; set; }
-        public decimal? DefaultSetupTimeHours { get; set; }
-        public decimal? DefaultCycleTimePerPieceHours { get; set; }
+        // Time fields used for scheduling
+        public int? StandardSetupTimeMin { get; set; }           // One-time setup per job (minutes)
+        public decimal? CycleTimePerPieceHours { get; set; }     // Time per piece (hours) — used in scheduling
+        public decimal? RestTimeHours { get; set; }              // Optional cooling/rest after process (hours)
 
-        public int? StandardSetupTimeMin { get; set; }
-        public decimal? RestTimeHours { get; set; }
         public string? Description { get; set; }
         public bool IsOutsourced { get; set; }
         public bool IsManual { get; set; }
@@ -33,7 +31,6 @@ namespace MultiHitechERP.API.Models.Masters
         public string? UpdatedBy { get; set; }
 
         // Navigation properties (populated by JOIN queries)
-        public string? DefaultMachineName { get; set; }
-        public string? DefaultMachineCode { get; set; }
+        public string? ProcessCategoryName { get; set; }
     }
 }

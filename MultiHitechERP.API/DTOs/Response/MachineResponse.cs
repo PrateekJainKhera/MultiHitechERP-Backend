@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MultiHitechERP.API.DTOs.Response
 {
@@ -12,6 +13,13 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? Department { get; set; }
         public string? Status { get; set; }
         public string? Notes { get; set; }
+
+        // Capacity & Scheduling
+        public decimal DailyCapacityHours { get; set; }
+
+        // Process Categories
+        public List<int> ProcessCategoryIds { get; set; } = new List<int>();
+        public List<string> ProcessCategoryNames { get; set; } = new List<string>();
 
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }

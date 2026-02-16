@@ -120,10 +120,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 INSERT INTO Masters_Machines (
                     MachineCode, MachineName, MachineType, Location, Department,
-                    Status, Notes, IsActive, CreatedAt, CreatedBy
+                    Status, Notes, DailyCapacityHours, IsActive, CreatedAt, CreatedBy
                 ) VALUES (
                     @MachineCode, @MachineName, @MachineType, @Location, @Department,
-                    @Status, @Notes, @IsActive, @CreatedAt, @CreatedBy
+                    @Status, @Notes, @DailyCapacityHours, @IsActive, @CreatedAt, @CreatedBy
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -138,6 +138,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Department", (object?)machine.Department ?? DBNull.Value);
             command.Parameters.AddWithValue("@Status", (object?)machine.Status ?? DBNull.Value);
             command.Parameters.AddWithValue("@Notes", (object?)machine.Notes ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DailyCapacityHours", machine.DailyCapacityHours);
             command.Parameters.AddWithValue("@IsActive", machine.IsActive);
             command.Parameters.AddWithValue("@CreatedAt", machine.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", (object?)machine.CreatedBy ?? DBNull.Value);
@@ -152,8 +153,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 UPDATE Masters_Machines SET
                     MachineName = @MachineName, MachineType = @MachineType,
                     Location = @Location, Department = @Department,
-                    Status = @Status, Notes = @Notes, IsActive = @IsActive,
-                    UpdatedAt = @UpdatedAt, UpdatedBy = @UpdatedBy
+                    Status = @Status, Notes = @Notes, DailyCapacityHours = @DailyCapacityHours,
+                    IsActive = @IsActive, UpdatedAt = @UpdatedAt, UpdatedBy = @UpdatedBy
                 WHERE Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -167,6 +168,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Department", (object?)machine.Department ?? DBNull.Value);
             command.Parameters.AddWithValue("@Status", (object?)machine.Status ?? DBNull.Value);
             command.Parameters.AddWithValue("@Notes", (object?)machine.Notes ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DailyCapacityHours", machine.DailyCapacityHours);
             command.Parameters.AddWithValue("@IsActive", machine.IsActive);
             command.Parameters.AddWithValue("@UpdatedAt", (object?)machine.UpdatedAt ?? DBNull.Value);
             command.Parameters.AddWithValue("@UpdatedBy", (object?)machine.UpdatedBy ?? DBNull.Value);
@@ -213,6 +215,118 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return $"MCH-{maxNum + 1:D3}";
         }
 
+        /// <summary>
+        /// Loads process categories for a machine from the junction table
+        /// </summary>
+        public async Task LoadProcessCategoriesAsync(Machine machine)
+        {
+            const string query = @"
+                SELECT mpc.ProcessCategoryId, pc.CategoryName
+                FROM Machine_ProcessCategories mpc
+                INNER JOIN Masters_ProcessCategories pc ON mpc.ProcessCategoryId = pc.Id
+                WHERE mpc.MachineId = @MachineId
+                ORDER BY pc.CategoryName";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@MachineId", machine.Id);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            machine.ProcessCategoryIds.Clear();
+            machine.ProcessCategoryNames.Clear();
+
+            while (await reader.ReadAsync())
+            {
+                machine.ProcessCategoryIds.Add(reader.GetInt32(0));
+                machine.ProcessCategoryNames.Add(reader.GetString(1));
+            }
+        }
+
+        /// <summary>
+        /// Saves process category mappings for a machine (replaces existing mappings)
+        /// </summary>
+        public async Task SaveProcessCategoriesAsync(int machineId, List<int> processCategoryIds)
+        {
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            await connection.OpenAsync();
+            using var transaction = connection.BeginTransaction();
+
+            try
+            {
+                // Step 1: Delete existing mappings
+                var deleteCommand = new SqlCommand(
+                    "DELETE FROM Machine_ProcessCategories WHERE MachineId = @MachineId",
+                    connection,
+                    transaction
+                );
+                deleteCommand.Parameters.AddWithValue("@MachineId", machineId);
+                await deleteCommand.ExecuteNonQueryAsync();
+
+                // Step 2: Insert new mappings
+                if (processCategoryIds != null && processCategoryIds.Count > 0)
+                {
+                    foreach (var categoryId in processCategoryIds)
+                    {
+                        var insertCommand = new SqlCommand(
+                            @"INSERT INTO Machine_ProcessCategories (MachineId, ProcessCategoryId, CreatedAt)
+                              VALUES (@MachineId, @ProcessCategoryId, @CreatedAt)",
+                            connection,
+                            transaction
+                        );
+                        insertCommand.Parameters.AddWithValue("@MachineId", machineId);
+                        insertCommand.Parameters.AddWithValue("@ProcessCategoryId", categoryId);
+                        insertCommand.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+                        await insertCommand.ExecuteNonQueryAsync();
+                    }
+                }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Gets machines that have a specific process category
+        /// </summary>
+        public async Task<IEnumerable<Machine>> GetByProcessCategoryIdAsync(int processCategoryId)
+        {
+            const string query = @"
+                SELECT DISTINCT m.*
+                FROM Masters_Machines m
+                INNER JOIN Machine_ProcessCategories mpc ON m.Id = mpc.MachineId
+                WHERE mpc.ProcessCategoryId = @ProcessCategoryId
+                AND m.IsActive = 1
+                ORDER BY m.MachineName";
+
+            var machines = new List<Machine>();
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@ProcessCategoryId", processCategoryId);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                var machine = MapToMachine(reader);
+                machines.Add(machine);
+            }
+
+            // Load process categories for each machine
+            foreach (var machine in machines)
+            {
+                await LoadProcessCategoriesAsync(machine);
+            }
+
+            return machines;
+        }
+
         private static Machine MapToMachine(SqlDataReader reader)
         {
             return new Machine
@@ -225,11 +339,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 Department = reader.IsDBNull(reader.GetOrdinal("Department")) ? null : reader.GetString(reader.GetOrdinal("Department")),
                 Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? null : reader.GetString(reader.GetOrdinal("Status")),
                 Notes = reader.IsDBNull(reader.GetOrdinal("Notes")) ? null : reader.GetString(reader.GetOrdinal("Notes")),
+                DailyCapacityHours = reader.GetDecimal(reader.GetOrdinal("DailyCapacityHours")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
                 UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
                 UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy"))
+                // Note: ProcessCategoryIds and ProcessCategoryNames are loaded separately via LoadProcessCategoriesAsync
             };
         }
     }

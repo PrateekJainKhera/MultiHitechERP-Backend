@@ -1,49 +1,51 @@
-using System;
 using System.Collections.Generic;
 
 namespace MultiHitechERP.API.DTOs.Response
 {
     /// <summary>
-    /// Response DTO for machine scheduling suggestions (semi-automatic scheduling)
+    /// Response DTO for machine capacity suggestions
     /// </summary>
     public class MachineSuggestionResponse
     {
         public int MachineId { get; set; }
         public string MachineCode { get; set; } = string.Empty;
         public string MachineName { get; set; } = string.Empty;
+        public string? MachineType { get; set; }
+        public string? Location { get; set; }
+        public string? Department { get; set; }
 
-        // Capability info
-        public decimal SetupTimeHours { get; set; }
-        public decimal CycleTimePerPieceHours { get; set; }
-        public int PreferenceLevel { get; set; }  // 1 = Best, 5 = Last Resort
-        public decimal EfficiencyRating { get; set; }
-        public bool IsPreferredMachine { get; set; }
+        // Process Category
+        public int ProcessCategoryId { get; set; }
+        public string ProcessCategoryName { get; set; } = string.Empty;
 
-        // Calculated times for this job
-        public int EstimatedSetupMinutes { get; set; }
-        public int EstimatedCycleMinutes { get; set; }
-        public int TotalEstimatedMinutes { get; set; }
+        // Capacity Information
+        public decimal DailyCapacityHours { get; set; }
+        public decimal ScheduledHours { get; set; }
+        public decimal AvailableHours { get; set; }
+        public decimal UtilizationPercent { get; set; }
 
-        // Next available time slot
-        public DateTime? NextAvailableStart { get; set; }
-        public DateTime? SuggestedStart { get; set; }
-        public DateTime? SuggestedEnd { get; set; }
+        // Status
+        public string CapacityStatus { get; set; } = string.Empty; // Available, Moderate, Busy, Overloaded
+        public bool IsBusy { get; set; }
 
-        // Current machine status
-        public bool IsCurrentlyAvailable { get; set; }
-        public int ScheduledJobsCount { get; set; }
-        public string? CurrentStatus { get; set; }
-
-        // Upcoming schedules (for visualization)
-        public List<ScheduleSlot>? UpcomingSchedules { get; set; }
+        // Breakdown of scheduled work
+        public int TotalJobCards { get; set; }
+        public List<string> ScheduledJobCardNumbers { get; set; } = new List<string>();
     }
 
-    public class ScheduleSlot
+    /// <summary>
+    /// Response wrapper for machine suggestions
+    /// </summary>
+    public class MachineSuggestionsResponse
     {
-        public int ScheduleId { get; set; }
-        public string JobCardNo { get; set; } = string.Empty;
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public int ProcessId { get; set; }
+        public string ProcessName { get; set; } = string.Empty;
+        public int? ProcessCategoryId { get; set; }
+        public string? ProcessCategoryName { get; set; }
+        public string TargetDate { get; set; } = string.Empty;
+        public List<MachineSuggestionResponse> Machines { get; set; } = new List<MachineSuggestionResponse>();
+        public int TotalMachinesAvailable { get; set; }
+        public int AvailableMachinesCount { get; set; }
+        public int BusyMachinesCount { get; set; }
     }
 }

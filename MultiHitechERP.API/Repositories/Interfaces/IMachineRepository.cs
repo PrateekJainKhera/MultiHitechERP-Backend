@@ -19,5 +19,10 @@ namespace MultiHitechERP.API.Repositories.Interfaces
 
         Task<bool> ExistsAsync(string machineCode);
         Task<string> GetNextMachineCodeAsync();
+
+        // Process Category Management
+        Task LoadProcessCategoriesAsync(Machine machine);
+        Task SaveProcessCategoriesAsync(int machineId, List<int> processCategoryIds);
+        Task<IEnumerable<Machine>> GetByProcessCategoryIdAsync(int processCategoryId);
     }
 }

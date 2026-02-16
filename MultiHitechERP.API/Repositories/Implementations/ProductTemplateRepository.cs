@@ -342,7 +342,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     bom.*,
                     cpt.TemplateName as ChildPartTemplateName,
                     cpt.TemplateCode as ChildPartTemplateCode,
-                    cpt.ChildPartType
+                    cpt.ChildPartType,
+                    cpt.IsPurchased
                 FROM Masters_ProductTemplateBOM bom
                 LEFT JOIN Masters_ChildPartTemplates cpt ON bom.ChildPartTemplateId = cpt.Id
                 WHERE bom.ProductTemplateId = @ProductTemplateId
@@ -463,6 +464,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 ChildPartName = reader.IsDBNull(reader.GetOrdinal("ChildPartTemplateName")) ? string.Empty : reader.GetString(reader.GetOrdinal("ChildPartTemplateName")),
                 ChildPartCode = reader.IsDBNull(reader.GetOrdinal("ChildPartTemplateCode")) ? null : reader.GetString(reader.GetOrdinal("ChildPartTemplateCode")),
                 ChildPartType = reader.IsDBNull(reader.GetOrdinal("ChildPartType")) ? null : reader.GetString(reader.GetOrdinal("ChildPartType")),
+                IsPurchased = !reader.IsDBNull(reader.GetOrdinal("IsPurchased")) && reader.GetBoolean(reader.GetOrdinal("IsPurchased")),
                 Quantity = reader.GetInt32(reader.GetOrdinal("Quantity")),
                 Unit = "pcs", // Default unit
                 Notes = reader.IsDBNull(reader.GetOrdinal("Notes")) ? null : reader.GetString(reader.GetOrdinal("Notes")),

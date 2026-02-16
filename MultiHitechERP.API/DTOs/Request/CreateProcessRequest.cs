@@ -5,24 +5,20 @@ namespace MultiHitechERP.API.DTOs.Request
 {
     public class CreateProcessRequest
     {
-        // ProcessCode is auto-generated based on Category
+        // ProcessCode is auto-generated based on ProcessName prefix
 
         [Required(ErrorMessage = "Process name is required")]
         public string ProcessName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Category is required")]
-        public string Category { get; set; } = string.Empty;
-
-        // Legacy field - kept for backward compatibility
-        public string? DefaultMachine { get; set; }
-
-        // New FK field for machine relationship
-        public int? DefaultMachineId { get; set; }
-        public decimal? DefaultSetupTimeHours { get; set; }
-        public decimal? DefaultCycleTimePerPieceHours { get; set; }
+        // Process Category - REQUIRED for capacity-based scheduling
+        [Required(ErrorMessage = "Process category is required")]
+        public int ProcessCategoryId { get; set; }
 
         [Required(ErrorMessage = "Setup time is required")]
         public int StandardSetupTimeMin { get; set; }
+
+        [Required(ErrorMessage = "Cycle time per piece is required")]
+        public decimal CycleTimePerPieceHours { get; set; }
 
         public decimal? RestTimeHours { get; set; }
 

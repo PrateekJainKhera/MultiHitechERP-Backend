@@ -2,28 +2,21 @@ using System;
 
 namespace MultiHitechERP.API.DTOs.Response
 {
-    /// <summary>
-    /// Simplified Process response DTO
-    /// </summary>
     public class ProcessResponse
     {
         public int Id { get; set; }
         public string ProcessCode { get; set; } = string.Empty;
         public string ProcessName { get; set; } = string.Empty;
-        public string? Category { get; set; }
 
-        // Legacy field - kept for backward compatibility
-        public string? DefaultMachine { get; set; }
+        // Process Category
+        public int? ProcessCategoryId { get; set; }
+        public string? ProcessCategoryName { get; set; }
 
-        // New FK fields for machine relationship
-        public int? DefaultMachineId { get; set; }
-        public string? DefaultMachineName { get; set; }
-        public string? DefaultMachineCode { get; set; }
-        public decimal? DefaultSetupTimeHours { get; set; }
-        public decimal? DefaultCycleTimePerPieceHours { get; set; }
-
+        // Time fields for scheduling
         public int? StandardSetupTimeMin { get; set; }
+        public decimal? CycleTimePerPieceHours { get; set; }
         public decimal? RestTimeHours { get; set; }
+
         public string? Description { get; set; }
         public bool IsOutsourced { get; set; }
         public bool IsActive { get; set; }

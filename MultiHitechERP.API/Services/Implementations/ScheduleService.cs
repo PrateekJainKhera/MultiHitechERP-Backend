@@ -379,7 +379,8 @@ namespace MultiHitechERP.API.Services.Implementations
         }
 
         /// <summary>
-        /// SEMI-AUTOMATIC SCHEDULING: Get intelligent machine suggestions for a job card
+        /// CAPACITY-BASED SCHEDULING: Get machine suggestions based on daily capacity and utilization
+        /// Uses new Process Category system to find capable machines
         /// </summary>
         public async Task<ApiResponse<IEnumerable<MachineSuggestionResponse>>> GetMachineSuggestionsAsync(int jobCardId)
         {
@@ -390,84 +391,105 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (jobCard == null)
                     return ApiResponse<IEnumerable<MachineSuggestionResponse>>.ErrorResponse("Job card not found");
 
-                // Get all capable machines for this process
-                var capabilities = await _capabilityRepository.GetByProcessIdAsync(jobCard.ProcessId);
-                if (capabilities == null || !capabilities.Any())
-                    return ApiResponse<IEnumerable<MachineSuggestionResponse>>.ErrorResponse("No machines capable of performing this process");
+                // Get process details to find the process category
+                var process = await _processRepository.GetByIdAsync(jobCard.ProcessId);
+                if (process == null)
+                    return ApiResponse<IEnumerable<MachineSuggestionResponse>>.ErrorResponse("Process not found");
+
+                if (!process.ProcessCategoryId.HasValue)
+                    return ApiResponse<IEnumerable<MachineSuggestionResponse>>.ErrorResponse($"Process '{process.ProcessName}' has no Process Category assigned. Please assign a category first.");
+
+                // Get all machines that can perform this process category
+                var machines = await _machineRepository.GetByProcessCategoryIdAsync(process.ProcessCategoryId.Value);
+                if (machines == null || !machines.Any())
+                    return ApiResponse<IEnumerable<MachineSuggestionResponse>>.ErrorResponse($"No machines found with Process Category '{process.ProcessCategoryName}'");
 
                 var suggestions = new List<MachineSuggestionResponse>();
+                var targetDate = DateTime.Today; // Can be parameterized later
 
-                foreach (var capability in capabilities.Where(c => c.IsActive))
+                foreach (var machine in machines.Where(m => m.IsActive))
                 {
-                    // Get machine details
-                    var machine = await _machineRepository.GetByIdAsync(capability.MachineId);
-                    if (machine == null || !machine.IsActive) continue;
-
-                    // Calculate estimated times
-                    var setupMinutes = (int)(capability.SetupTimeHours * 60);
-                    var cycleMinutes = (int)(capability.CycleTimePerPieceHours * jobCard.Quantity * 60);
-                    var totalMinutes = setupMinutes + cycleMinutes;
-
-                    // Get existing schedules for this machine
-                    var existingSchedules = await _scheduleRepository.GetByMachineIdAsync(capability.MachineId);
-                    var activeSchedules = existingSchedules
-                        .Where(s => s.Status == "Scheduled" || s.Status == "InProgress")
-                        .OrderBy(s => s.ScheduledStartTime)
+                    // Get all schedules for this machine on the target date
+                    var allSchedules = await _scheduleRepository.GetByMachineIdAsync(machine.Id);
+                    var todaySchedules = allSchedules
+                        .Where(s => s.ScheduledStartTime.Date == targetDate &&
+                                   (s.Status == "Scheduled" || s.Status == "InProgress" || s.Status == "Completed"))
                         .ToList();
 
-                    // Find next available time slot
-                    var now = DateTime.UtcNow;
-                    var nextAvailableStart = now;
+                    // Calculate scheduled hours for today
+                    decimal scheduledHours = 0;
+                    var scheduledJobCardNumbers = new List<string>();
 
-                    if (activeSchedules.Any())
+                    foreach (var schedule in todaySchedules)
                     {
-                        // Find the latest end time
-                        var lastSchedule = activeSchedules.OrderByDescending(s => s.ScheduledEndTime).First();
-                        nextAvailableStart = lastSchedule.ScheduledEndTime > now
-                            ? lastSchedule.ScheduledEndTime
-                            : now;
+                        var duration = (schedule.ScheduledEndTime - schedule.ScheduledStartTime).TotalHours;
+                        scheduledHours += (decimal)duration;
+                        if (!string.IsNullOrEmpty(schedule.JobCardNo) && !scheduledJobCardNumbers.Contains(schedule.JobCardNo))
+                        {
+                            scheduledJobCardNumbers.Add(schedule.JobCardNo);
+                        }
                     }
 
-                    var suggestedEnd = nextAvailableStart.AddMinutes(totalMinutes);
+                    // Calculate capacity metrics
+                    var dailyCapacity = machine.DailyCapacityHours;
+                    var availableHours = Math.Max(0, dailyCapacity - scheduledHours);
+                    var utilizationPercent = dailyCapacity > 0 ? Math.Round((scheduledHours / dailyCapacity) * 100, 1) : 0;
 
-                    // Create suggestion
+                    // Determine capacity status
+                    string capacityStatus;
+                    bool isBusy;
+
+                    if (utilizationPercent >= 100)
+                    {
+                        capacityStatus = "Overloaded";
+                        isBusy = true;
+                    }
+                    else if (utilizationPercent >= 90)
+                    {
+                        capacityStatus = "Busy";
+                        isBusy = true;
+                    }
+                    else if (utilizationPercent >= 70)
+                    {
+                        capacityStatus = "Moderate";
+                        isBusy = false;
+                    }
+                    else
+                    {
+                        capacityStatus = "Available";
+                        isBusy = false;
+                    }
+
+                    // Get process category name (already loaded by repository)
+                    var processCategoryName = machine.ProcessCategoryNames.FirstOrDefault() ?? process.ProcessCategoryName ?? "Unknown";
+
                     var suggestion = new MachineSuggestionResponse
                     {
-                        MachineId = capability.MachineId,
+                        MachineId = machine.Id,
                         MachineCode = machine.MachineCode,
                         MachineName = machine.MachineName,
-                        SetupTimeHours = capability.SetupTimeHours,
-                        CycleTimePerPieceHours = capability.CycleTimePerPieceHours,
-                        PreferenceLevel = capability.PreferenceLevel,
-                        EfficiencyRating = capability.EfficiencyRating,
-                        IsPreferredMachine = capability.IsPreferredMachine,
-                        EstimatedSetupMinutes = setupMinutes,
-                        EstimatedCycleMinutes = cycleMinutes,
-                        TotalEstimatedMinutes = totalMinutes,
-                        NextAvailableStart = nextAvailableStart,
-                        SuggestedStart = nextAvailableStart,
-                        SuggestedEnd = suggestedEnd,
-                        IsCurrentlyAvailable = nextAvailableStart <= now.AddMinutes(5), // Available within 5 minutes
-                        ScheduledJobsCount = activeSchedules.Count,
-                        CurrentStatus = machine.Status,
-                        UpcomingSchedules = activeSchedules.Take(5).Select(s => new ScheduleSlot
-                        {
-                            ScheduleId = s.Id,
-                            JobCardNo = s.JobCardNo ?? "N/A",
-                            StartTime = s.ScheduledStartTime,
-                            EndTime = s.ScheduledEndTime,
-                            Status = s.Status
-                        }).ToList()
+                        MachineType = machine.MachineType,
+                        Location = machine.Location,
+                        Department = machine.Department,
+                        ProcessCategoryId = process.ProcessCategoryId.Value,
+                        ProcessCategoryName = processCategoryName,
+                        DailyCapacityHours = dailyCapacity,
+                        ScheduledHours = Math.Round(scheduledHours, 2),
+                        AvailableHours = Math.Round(availableHours, 2),
+                        UtilizationPercent = utilizationPercent,
+                        CapacityStatus = capacityStatus,
+                        IsBusy = isBusy,
+                        TotalJobCards = scheduledJobCardNumbers.Count,
+                        ScheduledJobCardNumbers = scheduledJobCardNumbers
                     };
 
                     suggestions.Add(suggestion);
                 }
 
-                // Sort suggestions: Preferred machines first, then by preference level, then by next available time
+                // Sort suggestions: Lowest utilization first (best available machines at top)
                 var sortedSuggestions = suggestions
-                    .OrderBy(s => s.IsPreferredMachine ? 0 : 1)
-                    .ThenBy(s => s.PreferenceLevel)
-                    .ThenBy(s => s.NextAvailableStart)
+                    .OrderBy(s => s.UtilizationPercent)
+                    .ThenByDescending(s => s.AvailableHours)
                     .ToList();
 
                 return ApiResponse<IEnumerable<MachineSuggestionResponse>>.SuccessResponse(sortedSuggestions);

@@ -33,6 +33,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? ChildPartTemplateCode { get; set; }
         public string? ChildPartType { get; set; }
         public int Quantity { get; set; }
+        public bool IsPurchased { get; set; }
         public string? Notes { get; set; }
         public int? SequenceNumber { get; set; }
     }

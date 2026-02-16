@@ -20,9 +20,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<Process?> GetByIdAsync(int id)
         {
             const string query = @"
-                SELECT p.*, m.MachineName AS DefaultMachineName, m.MachineCode AS DefaultMachineCode
+                SELECT p.*,
+                       pc.CategoryName AS ProcessCategoryName
                 FROM Masters_Processes p
-                LEFT JOIN Masters_Machines m ON p.DefaultMachineId = m.Id
+                LEFT JOIN Masters_ProcessCategories pc ON p.ProcessCategoryId = pc.Id
                 WHERE p.Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -38,9 +39,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<Process?> GetByProcessCodeAsync(string processCode)
         {
             const string query = @"
-                SELECT p.*, m.MachineName AS DefaultMachineName, m.MachineCode AS DefaultMachineCode
+                SELECT p.*,
+                       pc.CategoryName AS ProcessCategoryName
                 FROM Masters_Processes p
-                LEFT JOIN Masters_Machines m ON p.DefaultMachineId = m.Id
+                LEFT JOIN Masters_ProcessCategories pc ON p.ProcessCategoryId = pc.Id
                 WHERE p.ProcessCode = @ProcessCode";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -56,9 +58,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<Process>> GetAllAsync()
         {
             const string query = @"
-                SELECT p.*, m.MachineName AS DefaultMachineName, m.MachineCode AS DefaultMachineCode
+                SELECT p.*,
+                       pc.CategoryName AS ProcessCategoryName
                 FROM Masters_Processes p
-                LEFT JOIN Masters_Machines m ON p.DefaultMachineId = m.Id
+                LEFT JOIN Masters_ProcessCategories pc ON p.ProcessCategoryId = pc.Id
                 ORDER BY p.ProcessName";
 
             var processes = new List<Process>();
@@ -77,9 +80,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<Process>> GetActiveProcessesAsync()
         {
             const string query = @"
-                SELECT p.*, m.MachineName AS DefaultMachineName, m.MachineCode AS DefaultMachineCode
+                SELECT p.*,
+                       pc.CategoryName AS ProcessCategoryName
                 FROM Masters_Processes p
-                LEFT JOIN Masters_Machines m ON p.DefaultMachineId = m.Id
+                LEFT JOIN Masters_ProcessCategories pc ON p.ProcessCategoryId = pc.Id
                 WHERE p.IsActive = 1
                 ORDER BY p.ProcessName";
 
@@ -100,15 +104,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Processes (
-                    ProcessCode, ProcessName, Category,
-                    DefaultMachine, DefaultMachineId, DefaultSetupTimeHours, DefaultCycleTimePerPieceHours,
-                    StandardSetupTimeMin, RestTimeHours,
+                    ProcessCode, ProcessName, Category, ProcessCategoryId,
+                    StandardSetupTimeMin, CycleTimePerPieceHours, RestTimeHours,
                     Description, IsOutsourced, IsActive, Status,
                     CreatedAt, CreatedBy
                 ) VALUES (
-                    @ProcessCode, @ProcessName, @Category,
-                    @DefaultMachine, @DefaultMachineId, @DefaultSetupTimeHours, @DefaultCycleTimePerPieceHours,
-                    @StandardSetupTimeMin, @RestTimeHours,
+                    @ProcessCode, @ProcessName, @Category, @ProcessCategoryId,
+                    @StandardSetupTimeMin, @CycleTimePerPieceHours, @RestTimeHours,
                     @Description, @IsOutsourced, @IsActive, @Status,
                     @CreatedAt, @CreatedBy
                 );
@@ -132,11 +134,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 UPDATE Masters_Processes SET
                     ProcessName = @ProcessName, Category = @Category,
-                    DefaultMachine = @DefaultMachine,
-                    DefaultMachineId = @DefaultMachineId,
-                    DefaultSetupTimeHours = @DefaultSetupTimeHours,
-                    DefaultCycleTimePerPieceHours = @DefaultCycleTimePerPieceHours,
+                    ProcessCategoryId = @ProcessCategoryId,
                     StandardSetupTimeMin = @StandardSetupTimeMin,
+                    CycleTimePerPieceHours = @CycleTimePerPieceHours,
                     RestTimeHours = @RestTimeHours,
                     Description = @Description,
                     IsOutsourced = @IsOutsourced,
@@ -196,9 +196,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             // ProcessType column was dropped - using Category instead
             const string query = @"
-                SELECT p.*, m.MachineName AS DefaultMachineName, m.MachineCode AS DefaultMachineCode
+                SELECT p.*,
+                       pc.CategoryName AS ProcessCategoryName
                 FROM Masters_Processes p
-                LEFT JOIN Masters_Machines m ON p.DefaultMachineId = m.Id
+                LEFT JOIN Masters_ProcessCategories pc ON p.ProcessCategoryId = pc.Id
                 WHERE p.Category = @Category
                 ORDER BY p.ProcessName";
 
@@ -231,9 +232,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<Process>> GetOutsourcedProcessesAsync()
         {
             const string query = @"
-                SELECT p.*, m.MachineName AS DefaultMachineName, m.MachineCode AS DefaultMachineCode
+                SELECT p.*,
+                       pc.CategoryName AS ProcessCategoryName
                 FROM Masters_Processes p
-                LEFT JOIN Masters_Machines m ON p.DefaultMachineId = m.Id
+                LEFT JOIN Masters_ProcessCategories pc ON p.ProcessCategoryId = pc.Id
                 WHERE p.IsOutsourced = 1 AND p.IsActive = 1
                 ORDER BY p.ProcessName";
 
@@ -264,18 +266,23 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return count > 0;
         }
 
-        public async Task<int> GetNextSequenceNumberAsync(string category)
+        public async Task<int> GetNextSequenceNumberAsync(string prefix)
         {
-            const string query = "SELECT COUNT(1) FROM Masters_Processes WHERE Category = @Category";
+            // Use MAX of existing sequence numbers to handle gaps correctly
+            const string query = @"
+                SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(ProcessCode, LEN(@Prefix) + 2, 10) AS INT)), 0)
+                FROM Masters_Processes
+                WHERE ProcessCode LIKE @Prefix + '-%'
+                  AND ISNUMERIC(SUBSTRING(ProcessCode, LEN(@Prefix) + 2, 10)) = 1";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@Category", category);
+            command.Parameters.AddWithValue("@Prefix", prefix);
 
             await connection.OpenAsync();
-            var count = (int)await command.ExecuteScalarAsync();
+            var maxSeq = (int)await command.ExecuteScalarAsync();
 
-            return count + 1;
+            return maxSeq + 1;
         }
 
         private static Process MapToProcess(SqlDataReader reader)
@@ -286,11 +293,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 ProcessCode = reader.GetString(reader.GetOrdinal("ProcessCode")),
                 ProcessName = reader.GetString(reader.GetOrdinal("ProcessName")),
                 Category = reader.IsDBNull(reader.GetOrdinal("Category")) ? null : reader.GetString(reader.GetOrdinal("Category")),
-                DefaultMachine = reader.IsDBNull(reader.GetOrdinal("DefaultMachine")) ? null : reader.GetString(reader.GetOrdinal("DefaultMachine")),
-                DefaultMachineId = reader.IsDBNull(reader.GetOrdinal("DefaultMachineId")) ? null : reader.GetInt32(reader.GetOrdinal("DefaultMachineId")),
-                DefaultSetupTimeHours = reader.IsDBNull(reader.GetOrdinal("DefaultSetupTimeHours")) ? null : reader.GetDecimal(reader.GetOrdinal("DefaultSetupTimeHours")),
-                DefaultCycleTimePerPieceHours = reader.IsDBNull(reader.GetOrdinal("DefaultCycleTimePerPieceHours")) ? null : reader.GetDecimal(reader.GetOrdinal("DefaultCycleTimePerPieceHours")),
+                ProcessCategoryId = reader.IsDBNull(reader.GetOrdinal("ProcessCategoryId")) ? null : reader.GetInt32(reader.GetOrdinal("ProcessCategoryId")),
                 StandardSetupTimeMin = reader.IsDBNull(reader.GetOrdinal("StandardSetupTimeMin")) ? null : reader.GetInt32(reader.GetOrdinal("StandardSetupTimeMin")),
+                CycleTimePerPieceHours = reader.IsDBNull(reader.GetOrdinal("CycleTimePerPieceHours")) ? null : reader.GetDecimal(reader.GetOrdinal("CycleTimePerPieceHours")),
                 RestTimeHours = reader.IsDBNull(reader.GetOrdinal("RestTimeHours")) ? null : reader.GetDecimal(reader.GetOrdinal("RestTimeHours")),
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                 IsOutsourced = reader.GetBoolean(reader.GetOrdinal("IsOutsourced")),
@@ -302,8 +307,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
                 UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy")),
                 // Navigation properties from JOIN
-                DefaultMachineName = reader.IsDBNull(reader.GetOrdinal("DefaultMachineName")) ? null : reader.GetString(reader.GetOrdinal("DefaultMachineName")),
-                DefaultMachineCode = reader.IsDBNull(reader.GetOrdinal("DefaultMachineCode")) ? null : reader.GetString(reader.GetOrdinal("DefaultMachineCode"))
+                ProcessCategoryName = reader.IsDBNull(reader.GetOrdinal("ProcessCategoryName")) ? null : reader.GetString(reader.GetOrdinal("ProcessCategoryName"))
             };
         }
 
@@ -313,11 +317,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@ProcessCode", process.ProcessCode);
             command.Parameters.AddWithValue("@ProcessName", process.ProcessName);
             command.Parameters.AddWithValue("@Category", (object?)process.Category ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DefaultMachine", (object?)process.DefaultMachine ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DefaultMachineId", (object?)process.DefaultMachineId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DefaultSetupTimeHours", (object?)process.DefaultSetupTimeHours ?? DBNull.Value);
-            command.Parameters.AddWithValue("@DefaultCycleTimePerPieceHours", (object?)process.DefaultCycleTimePerPieceHours ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProcessCategoryId", (object?)process.ProcessCategoryId ?? DBNull.Value);
             command.Parameters.AddWithValue("@StandardSetupTimeMin", (object?)process.StandardSetupTimeMin ?? DBNull.Value);
+            command.Parameters.AddWithValue("@CycleTimePerPieceHours", (object?)process.CycleTimePerPieceHours ?? DBNull.Value);
             command.Parameters.AddWithValue("@RestTimeHours", (object?)process.RestTimeHours ?? DBNull.Value);
             command.Parameters.AddWithValue("@Description", (object?)process.Description ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsOutsourced", process.IsOutsourced);
