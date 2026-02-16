@@ -36,6 +36,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     ProductionStartDate, ProductionEndDate,
                     MaterialGradeApproved, MaterialGradeApprovalDate,
                     MaterialGradeApprovedBy, MaterialGradeRemark,
+                    Remarks,
                     CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 FROM Orders_OrderItems
                 ORDER BY OrderId, ItemSequence", connection);
@@ -66,6 +67,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     ProductionStartDate, ProductionEndDate,
                     MaterialGradeApproved, MaterialGradeApprovalDate,
                     MaterialGradeApprovedBy, MaterialGradeRemark,
+                    Remarks,
                     CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 FROM Orders_OrderItems
                 WHERE OrderId = @OrderId
@@ -97,6 +99,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     ProductionStartDate, ProductionEndDate,
                     MaterialGradeApproved, MaterialGradeApprovalDate,
                     MaterialGradeApprovedBy, MaterialGradeRemark,
+                    Remarks,
                     CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 FROM Orders_OrderItems
                 WHERE Id = @Id", connection);
