@@ -806,6 +806,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         MaterialGradeApprovalDate = item.MaterialGradeApprovalDate,
                         MaterialGradeApprovedBy = item.MaterialGradeApprovedBy,
                         MaterialGradeRemark = item.MaterialGradeRemark,
+                        Remarks = item.Remarks,
                         CreatedAt = item.CreatedAt,
                         CreatedBy = item.CreatedBy,
                         UpdatedAt = item.UpdatedAt,

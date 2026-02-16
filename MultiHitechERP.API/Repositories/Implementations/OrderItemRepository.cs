@@ -375,6 +375,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 MaterialGradeApprovalDate = reader.IsDBNull(reader.GetOrdinal("MaterialGradeApprovalDate")) ? null : reader.GetDateTime(reader.GetOrdinal("MaterialGradeApprovalDate")),
                 MaterialGradeApprovedBy = reader.IsDBNull(reader.GetOrdinal("MaterialGradeApprovedBy")) ? null : reader.GetString(reader.GetOrdinal("MaterialGradeApprovedBy")),
                 MaterialGradeRemark = reader.IsDBNull(reader.GetOrdinal("MaterialGradeRemark")) ? null : reader.GetString(reader.GetOrdinal("MaterialGradeRemark")),
+                Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.GetString(reader.GetOrdinal("CreatedBy")),
                 UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
@@ -409,6 +410,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@MaterialGradeApprovalDate", (object?)item.MaterialGradeApprovalDate ?? DBNull.Value);
             command.Parameters.AddWithValue("@MaterialGradeApprovedBy", (object?)item.MaterialGradeApprovedBy ?? DBNull.Value);
             command.Parameters.AddWithValue("@MaterialGradeRemark", (object?)item.MaterialGradeRemark ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Remarks", (object?)item.Remarks ?? DBNull.Value);
             command.Parameters.AddWithValue("@CreatedAt", item.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", item.CreatedBy);
             command.Parameters.AddWithValue("@UpdatedAt", (object?)item.UpdatedAt ?? DBNull.Value);

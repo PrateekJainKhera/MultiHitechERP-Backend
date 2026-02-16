@@ -52,6 +52,9 @@ namespace MultiHitechERP.API.Models.Orders
         public string? MaterialGradeApprovedBy { get; set; }
         public string? MaterialGradeRemark { get; set; }
 
+        // Item-Specific Notes
+        public string? Remarks { get; set; } // Optional remarks/notes for this product
+
         // Audit
         public DateTime CreatedAt { get; set; }
         public string CreatedBy { get; set; } = string.Empty;

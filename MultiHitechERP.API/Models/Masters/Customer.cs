@@ -10,7 +10,7 @@ namespace MultiHitechERP.API.Models.Masters
         public int Id { get; set; }
         public string CustomerCode { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
-        public string CustomerType { get; set; } = string.Empty; // 'Direct', 'Agent', 'Dealer'
+        public string CustomerType { get; set; } = string.Empty; // 'Direct', 'Agent', 'OEM'
 
         // Contact Information
         public string? ContactPerson { get; set; }

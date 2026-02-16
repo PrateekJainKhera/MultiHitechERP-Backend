@@ -30,5 +30,9 @@ namespace MultiHitechERP.API.DTOs.Request
 
         // Material Remark (optional)
         public string? MaterialGradeRemark { get; set; }
+
+        // Item Remarks (optional)
+        [MaxLength(500, ErrorMessage = "Remarks cannot exceed 500 characters")]
+        public string? Remarks { get; set; }
     }
 }

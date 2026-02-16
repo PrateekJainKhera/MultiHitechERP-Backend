@@ -10,7 +10,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public string CustomerName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Customer type is required")]
-        public string CustomerType { get; set; } = string.Empty; // 'Direct', 'Agent', 'Dealer'
+        public string CustomerType { get; set; } = string.Empty; // 'Direct', 'Agent', 'OEM'
 
         // Contact Information
         public string? ContactPerson { get; set; }

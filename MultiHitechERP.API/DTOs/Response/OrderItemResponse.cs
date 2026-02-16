@@ -39,6 +39,9 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? MaterialGradeApprovedBy { get; set; }
         public string? MaterialGradeRemark { get; set; }
 
+        // Item Notes
+        public string? Remarks { get; set; }
+
         // Audit
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
