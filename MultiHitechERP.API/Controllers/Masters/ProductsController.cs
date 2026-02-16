@@ -16,17 +16,20 @@ namespace MultiHitechERP.API.Controllers.Masters
         private readonly IProductChildPartDrawingRepository _childPartDrawingRepository;
         private readonly IDrawingRepository _drawingRepository;
         private readonly IChildPartTemplateRepository _childPartTemplateRepository;
+        private readonly IProductDefaultMaterialRepository _defaultMaterialRepository;
 
         public ProductsController(
             IProductService productService,
             IProductChildPartDrawingRepository childPartDrawingRepository,
             IDrawingRepository drawingRepository,
-            IChildPartTemplateRepository childPartTemplateRepository)
+            IChildPartTemplateRepository childPartTemplateRepository,
+            IProductDefaultMaterialRepository defaultMaterialRepository)
         {
             _productService = productService;
             _childPartDrawingRepository = childPartDrawingRepository;
             _drawingRepository = drawingRepository;
             _childPartTemplateRepository = childPartTemplateRepository;
+            _defaultMaterialRepository = defaultMaterialRepository;
         }
 
         [HttpGet]
@@ -239,6 +242,81 @@ namespace MultiHitechERP.API.Controllers.Masters
             catch (Exception ex)
             {
                 return StatusCode(500, ApiResponse<System.Collections.Generic.List<ProductChildPartDrawingResponse>>.ErrorResponse($"Error fetching child part drawings: {ex.Message}"));
+            }
+        }
+
+        /// <summary>
+        /// Get saved default materials for a product
+        /// Used by planning page to auto-fill material requirements
+        /// </summary>
+        [HttpGet("{id}/default-materials")]
+        public async Task<IActionResult> GetDefaultMaterials(int id)
+        {
+            try
+            {
+                var defaults = await _defaultMaterialRepository.GetByProductIdAsync(id);
+                var responses = new System.Collections.Generic.List<ProductDefaultMaterialResponse>();
+
+                foreach (var d in defaults)
+                {
+                    responses.Add(new ProductDefaultMaterialResponse
+                    {
+                        Id = d.Id,
+                        ProductId = d.ProductId,
+                        ChildPartTemplateId = d.ChildPartTemplateId,
+                        RawMaterialId = d.RawMaterialId,
+                        RawMaterialName = d.RawMaterialName,
+                        MaterialGrade = d.MaterialGrade,
+                        RequiredQuantity = d.RequiredQuantity,
+                        Unit = d.Unit,
+                        WastageMM = d.WastageMM,
+                        Notes = d.Notes
+                    });
+                }
+
+                return Ok(ApiResponse<System.Collections.Generic.List<ProductDefaultMaterialResponse>>.SuccessResponse(responses));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<System.Collections.Generic.List<ProductDefaultMaterialResponse>>.ErrorResponse($"Error fetching default materials: {ex.Message}"));
+            }
+        }
+
+        /// <summary>
+        /// Save default materials for a product (replaces all existing defaults)
+        /// Called by planner after setting up materials for the first time
+        /// </summary>
+        [HttpPost("{id}/default-materials")]
+        public async Task<IActionResult> SaveDefaultMaterials(int id, [FromBody] SaveProductDefaultMaterialsRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var defaults = new System.Collections.Generic.List<Models.Masters.ProductDefaultMaterial>();
+                foreach (var item in request.Materials)
+                {
+                    defaults.Add(new Models.Masters.ProductDefaultMaterial
+                    {
+                        ProductId = id,
+                        ChildPartTemplateId = item.ChildPartTemplateId,
+                        RawMaterialId = item.RawMaterialId,
+                        RawMaterialName = item.RawMaterialName,
+                        MaterialGrade = item.MaterialGrade,
+                        RequiredQuantity = item.RequiredQuantity,
+                        Unit = item.Unit,
+                        WastageMM = item.WastageMM,
+                        Notes = item.Notes
+                    });
+                }
+
+                await _defaultMaterialRepository.SaveDefaultsAsync(id, defaults, request.UpdatedBy);
+                return Ok(ApiResponse<bool>.SuccessResponse(true, "Default materials saved successfully"));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<bool>.ErrorResponse($"Error saving default materials: {ex.Message}"));
             }
         }
     }
