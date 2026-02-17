@@ -23,6 +23,7 @@ namespace MultiHitechERP.API.Models.Orders
         public int QtyRejected { get; set; }
         public int QtyInProgress { get; set; }
         public int QtyScrap { get; set; }
+        public int QtyDispatched { get; set; }
 
         // Item-Specific Scheduling
         public DateTime DueDate { get; set; }

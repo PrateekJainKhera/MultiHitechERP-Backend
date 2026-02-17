@@ -44,6 +44,7 @@ namespace MultiHitechERP.API.Models.Dispatch
 
         // Invoice Reference
         public string? InvoiceNo { get; set; }
+        public string? InvoiceDocument { get; set; }
         public DateTime? InvoiceDate { get; set; }
 
         // Acknowledgment

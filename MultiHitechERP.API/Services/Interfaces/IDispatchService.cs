@@ -36,5 +36,9 @@ namespace MultiHitechERP.API.Services.Interfaces
         // Status Queries
         Task<ApiResponse<IEnumerable<DeliveryChallan>>> GetPendingChallansAsync();
         Task<ApiResponse<IEnumerable<DeliveryChallan>>> GetDispatchedChallansAsync();
+
+        // Simple Dispatch Flow
+        Task<ApiResponse<List<ReadyToDispatchItem>>> GetReadyToDispatchAsync();
+        Task<ApiResponse<int>> SimpleDispatchAsync(int orderItemId, int qtyToDispatch, DateTime dispatchDate, string? invoiceNo, DateTime? invoiceDate, string? invoiceDocument, string? remarks);
     }
 }

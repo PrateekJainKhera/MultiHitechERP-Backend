@@ -138,32 +138,31 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Dispatch_DeliveryChallans (
-                    Id, ChallanNo, ChallanDate, OrderId, OrderNo,
+                    ChallanNo, ChallanDate, OrderId, OrderNo,
                     CustomerId, CustomerName, ProductId, ProductName,
                     QuantityDispatched, DeliveryDate, DeliveryAddress,
                     TransportMode, VehicleNumber, DriverName, DriverContact,
                     NumberOfPackages, PackagingType, TotalWeight,
                     Status, DispatchedAt, DeliveredAt,
-                    InvoiceNo, InvoiceDate,
+                    InvoiceNo, InvoiceDate, InvoiceDocument,
                     ReceivedBy, AcknowledgedAt, DeliveryRemarks,
                     Remarks, CreatedAt, CreatedBy
                 ) VALUES (
-                    @Id, @ChallanNo, @ChallanDate, @OrderId, @OrderNo,
+                    @ChallanNo, @ChallanDate, @OrderId, @OrderNo,
                     @CustomerId, @CustomerName, @ProductId, @ProductName,
                     @QuantityDispatched, @DeliveryDate, @DeliveryAddress,
                     @TransportMode, @VehicleNumber, @DriverName, @DriverContact,
                     @NumberOfPackages, @PackagingType, @TotalWeight,
                     @Status, @DispatchedAt, @DeliveredAt,
-                    @InvoiceNo, @InvoiceDate,
+                    @InvoiceNo, @InvoiceDate, @InvoiceDocument,
                     @ReceivedBy, @AcknowledgedAt, @DeliveryRemarks,
                     @Remarks, @CreatedAt, @CreatedBy
-                )";
+                );
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            var id = 0;
 
-            command.Parameters.AddWithValue("@Id", id);
             command.Parameters.AddWithValue("@ChallanNo", challan.ChallanNo);
             command.Parameters.AddWithValue("@ChallanDate", challan.ChallanDate);
             command.Parameters.AddWithValue("@OrderId", challan.OrderId);
@@ -187,6 +186,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@DeliveredAt", (object?)challan.DeliveredAt ?? DBNull.Value);
             command.Parameters.AddWithValue("@InvoiceNo", (object?)challan.InvoiceNo ?? DBNull.Value);
             command.Parameters.AddWithValue("@InvoiceDate", (object?)challan.InvoiceDate ?? DBNull.Value);
+            command.Parameters.AddWithValue("@InvoiceDocument", (object?)challan.InvoiceDocument ?? DBNull.Value);
             command.Parameters.AddWithValue("@ReceivedBy", (object?)challan.ReceivedBy ?? DBNull.Value);
             command.Parameters.AddWithValue("@AcknowledgedAt", (object?)challan.AcknowledgedAt ?? DBNull.Value);
             command.Parameters.AddWithValue("@DeliveryRemarks", (object?)challan.DeliveryRemarks ?? DBNull.Value);
@@ -195,8 +195,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@CreatedBy", (object?)challan.CreatedBy ?? DBNull.Value);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
-            return id;
+            var result = await command.ExecuteScalarAsync();
+            return result != null ? (int)result : 0;
         }
 
         public async Task<bool> UpdateAsync(DeliveryChallan challan)
@@ -423,9 +423,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo")) ? null : reader.GetString(reader.GetOrdinal("OrderNo")),
                 CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
                 CustomerName = reader.IsDBNull(reader.GetOrdinal("CustomerName")) ? null : reader.GetString(reader.GetOrdinal("CustomerName")),
-                ProductId = reader.GetInt32(reader.GetOrdinal("ProductId")),
+                ProductId = reader.IsDBNull(reader.GetOrdinal("ProductId")) ? 0 : reader.GetInt32(reader.GetOrdinal("ProductId")),
                 ProductName = reader.IsDBNull(reader.GetOrdinal("ProductName")) ? null : reader.GetString(reader.GetOrdinal("ProductName")),
-                QuantityDispatched = reader.GetInt32(reader.GetOrdinal("QuantityDispatched")),
+                QuantityDispatched = reader.IsDBNull(reader.GetOrdinal("QuantityDispatched")) ? 0 : reader.GetInt32(reader.GetOrdinal("QuantityDispatched")),
                 DeliveryDate = reader.IsDBNull(reader.GetOrdinal("DeliveryDate")) ? null : reader.GetDateTime(reader.GetOrdinal("DeliveryDate")),
                 DeliveryAddress = reader.IsDBNull(reader.GetOrdinal("DeliveryAddress")) ? null : reader.GetString(reader.GetOrdinal("DeliveryAddress")),
                 TransportMode = reader.IsDBNull(reader.GetOrdinal("TransportMode")) ? null : reader.GetString(reader.GetOrdinal("TransportMode")),

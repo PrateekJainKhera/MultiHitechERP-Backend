@@ -1,9 +1,12 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MultiHitechERP.API.DTOs.Request;
+using Microsoft.AspNetCore.Http;
 using MultiHitechERP.API.DTOs.Response;
+using MultiHitechERP.API.Models.Dispatch;
 using MultiHitechERP.API.Services.Interfaces;
 
 namespace MultiHitechERP.API.Controllers.Dispatch
@@ -241,6 +244,56 @@ namespace MultiHitechERP.API.Controllers.Dispatch
         public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             var response = await _service.DeleteChallanAsync(id);
+            if (!response.Success)
+                return BadRequest(response);
+
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Get items ready to dispatch (completed but not yet fully dispatched)
+        /// </summary>
+        [HttpGet("ready")]
+        public async Task<ActionResult<ApiResponse<List<ReadyToDispatchItem>>>> GetReadyToDispatch()
+        {
+            var response = await _service.GetReadyToDispatchAsync();
+            if (!response.Success)
+                return BadRequest(response);
+
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Simple dispatch: create challan directly from an order item with optional invoice document
+        /// </summary>
+        [HttpPost("simple-dispatch")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<ApiResponse<int>>> SimpleDispatch(
+            [FromForm] int orderItemId,
+            [FromForm] int qtyToDispatch,
+            [FromForm] DateTime dispatchDate,
+            [FromForm] string? invoiceNo,
+            [FromForm] DateTime? invoiceDate,
+            [FromForm] string? remarks,
+            IFormFile? invoiceDocument)
+        {
+            string? invoiceDocPath = null;
+
+            if (invoiceDocument != null && invoiceDocument.Length > 0)
+            {
+                var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "dispatch");
+                Directory.CreateDirectory(uploadDir);
+                var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(invoiceDocument.FileName)}";
+                var filePath = Path.Combine(uploadDir, fileName);
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await invoiceDocument.CopyToAsync(stream);
+                invoiceDocPath = $"/uploads/dispatch/{fileName}";
+            }
+
+            var response = await _service.SimpleDispatchAsync(
+                orderItemId, qtyToDispatch, dispatchDate,
+                invoiceNo, invoiceDate, invoiceDocPath, remarks);
+
             if (!response.Success)
                 return BadRequest(response);
 

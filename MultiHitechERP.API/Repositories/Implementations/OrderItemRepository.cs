@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using MultiHitechERP.API.Models.Orders;
+using MultiHitechERP.API.Models.Dispatch;
 using MultiHitechERP.API.Repositories.Interfaces;
 
 namespace MultiHitechERP.API.Repositories.Implementations
@@ -29,7 +30,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             var command = new SqlCommand(@"
                 SELECT
                     Id, OrderId, ItemSequence, ProductId, ProductName,
-                    Quantity, QtyCompleted, QtyRejected, QtyInProgress, QtyScrap,
+                    Quantity, QtyCompleted, QtyDispatched, QtyRejected, QtyInProgress, QtyScrap,
                     DueDate, Priority, Status, PlanningStatus,
                     PrimaryDrawingId, DrawingSource, LinkedProductTemplateId,
                     CurrentProcess, CurrentMachine, CurrentOperator,
@@ -60,7 +61,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             var command = new SqlCommand(@"
                 SELECT
                     Id, OrderId, ItemSequence, ProductId, ProductName,
-                    Quantity, QtyCompleted, QtyRejected, QtyInProgress, QtyScrap,
+                    Quantity, QtyCompleted, QtyDispatched, QtyRejected, QtyInProgress, QtyScrap,
                     DueDate, Priority, Status, PlanningStatus,
                     PrimaryDrawingId, DrawingSource, LinkedProductTemplateId,
                     CurrentProcess, CurrentMachine, CurrentOperator,
@@ -92,7 +93,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             var command = new SqlCommand(@"
                 SELECT
                     Id, OrderId, ItemSequence, ProductId, ProductName,
-                    Quantity, QtyCompleted, QtyRejected, QtyInProgress, QtyScrap,
+                    Quantity, QtyCompleted, QtyDispatched, QtyRejected, QtyInProgress, QtyScrap,
                     DueDate, Priority, Status, PlanningStatus,
                     PrimaryDrawingId, DrawingSource, LinkedProductTemplateId,
                     CurrentProcess, CurrentMachine, CurrentOperator,
@@ -362,6 +363,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 QtyRejected = reader.GetInt32(reader.GetOrdinal("QtyRejected")),
                 QtyInProgress = reader.GetInt32(reader.GetOrdinal("QtyInProgress")),
                 QtyScrap = reader.GetInt32(reader.GetOrdinal("QtyScrap")),
+                QtyDispatched = reader.IsDBNull(reader.GetOrdinal("QtyDispatched")) ? 0 : reader.GetInt32(reader.GetOrdinal("QtyDispatched")),
                 DueDate = reader.GetDateTime(reader.GetOrdinal("DueDate")),
                 Priority = reader.GetString(reader.GetOrdinal("Priority")),
                 Status = reader.GetString(reader.GetOrdinal("Status")),
@@ -419,5 +421,72 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@UpdatedAt", (object?)item.UpdatedAt ?? DBNull.Value);
             command.Parameters.AddWithValue("@UpdatedBy", (object?)item.UpdatedBy ?? DBNull.Value);
         }
+
+        public async Task<bool> UpdateQtyDispatchedAsync(int itemId, int qtyToAdd)
+        {
+            const string query = @"UPDATE Orders_OrderItems SET QtyDispatched = QtyDispatched + @QtyToAdd, UpdatedAt = GETUTCDATE() WHERE Id = @Id";
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", itemId);
+            command.Parameters.AddWithValue("@QtyToAdd", qtyToAdd);
+            await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync() > 0;
+        }
+
+        public async Task<List<ReadyToDispatchItem>> GetReadyToDispatchAsync()
+        {
+            const string query = @"
+                SELECT
+                    oi.Id AS OrderItemId,
+                    oi.ItemSequence,
+                    oi.ProductId,
+                    oi.ProductName,
+                    p.PartCode,
+                    oi.Quantity,
+                    oi.QtyCompleted,
+                    oi.QtyDispatched,
+                    (oi.QtyCompleted - oi.QtyDispatched) AS QtyPendingDispatch,
+                    oi.DueDate,
+                    o.Id AS OrderId,
+                    o.OrderNo,
+                    o.CustomerId,
+                    c.CustomerName
+                FROM Orders_OrderItems oi
+                JOIN Orders o ON oi.OrderId = o.Id
+                LEFT JOIN Masters_Customers c ON o.CustomerId = c.Id
+                LEFT JOIN Masters_Products p ON oi.ProductId = p.Id
+                WHERE oi.QtyCompleted > oi.QtyDispatched
+                  AND oi.QtyCompleted > 0
+                ORDER BY oi.DueDate ASC";
+
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            var items = new List<ReadyToDispatchItem>();
+            while (await reader.ReadAsync())
+            {
+                items.Add(new ReadyToDispatchItem
+                {
+                    OrderItemId = reader.GetInt32(reader.GetOrdinal("OrderItemId")),
+                    ItemSequence = reader.GetString(reader.GetOrdinal("ItemSequence")),
+                    ProductId = reader.GetInt32(reader.GetOrdinal("ProductId")),
+                    ProductName = reader.IsDBNull(reader.GetOrdinal("ProductName")) ? null : reader.GetString(reader.GetOrdinal("ProductName")),
+                    PartCode = reader.IsDBNull(reader.GetOrdinal("PartCode")) ? null : reader.GetString(reader.GetOrdinal("PartCode")),
+                    Quantity = reader.GetInt32(reader.GetOrdinal("Quantity")),
+                    QtyCompleted = reader.GetInt32(reader.GetOrdinal("QtyCompleted")),
+                    QtyDispatched = reader.GetInt32(reader.GetOrdinal("QtyDispatched")),
+                    QtyPendingDispatch = reader.GetInt32(reader.GetOrdinal("QtyPendingDispatch")),
+                    DueDate = reader.GetDateTime(reader.GetOrdinal("DueDate")),
+                    OrderId = reader.GetInt32(reader.GetOrdinal("OrderId")),
+                    OrderNo = reader.GetString(reader.GetOrdinal("OrderNo")),
+                    CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                    CustomerName = reader.IsDBNull(reader.GetOrdinal("CustomerName")) ? null : reader.GetString(reader.GetOrdinal("CustomerName")),
+                });
+            }
+            return items;
+        }
+
     }
 }

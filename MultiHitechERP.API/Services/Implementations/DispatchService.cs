@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Dispatch;
+using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.Repositories.Interfaces;
 using MultiHitechERP.API.Services.Interfaces;
 
@@ -16,13 +17,16 @@ namespace MultiHitechERP.API.Services.Implementations
     {
         private readonly IDeliveryChallanRepository _challanRepository;
         private readonly IOrderRepository _orderRepository;
+        private readonly IOrderItemRepository _orderItemRepository;
 
         public DispatchService(
             IDeliveryChallanRepository challanRepository,
-            IOrderRepository orderRepository)
+            IOrderRepository orderRepository,
+            IOrderItemRepository orderItemRepository)
         {
             _challanRepository = challanRepository;
             _orderRepository = orderRepository;
+            _orderItemRepository = orderItemRepository;
         }
 
         public async Task<ApiResponse<DeliveryChallan>> GetByIdAsync(int id)
@@ -239,5 +243,55 @@ namespace MultiHitechERP.API.Services.Implementations
             var challans = await _challanRepository.GetDispatchedChallansAsync();
             return ApiResponse<IEnumerable<DeliveryChallan>>.SuccessResponse(challans);
         }
+
+        public async Task<ApiResponse<List<ReadyToDispatchItem>>> GetReadyToDispatchAsync()
+        {
+            var items = await _orderItemRepository.GetReadyToDispatchAsync();
+            return ApiResponse<List<ReadyToDispatchItem>>.SuccessResponse(items);
+        }
+
+        public async Task<ApiResponse<int>> SimpleDispatchAsync(
+            int orderItemId, int qtyToDispatch, DateTime dispatchDate,
+            string? invoiceNo, DateTime? invoiceDate, string? invoiceDocument, string? remarks)
+        {
+            var orderItem = await _orderItemRepository.GetByIdAsync(orderItemId);
+            if (orderItem == null)
+                return ApiResponse<int>.ErrorResponse("Order item not found");
+
+            var qtyPending = orderItem.QtyCompleted - orderItem.QtyDispatched;
+            if (qtyToDispatch <= 0)
+                return ApiResponse<int>.ErrorResponse("Quantity to dispatch must be greater than 0");
+            if (qtyToDispatch > qtyPending)
+                return ApiResponse<int>.ErrorResponse($"Cannot dispatch {qtyToDispatch}. Only {qtyPending} pending dispatch.");
+
+            var order = await _orderRepository.GetByIdAsync(orderItem.OrderId);
+            var challanNo = $"DC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
+
+            var challan = new DeliveryChallan
+            {
+                ChallanNo = challanNo,
+                ChallanDate = dispatchDate,
+                OrderId = orderItem.OrderId,
+                OrderNo = order?.OrderNo ?? string.Empty,
+                CustomerId = order?.CustomerId ?? 0,
+                CustomerName = order?.CustomerName,
+                ProductId = orderItem.ProductId,
+                ProductName = orderItem.ProductName,
+                QuantityDispatched = qtyToDispatch,
+                InvoiceNo = invoiceNo,
+                InvoiceDate = invoiceDate,
+                Status = "Dispatched",
+                DispatchedAt = DateTime.UtcNow,
+                Remarks = remarks,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "Admin",
+            };
+
+            var challanId = await _challanRepository.InsertAsync(challan);
+            await _orderItemRepository.UpdateQtyDispatchedAsync(orderItemId, qtyToDispatch);
+
+            return ApiResponse<int>.SuccessResponse(challanId, $"Dispatched {qtyToDispatch} units. Challan: {challanNo}");
+        }
+
     }
 }

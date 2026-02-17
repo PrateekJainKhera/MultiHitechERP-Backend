@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MultiHitechERP.API.Models.Orders;
+using MultiHitechERP.API.Models.Dispatch;
 
 namespace MultiHitechERP.API.Repositories.Interfaces
 {
@@ -63,5 +64,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         /// Update item status
         /// </summary>
         Task<bool> UpdateStatusAsync(int itemId, string status);
+
+        Task<bool> UpdateQtyDispatchedAsync(int itemId, int qtyToAdd);
+        Task<List<ReadyToDispatchItem>> GetReadyToDispatchAsync();
     }
 }
