@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Masters;
 using MultiHitechERP.API.Repositories.Interfaces;
 
@@ -121,10 +122,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 INSERT INTO Masters_Components (
                     PartNumber, ComponentName, Category, Manufacturer, SupplierName,
-                    Specifications, LeadTimeDays, Unit, Notes, IsActive, CreatedAt, CreatedBy, UpdatedAt
+                    Specifications, LeadTimeDays, Unit, Notes, MinimumStock, IsActive, CreatedAt, CreatedBy, UpdatedAt
                 ) VALUES (
                     @PartNumber, @ComponentName, @Category, @Manufacturer, @SupplierName,
-                    @Specifications, @LeadTimeDays, @Unit, @Notes, @IsActive, @CreatedAt, @CreatedBy, @UpdatedAt
+                    @Specifications, @LeadTimeDays, @Unit, @Notes, @MinimumStock, @IsActive, @CreatedAt, @CreatedBy, @UpdatedAt
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -140,6 +141,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LeadTimeDays", component.LeadTimeDays);
             command.Parameters.AddWithValue("@Unit", component.Unit);
             command.Parameters.AddWithValue("@Notes", (object?)component.Notes ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MinimumStock", component.MinimumStock);
             command.Parameters.AddWithValue("@IsActive", component.IsActive);
             command.Parameters.AddWithValue("@CreatedAt", component.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", (object?)component.CreatedBy ?? DBNull.Value);
@@ -163,6 +165,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     LeadTimeDays = @LeadTimeDays,
                     Unit = @Unit,
                     Notes = @Notes,
+                    MinimumStock = @MinimumStock,
                     IsActive = @IsActive,
                     UpdatedAt = @UpdatedAt,
                     UpdatedBy = @UpdatedBy
@@ -181,6 +184,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LeadTimeDays", component.LeadTimeDays);
             command.Parameters.AddWithValue("@Unit", component.Unit);
             command.Parameters.AddWithValue("@Notes", (object?)component.Notes ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MinimumStock", component.MinimumStock);
             command.Parameters.AddWithValue("@IsActive", component.IsActive);
             command.Parameters.AddWithValue("@UpdatedAt", component.UpdatedAt);
             command.Parameters.AddWithValue("@UpdatedBy", (object?)component.UpdatedBy ?? DBNull.Value);
@@ -245,6 +249,46 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return nextSequence;
         }
 
+        public async Task<IEnumerable<ComponentLowStockResponse>> GetLowStockAsync()
+        {
+            const string query = @"
+                SELECT
+                    c.Id, c.PartNumber, c.ComponentName, c.Category, c.Unit, c.SupplierName,
+                    c.MinimumStock,
+                    ISNULL(s.AvailableStock, 0) AS AvailableStock
+                FROM Masters_Components c
+                LEFT JOIN Inventory_Stock s
+                    ON s.ItemType = 'Component' AND s.ItemId = c.Id
+                WHERE c.IsActive = 1
+                  AND c.MinimumStock > 0
+                  AND ISNULL(s.AvailableStock, 0) < c.MinimumStock
+                ORDER BY (c.MinimumStock - ISNULL(s.AvailableStock, 0)) DESC";
+
+            var list = new List<ComponentLowStockResponse>();
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var available = reader.GetDecimal(reader.GetOrdinal("AvailableStock"));
+                var minimum   = reader.GetDecimal(reader.GetOrdinal("MinimumStock"));
+                list.Add(new ComponentLowStockResponse
+                {
+                    Id            = reader.GetInt32(reader.GetOrdinal("Id")),
+                    PartNumber    = reader.GetString(reader.GetOrdinal("PartNumber")),
+                    ComponentName = reader.GetString(reader.GetOrdinal("ComponentName")),
+                    Category      = reader.GetString(reader.GetOrdinal("Category")),
+                    Unit          = reader.GetString(reader.GetOrdinal("Unit")),
+                    SupplierName  = reader.IsDBNull(reader.GetOrdinal("SupplierName")) ? null : reader.GetString(reader.GetOrdinal("SupplierName")),
+                    AvailableStock = available,
+                    MinimumStock   = minimum,
+                    Shortage       = minimum - available,
+                });
+            }
+            return list;
+        }
+
         private Component MapToComponent(SqlDataReader reader)
         {
             return new Component
@@ -259,6 +303,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 LeadTimeDays = reader.GetInt32(reader.GetOrdinal("LeadTimeDays")),
                 Unit = reader.GetString(reader.GetOrdinal("Unit")),
                 Notes = reader.IsDBNull(reader.GetOrdinal("Notes")) ? null : reader.GetString(reader.GetOrdinal("Notes")),
+                MinimumStock = reader.IsDBNull(reader.GetOrdinal("MinimumStock")) ? 0 : reader.GetDecimal(reader.GetOrdinal("MinimumStock")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),

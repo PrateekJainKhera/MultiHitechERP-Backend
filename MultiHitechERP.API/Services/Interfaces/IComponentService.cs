@@ -14,5 +14,6 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<int>> CreateComponentAsync(CreateComponentRequest request);
         Task<ApiResponse<bool>> UpdateComponentAsync(int id, UpdateComponentRequest request);
         Task<ApiResponse<bool>> DeleteComponentAsync(int id);
+        Task<ApiResponse<IEnumerable<ComponentLowStockResponse>>> GetLowStockComponentsAsync();
     }
 }

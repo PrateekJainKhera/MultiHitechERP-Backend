@@ -124,6 +124,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     LeadTimeDays = request.LeadTimeDays,
                     Unit = request.Unit,
                     Notes = request.Notes,
+                    MinimumStock = request.MinimumStock,
                     IsActive = request.IsActive,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = request.CreatedBy?.Trim() ?? "System",
@@ -169,6 +170,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     LeadTimeDays = request.LeadTimeDays,
                     Unit = request.Unit,
                     Notes = request.Notes,
+                    MinimumStock = request.MinimumStock,
                     CreatedAt = existingComponent.CreatedAt,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -205,6 +207,19 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<IEnumerable<ComponentLowStockResponse>>> GetLowStockComponentsAsync()
+        {
+            try
+            {
+                var items = await _componentRepository.GetLowStockAsync();
+                return ApiResponse<IEnumerable<ComponentLowStockResponse>>.SuccessResponse(items);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<ComponentLowStockResponse>>.ErrorResponse($"Error: {ex.Message}");
+            }
+        }
+
         private ComponentResponse MapToResponse(Component component)
         {
             return new ComponentResponse
@@ -219,6 +234,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 LeadTimeDays = component.LeadTimeDays,
                 Unit = component.Unit,
                 Notes = component.Notes,
+                MinimumStock = component.MinimumStock,
                 IsActive = component.IsActive,
                 CreatedAt = component.CreatedAt,
                 CreatedBy = component.CreatedBy,

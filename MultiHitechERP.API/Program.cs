@@ -60,8 +60,12 @@ builder.Services.AddScoped<IProcessTemplateRepository, ProcessTemplateRepository
 builder.Services.AddScoped<IProductTemplateRepository, ProductTemplateRepository>();
 builder.Services.AddScoped<IChildPartTemplateRepository, ChildPartTemplateRepository>();
 builder.Services.AddScoped<IGRNRepository, GRNRepository>();
+builder.Services.AddScoped<IComponentIssueRepository, ComponentIssueRepository>();
 builder.Services.AddScoped<IMaterialUsageHistoryRepository, MaterialUsageHistoryRepository>();
 builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
+builder.Services.AddScoped<IVendorRepository, VendorRepository>();
+builder.Services.AddScoped<IPurchaseRequestRepository, PurchaseRequestRepository>();
+builder.Services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
 
 // Register Services
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -69,6 +73,7 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IMaterialService, MaterialService>();
 builder.Services.AddScoped<IComponentService, ComponentService>();
+builder.Services.AddScoped<IComponentIssueService, ComponentIssueService>();
 builder.Services.AddScoped<IMaterialCategoryService, MaterialCategoryService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IMachineService, MachineService>();
@@ -94,6 +99,9 @@ builder.Services.AddScoped<IMaterialPieceService, MaterialPieceService>();
 builder.Services.AddScoped<IMaterialUsageService, MaterialUsageService>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddScoped<IVendorService, VendorService>();
+builder.Services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
+builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 
 // CORS for frontend
 builder.Services.AddCors(options =>

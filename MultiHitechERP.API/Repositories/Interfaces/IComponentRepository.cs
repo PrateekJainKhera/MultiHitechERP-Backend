@@ -1,3 +1,4 @@
+using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Masters;
 
 namespace MultiHitechERP.API.Repositories.Interfaces
@@ -5,6 +6,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
     public interface IComponentRepository
     {
         Task<IEnumerable<Component>> GetAllAsync();
+        Task<IEnumerable<ComponentLowStockResponse>> GetLowStockAsync();
         Task<Component?> GetByIdAsync(int id);
         Task<Component?> GetByPartNumberAsync(string partNumber);
         Task<IEnumerable<Component>> GetByCategoryAsync(string category);

@@ -33,5 +33,8 @@ namespace MultiHitechERP.API.DTOs.Request
         public string Unit { get; set; } = string.Empty;
 
         public string? Notes { get; set; }
+
+        [Range(0, double.MaxValue, ErrorMessage = "Minimum stock must be 0 or greater")]
+        public decimal MinimumStock { get; set; } = 0;
     }
 }

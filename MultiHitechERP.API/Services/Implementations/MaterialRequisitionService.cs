@@ -436,21 +436,14 @@ namespace MultiHitechERP.API.Services.Implementations
                 await _inventoryRepository.DeductRawMaterialStockAsync(materialId, cutLength, issuedBy);
             }
 
-            // --- Issue purchased components (deduct from Inventory_Stock) ---
-            var issuedComponentCount = 0;
-            foreach (var item in componentItems)
-            {
-                var deducted = await _inventoryRepository.DeductComponentStockAsync(
-                    item.ComponentId!.Value,
-                    item.QuantityRequired,
-                    issuedBy);
+            // --- Components are NO longer auto-deducted here ---
+            // Components (magnets, bearings, etc.) are now issued manually via the
+            // Component Issue window (Stores → Component Issue). Stock is deducted
+            // only when a physical issue is recorded there.
+            var issuedComponentCount = componentItems.Count; // count as "issued" for the record
 
-                if (deducted)
-                    issuedComponentCount++;
-            }
-
-            if (!issuedPieces.Any() && issuedComponentCount == 0)
-                return ApiResponse<int>.ErrorResponse("Failed to issue any items — pieces may no longer be available or component stock is insufficient");
+            if (!issuedPieces.Any() && !componentItems.Any())
+                return ApiResponse<int>.ErrorResponse("Failed to issue any items — pieces may no longer be available");
 
             // Calculate totals (raw material pieces)
             int totalPieces = issuedPieces.Count + issuedComponentCount;

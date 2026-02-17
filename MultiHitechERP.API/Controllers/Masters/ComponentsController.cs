@@ -15,6 +15,15 @@ namespace MultiHitechERP.API.Controllers.Masters
             _componentService = componentService;
         }
 
+        [HttpGet("low-stock")]
+        public async Task<IActionResult> GetLowStockComponents()
+        {
+            var response = await _componentService.GetLowStockComponentsAsync();
+            if (!response.Success)
+                return BadRequest(response);
+            return Ok(response);
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAllComponents()
         {

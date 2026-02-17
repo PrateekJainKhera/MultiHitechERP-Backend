@@ -12,6 +12,7 @@ namespace MultiHitechERP.API.Models.Masters
         public int LeadTimeDays { get; set; }
         public string Unit { get; set; } = string.Empty;
         public string? Notes { get; set; }
+        public decimal MinimumStock { get; set; } = 0;
 
         // Status
         public bool IsActive { get; set; } = true;

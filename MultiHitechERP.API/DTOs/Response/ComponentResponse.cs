@@ -12,6 +12,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public int LeadTimeDays { get; set; }
         public string Unit { get; set; } = string.Empty;
         public string? Notes { get; set; }
+        public decimal MinimumStock { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
