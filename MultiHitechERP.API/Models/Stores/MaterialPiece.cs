@@ -31,7 +31,9 @@ namespace MultiHitechERP.API.Models.Stores
         public int? IssuedToJobCardId { get; set; }
 
         // Location
-        public string? StorageLocation { get; set; }
+        public int? WarehouseId { get; set; }                  // FK to Stores_MasterWarehouses
+        public string? WarehouseName { get; set; }             // Denormalized: "{Name} - {Rack} {RackNo}"
+        public string? StorageLocation { get; set; }           // Legacy free-text (kept for backward compat)
         public string? BinNumber { get; set; }
         public string? RackNumber { get; set; }
 

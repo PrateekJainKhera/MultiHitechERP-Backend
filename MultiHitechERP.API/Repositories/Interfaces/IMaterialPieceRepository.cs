@@ -34,6 +34,10 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         // Production completion: mark all pieces issued to a job card as Consumed
         Task<int> ConsumePiecesByJobCardAsync(int jobCardId);
 
+        // Warehouse queries
+        Task<IEnumerable<MaterialPiece>> GetByWarehouseIdAsync(int warehouseId);
+        Task<int> RelocatePiecesAsync(IEnumerable<int> pieceIds, int newWarehouseId, string warehouseName, string relocatedBy);
+
         // Partial cutting: cut specified length from a piece
         Task<bool> CutPieceAsync(
             int pieceId,

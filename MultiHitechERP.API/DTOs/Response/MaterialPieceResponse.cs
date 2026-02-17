@@ -33,6 +33,8 @@ namespace MultiHitechERP.API.DTOs.Response
         public int? IssuedToJobCardId { get; set; }
 
         // Location
+        public int? WarehouseId { get; set; }
+        public string? WarehouseName { get; set; }
         public string? StorageLocation { get; set; }
         public string? BinNumber { get; set; }
         public string? RackNumber { get; set; }

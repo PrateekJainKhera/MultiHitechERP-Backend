@@ -27,7 +27,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     PieceNo, MaterialId, MaterialCode, MaterialName, Grade, Diameter,
                     OriginalLengthMM, CurrentLengthMM, OriginalWeightKG, CurrentWeightKG,
                     Status, AllocatedToRequisitionId, IssuedToJobCardId,
-                    StorageLocation, BinNumber, RackNumber,
+                    WarehouseId, WarehouseName, StorageLocation, BinNumber, RackNumber,
                     GRNId, GRNNo, ReceivedDate, SupplierBatchNo, SupplierId, UnitCost,
                     IsWastage, WastageReason, ScrapValue,
                     CreatedAt, CreatedBy
@@ -36,7 +36,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     @PieceNo, @MaterialId, @MaterialCode, @MaterialName, @Grade, @Diameter,
                     @OriginalLengthMM, @CurrentLengthMM, @OriginalWeightKG, @CurrentWeightKG,
                     @Status, @AllocatedToRequisitionId, @IssuedToJobCardId,
-                    @StorageLocation, @BinNumber, @RackNumber,
+                    @WarehouseId, @WarehouseName, @StorageLocation, @BinNumber, @RackNumber,
                     @GRNId, @GRNNo, @ReceivedDate, @SupplierBatchNo, @SupplierId, @UnitCost,
                     @IsWastage, @WastageReason, @ScrapValue,
                     GETUTCDATE(), @CreatedBy
@@ -107,6 +107,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     Status = @Status,
                     AllocatedToRequisitionId = @AllocatedToRequisitionId,
                     IssuedToJobCardId = @IssuedToJobCardId,
+                    WarehouseId = @WarehouseId,
+                    WarehouseName = @WarehouseName,
                     StorageLocation = @StorageLocation,
                     BinNumber = @BinNumber,
                     RackNumber = @RackNumber,
@@ -243,6 +245,35 @@ namespace MultiHitechERP.API.Repositories.Implementations
                   AND Status = 'Issued'";
 
             return await GetConnection().ExecuteAsync(sql, new { JobCardId = jobCardId });
+        }
+
+        public async Task<IEnumerable<MaterialPiece>> GetByWarehouseIdAsync(int warehouseId)
+        {
+            var sql = "SELECT * FROM Stores_MaterialPieces WHERE WarehouseId = @WarehouseId ORDER BY Status, ReceivedDate DESC";
+            return await GetConnection().QueryAsync<MaterialPiece>(sql, new { WarehouseId = warehouseId });
+        }
+
+        /// <summary>
+        /// Relocate one or more pieces to a new warehouse.
+        /// Updates WarehouseId and WarehouseName on each piece.
+        /// </summary>
+        public async Task<int> RelocatePiecesAsync(IEnumerable<int> pieceIds, int newWarehouseId, string warehouseName, string relocatedBy)
+        {
+            var sql = @"
+                UPDATE Stores_MaterialPieces
+                SET WarehouseId   = @WarehouseId,
+                    WarehouseName = @WarehouseName,
+                    UpdatedAt     = GETUTCDATE(),
+                    UpdatedBy     = @UpdatedBy
+                WHERE Id IN @Ids";
+
+            return await GetConnection().ExecuteAsync(sql, new
+            {
+                WarehouseId   = newWarehouseId,
+                WarehouseName = warehouseName,
+                UpdatedBy     = relocatedBy,
+                Ids           = pieceIds
+            });
         }
 
         public async Task<bool> CutPieceAsync(

@@ -40,6 +40,7 @@ builder.Services.AddScoped<IProcessCategoryRepository, ProcessCategoryRepository
 builder.Services.AddScoped<IChildPartTypeRepository, ChildPartTypeRepository>();
 builder.Services.AddScoped<IRollerTypeRepository, RollerTypeRepository>();
 builder.Services.AddScoped<IProductDefaultMaterialRepository, ProductDefaultMaterialRepository>();
+builder.Services.AddScoped<IWarehouseRepository, WarehouseRepository>();
 builder.Services.AddScoped<IProcessMachineCapabilityRepository, ProcessMachineCapabilityRepository>();
 builder.Services.AddScoped<IOperatorRepository, OperatorRepository>();
 builder.Services.AddScoped<IDrawingRepository, DrawingRepository>();
@@ -92,6 +93,7 @@ builder.Services.AddScoped<IGRNService, GRNService>();
 builder.Services.AddScoped<IMaterialPieceService, MaterialPieceService>();
 builder.Services.AddScoped<IMaterialUsageService, MaterialUsageService>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 
 // CORS for frontend
 builder.Services.AddCors(options =>

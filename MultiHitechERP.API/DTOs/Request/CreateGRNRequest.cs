@@ -50,6 +50,9 @@ namespace MultiHitechERP.API.DTOs.Request
         public int NumberOfPieces { get; set; }
         public decimal? LengthPerPieceMM { get; set; }
 
+        // Storage
+        public int? WarehouseId { get; set; }
+
         // Pricing
         public decimal? UnitPrice { get; set; }
         public string? Remarks { get; set; }
