@@ -66,6 +66,7 @@ builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
 builder.Services.AddScoped<IVendorRepository, VendorRepository>();
 builder.Services.AddScoped<IPurchaseRequestRepository, PurchaseRequestRepository>();
 builder.Services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+builder.Services.AddScoped<IOrderCustomerDrawingRepository, OrderCustomerDrawingRepository>();
 
 // Register Services
 builder.Services.AddScoped<IOrderService, OrderService>();

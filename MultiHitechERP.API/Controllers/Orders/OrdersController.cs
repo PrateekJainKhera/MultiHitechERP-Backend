@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.DTOs.Response;
+using MultiHitechERP.API.Models.Orders;
+using MultiHitechERP.API.Repositories.Interfaces;
 using MultiHitechERP.API.Services.Interfaces;
 
 namespace MultiHitechERP.API.Controllers.Orders
@@ -18,15 +20,18 @@ namespace MultiHitechERP.API.Controllers.Orders
     {
         private readonly IOrderService _orderService;
         private readonly IDrawingService _drawingService;
+        private readonly IOrderCustomerDrawingRepository _customerDrawingRepo;
         private readonly ILogger<OrdersController> _logger;
 
         public OrdersController(
             IOrderService orderService,
             IDrawingService drawingService,
+            IOrderCustomerDrawingRepository customerDrawingRepo,
             ILogger<OrdersController> logger)
         {
             _orderService = orderService;
             _drawingService = drawingService;
+            _customerDrawingRepo = customerDrawingRepo;
             _logger = logger;
         }
 
@@ -425,6 +430,94 @@ namespace MultiHitechERP.API.Controllers.Orders
 
             return Ok(response);
         }
+
+        // ─── Customer Drawing endpoints ──────────────────────────────────────
+
+        /// <summary>Get all customer drawings for an order</summary>
+        [HttpGet("{orderId:int}/customer-drawings")]
+        public async Task<IActionResult> GetCustomerDrawings(int orderId)
+        {
+            var drawings = await _customerDrawingRepo.GetByOrderIdAsync(orderId);
+            var response = drawings.Select(d => MapDrawing(d, Request)).ToList();
+            return Ok(ApiResponse<List<OrderCustomerDrawingResponse>>.SuccessResponse(response));
+        }
+
+        /// <summary>Upload a customer drawing file for an order</summary>
+        [HttpPost("{orderId:int}/customer-drawings")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadCustomerDrawing(
+            int orderId,
+            IFormFile file,
+            [FromForm] string drawingType = "other",
+            [FromForm] string? notes = null,
+            [FromForm] string? uploadedBy = null)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(ApiResponse<object>.ErrorResponse("No file provided"));
+
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "order-drawings");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var ext = Path.GetExtension(file.FileName);
+            var storedName = $"{Guid.NewGuid()}{ext}";
+            var fullPath = Path.Combine(uploadsFolder, storedName);
+
+            using (var stream = new FileStream(fullPath, FileMode.Create))
+                await file.CopyToAsync(stream);
+
+            var drawing = new OrderCustomerDrawing
+            {
+                OrderId = orderId,
+                OriginalFileName = file.FileName,
+                StoredFileName = storedName,
+                FilePath = $"/uploads/order-drawings/{storedName}",
+                FileSize = file.Length,
+                MimeType = file.ContentType,
+                DrawingType = drawingType,
+                Notes = notes,
+                UploadedAt = DateTime.UtcNow,
+                UploadedBy = uploadedBy ?? "Admin",
+            };
+
+            var id = await _customerDrawingRepo.InsertAsync(drawing);
+            drawing.Id = id;
+            return Ok(ApiResponse<OrderCustomerDrawingResponse>.SuccessResponse(
+                MapDrawing(drawing, Request), "Drawing uploaded"));
+        }
+
+        /// <summary>Delete a customer drawing</summary>
+        [HttpDelete("{orderId:int}/customer-drawings/{drawingId:int}")]
+        public async Task<IActionResult> DeleteCustomerDrawing(int orderId, int drawingId)
+        {
+            var drawing = await _customerDrawingRepo.GetByIdAsync(drawingId);
+            if (drawing == null || drawing.OrderId != orderId)
+                return NotFound(ApiResponse<object>.ErrorResponse("Drawing not found"));
+
+            var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", drawing.FilePath.TrimStart('/'));
+            if (System.IO.File.Exists(fullPath))
+                System.IO.File.Delete(fullPath);
+
+            await _customerDrawingRepo.DeleteAsync(drawingId);
+            return Ok(ApiResponse<bool>.SuccessResponse(true, "Drawing deleted"));
+        }
+
+        private static OrderCustomerDrawingResponse MapDrawing(OrderCustomerDrawing d, HttpRequest request)
+        {
+            var baseUrl = $"{request.Scheme}://{request.Host}";
+            return new OrderCustomerDrawingResponse
+            {
+                Id = d.Id,
+                OrderId = d.OrderId,
+                OriginalFileName = d.OriginalFileName,
+                DrawingType = d.DrawingType,
+                Notes = d.Notes,
+                FileSize = d.FileSize,
+                MimeType = d.MimeType,
+                DownloadUrl = $"{baseUrl}{d.FilePath}",
+                UploadedAt = d.UploadedAt,
+                UploadedBy = d.UploadedBy,
+            };
+        }
     }
 
     // Helper DTOs for specific actions
@@ -444,4 +537,5 @@ namespace MultiHitechERP.API.Controllers.Orders
         public string ReviewedBy { get; set; } = string.Empty;
         public string Reason { get; set; } = string.Empty;
     }
+
 }

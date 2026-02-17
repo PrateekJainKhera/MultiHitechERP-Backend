@@ -45,23 +45,10 @@ namespace MultiHitechERP.API.DTOs.Request
         public string? Priority { get; set; }
 
         // ===== ORDER-LEVEL FIELDS =====
-        // Order Source & Agent
-        public string OrderSource { get; set; } = "Direct";
-        public int? AgentCustomerId { get; set; }
-        public decimal? AgentCommission { get; set; }
-
-        // Scheduling
-        public string SchedulingStrategy { get; set; } = "Due Date";
-
-        // Customer Requirements
-        public string? CustomerMachine { get; set; }
-
         // Legacy: For backward compatibility with single-product orders
         public int? PrimaryDrawingId { get; set; }
-        public string? DrawingSource { get; set; }
         public string? DrawingNotes { get; set; }
         public int? LinkedProductTemplateId { get; set; }
-        public string? MaterialGradeRemark { get; set; }
 
         // Financial
         public decimal? OrderValue { get; set; }

@@ -147,34 +147,6 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<int>.ErrorResponse("Customer is inactive");
                 }
 
-                // Business Rule 2: Validate Order Source
-                var validOrderSources = new[] { "Direct", "Agent", "Dealer", "Distributor" };
-                if (!validOrderSources.Contains(request.OrderSource))
-                {
-                    return ApiResponse<int>.ErrorResponse($"Invalid order source. Must be one of: {string.Join(", ", validOrderSources)}");
-                }
-
-                // Business Rule 3: Validate Agent Customer if provided
-                if (request.AgentCustomerId.HasValue)
-                {
-                    var agentCustomer = await _customerRepository.GetByIdAsync(request.AgentCustomerId.Value);
-                    if (agentCustomer == null)
-                    {
-                        return ApiResponse<int>.ErrorResponse("Agent customer not found");
-                    }
-                    if (agentCustomer.CustomerType != "Agent")
-                    {
-                        return ApiResponse<int>.ErrorResponse("Selected customer is not an agent");
-                    }
-                }
-
-                // Business Rule 4: Validate Scheduling Strategy
-                var validStrategies = new[] { "Due Date", "Priority Flag", "Customer Importance", "Resource Availability" };
-                if (!validStrategies.Contains(request.SchedulingStrategy))
-                {
-                    return ApiResponse<int>.ErrorResponse($"Invalid scheduling strategy. Must be one of: {string.Join(", ", validStrategies)}");
-                }
-
                 // Generate Order Number
                 var orderNo = await GenerateOrderNoInternalAsync();
 
@@ -242,11 +214,8 @@ namespace MultiHitechERP.API.Services.Implementations
                         Status = "Pending",
                         PlanningStatus = "Not Planned",
                         DrawingReviewStatus = orderDrawingReviewStatus,
-                        OrderSource = request.OrderSource,
-                        AgentCustomerId = request.AgentCustomerId,
-                        AgentCommission = request.AgentCommission,
-                        SchedulingStrategy = request.SchedulingStrategy,
-                        CustomerMachine = request.CustomerMachine,
+                        OrderSource = "Direct",
+                        SchedulingStrategy = "Due Date",
                         OrderValue = request.OrderValue,
                         AdvancePayment = request.AdvancePayment,
                         BalancePayment = request.OrderValue.HasValue ? request.OrderValue - (request.AdvancePayment ?? 0) : null,
@@ -346,16 +315,11 @@ namespace MultiHitechERP.API.Services.Implementations
                         Priority = request.Priority ?? "Medium",
                         PlanningStatus = "Not Planned",
                         DrawingReviewStatus = orderDrawingReviewStatus,
-                        OrderSource = request.OrderSource,
-                        AgentCustomerId = request.AgentCustomerId,
-                        AgentCommission = request.AgentCommission,
-                        SchedulingStrategy = request.SchedulingStrategy,
+                        OrderSource = "Direct",
+                        SchedulingStrategy = "Due Date",
                         PrimaryDrawingId = request.PrimaryDrawingId,
-                        DrawingSource = request.DrawingSource,
                         DrawingReviewNotes = request.DrawingNotes,
                         LinkedProductTemplateId = request.LinkedProductTemplateId,
-                        CustomerMachine = request.CustomerMachine,
-                        MaterialGradeRemark = request.MaterialGradeRemark,
                         OrderValue = request.OrderValue,
                         AdvancePayment = request.AdvancePayment,
                         BalancePayment = request.OrderValue.HasValue ? request.OrderValue - (request.AdvancePayment ?? 0) : null,
@@ -382,9 +346,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         Status = "Pending",
                         PlanningStatus = "Not Planned",
                         PrimaryDrawingId = request.PrimaryDrawingId,
-                        DrawingSource = request.DrawingSource,
                         LinkedProductTemplateId = request.LinkedProductTemplateId,
-                        MaterialGradeRemark = request.MaterialGradeRemark,
                         CreatedAt = DateTime.UtcNow,
                         CreatedBy = request.CreatedBy ?? "System"
                     };
