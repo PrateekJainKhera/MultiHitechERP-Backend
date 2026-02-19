@@ -529,6 +529,44 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
+        public async Task<bool> UpdateItemPiecesAndQuantitiesAsync(int itemId, string? selectedPieceIds, string? selectedPieceQuantities)
+        {
+            const string query = @"
+                UPDATE Stores_MaterialRequisitionItems
+                SET SelectedPieceIds = @SelectedPieceIds,
+                    SelectedPieceQuantities = @SelectedPieceQuantities
+                WHERE Id = @Id";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", itemId);
+            command.Parameters.AddWithValue("@SelectedPieceIds", (object?)selectedPieceIds ?? DBNull.Value);
+            command.Parameters.AddWithValue("@SelectedPieceQuantities", (object?)selectedPieceQuantities ?? DBNull.Value);
+
+            await connection.OpenAsync();
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+            return rowsAffected > 0;
+        }
+
+        public async Task<IEnumerable<MaterialRequisitionItem>> GetItemsByRequisitionIdsAsync(IEnumerable<int> requisitionIds)
+        {
+            var idList = string.Join(",", requisitionIds);
+            var query = $@"
+                SELECT * FROM Stores_MaterialRequisitionItems
+                WHERE RequisitionId IN ({idList})
+                ORDER BY RequisitionId, [LineNo]";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            await connection.OpenAsync();
+            using var command = new SqlCommand(query, connection);
+            using var reader = await command.ExecuteReaderAsync();
+
+            var items = new List<MaterialRequisitionItem>();
+            while (await reader.ReadAsync())
+                items.Add(MapToRequisitionItem(reader));
+            return items;
+        }
+
         private static MaterialRequisitionItem MapToRequisitionItem(SqlDataReader reader)
         {
             return new MaterialRequisitionItem

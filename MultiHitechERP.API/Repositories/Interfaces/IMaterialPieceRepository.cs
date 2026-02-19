@@ -26,6 +26,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
 
         // Requisition/Issue methods (for MaterialRequisitionService compatibility)
         Task<IEnumerable<MaterialPiece>> GetAvailablePiecesByFIFOAsync(int materialId, decimal requiredQuantityMM);
+        Task<IEnumerable<MaterialPiece>> GetAvailablePiecesByMaterialAsync(int materialId, string? grade, decimal? diameterMM);
         Task<IEnumerable<MaterialPiece>> GetAllocatedPiecesAsync(int requisitionId);
         Task<bool> AllocatePieceAsync(int pieceId, int requisitionId);
         Task<bool> ReturnPieceAsync(int pieceId);

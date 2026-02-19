@@ -189,6 +189,24 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await GetConnection().QueryAsync<MaterialPiece>(sql, new { MaterialId = materialId });
         }
 
+        public async Task<IEnumerable<MaterialPiece>> GetAvailablePiecesByMaterialAsync(int materialId, string? grade, decimal? diameterMM)
+        {
+            var sql = @"
+                SELECT * FROM Stores_MaterialPieces
+                WHERE MaterialId = @MaterialId
+                  AND Status = 'Available'
+                  AND (@Grade IS NULL OR Grade = @Grade)
+                  AND (@DiameterMM IS NULL OR Diameter = @DiameterMM)
+                ORDER BY CurrentLengthMM";
+
+            return await GetConnection().QueryAsync<MaterialPiece>(sql, new
+            {
+                MaterialId = materialId,
+                Grade = grade,
+                DiameterMM = diameterMM
+            });
+        }
+
         public async Task<IEnumerable<MaterialPiece>> GetAllocatedPiecesAsync(int requisitionId)
         {
             var sql = "SELECT * FROM Stores_MaterialPieces WHERE AllocatedToRequisitionId = @RequisitionId";

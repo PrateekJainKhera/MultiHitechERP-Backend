@@ -105,6 +105,8 @@ builder.Services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
 builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 builder.Services.AddScoped<IEstimationRepository, EstimationRepository>();
 builder.Services.AddScoped<IEstimationService, EstimationService>();
+builder.Services.AddScoped<IStoresIssueWindowService, StoresIssueWindowService>();
+builder.Services.AddScoped<IIssueWindowDraftRepository, IssueWindowDraftRepository>();
 
 // CORS for frontend
 builder.Services.AddCors(options =>
