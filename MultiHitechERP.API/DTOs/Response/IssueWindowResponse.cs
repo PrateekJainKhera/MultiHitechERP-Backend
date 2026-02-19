@@ -69,6 +69,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public int TotalBars { get; set; }
         public int TotalCuts { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? FinalizedAt { get; set; }
         public DateTime? IssuedAt { get; set; }
     }
 
@@ -83,6 +84,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? ReceivedBy { get; set; }
         public string? Notes { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? FinalizedAt { get; set; }
         public DateTime? IssuedAt { get; set; }
         public List<DraftBarAssignmentResponse> BarAssignments { get; set; } = new();
     }

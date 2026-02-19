@@ -155,11 +155,18 @@ namespace MultiHitechERP.API.Services.Implementations
             return draft!;
         }
 
-        // ── List drafts ───────────────────────────────────────────────────────────
+        // ── List drafts (Cutting Planning page — Draft status only) ──────────────
 
         public async Task<IEnumerable<IssueWindowDraftSummaryResponse>> GetDraftsAsync()
         {
             return await _draftRepo.GetDraftsAsync();
+        }
+
+        // ── List finalized drafts (Issue List page) ───────────────────────────────
+
+        public async Task<IEnumerable<IssueWindowDraftSummaryResponse>> GetFinalizedDraftsAsync()
+        {
+            return await _draftRepo.GetFinalizedDraftsAsync();
         }
 
         // ── Get draft detail ──────────────────────────────────────────────────────
@@ -169,7 +176,14 @@ namespace MultiHitechERP.API.Services.Implementations
             return await _draftRepo.GetDraftByIdAsync(id);
         }
 
-        // ── Issue a draft ─────────────────────────────────────────────────────────
+        // ── Finalize a draft (lock it, move to Issue List) ────────────────────────
+
+        public async Task<bool> FinalizeDraftAsync(int id)
+        {
+            return await _draftRepo.FinalizeDraftAsync(id);
+        }
+
+        // ── Issue a finalized draft ───────────────────────────────────────────────
 
         public async Task<IEnumerable<IssueWindowIssueResultResponse>> IssueDraftAsync(int draftId, IssueDraftRequest request)
         {
@@ -179,6 +193,9 @@ namespace MultiHitechERP.API.Services.Implementations
 
             if (draft.Status == "Issued")
                 throw new Exception("Draft has already been issued");
+
+            if (draft.Status != "Finalized")
+                throw new Exception("Draft must be Finalized before issuing. Please finalize it first.");
 
             // Build a map: requisitionItemId → (pieceIds list, cutLengths list) from all cuts in draft
             var itemPieceMap = new Dictionary<int, (List<int> PieceIds, List<decimal> CutLengths)>();
@@ -405,40 +422,6 @@ namespace MultiHitechERP.API.Services.Implementations
                 IsComplete = !unassigned.Any(),
                 Bars = bars,
             };
-        }
-
-        // ── Finalize multiple drafts at once ──────────────────────────────────────
-
-        public async Task<IEnumerable<IssueWindowIssueResultResponse>> FinalizeMultipleDraftsAsync(FinalizeMultipleDraftsRequest request)
-        {
-            var issueRequest = new IssueDraftRequest
-            {
-                IssuedBy = request.IssuedBy,
-                ReceivedBy = request.ReceivedBy,
-            };
-
-            var allResults = new List<IssueWindowIssueResultResponse>();
-
-            foreach (var draftId in request.DraftIds)
-            {
-                try
-                {
-                    var results = await IssueDraftAsync(draftId, issueRequest);
-                    allResults.AddRange(results);
-                }
-                catch (Exception ex)
-                {
-                    allResults.Add(new IssueWindowIssueResultResponse
-                    {
-                        RequisitionId = 0,
-                        RequisitionNo = $"Draft {draftId}",
-                        Success = false,
-                        Message = ex.Message,
-                    });
-                }
-            }
-
-            return allResults;
         }
 
         public async Task<bool> DeleteDraftAsync(int id)

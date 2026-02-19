@@ -45,6 +45,8 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
             var draftId = Convert.ToInt32(await draftCmd.ExecuteScalarAsync());
 
             // Insert bar assignments and their cuts
+            var pieceIdsToReserve = new List<int>();
+
             for (int sortOrder = 0; sortOrder < request.BarAssignments.Count; sortOrder++)
             {
                 var bar = request.BarAssignments[sortOrder];
@@ -76,6 +78,10 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
                 barCmd.Parameters.AddWithValue("@SortOrder", sortOrder);
                 var barAssignmentId = Convert.ToInt32(await barCmd.ExecuteScalarAsync());
 
+                // Collect piece IDs for reservation
+                if (bar.PieceId > 0)
+                    pieceIdsToReserve.Add(bar.PieceId);
+
                 for (int cutSort = 0; cutSort < bar.Cuts.Count; cutSort++)
                 {
                     var cut = bar.Cuts[cutSort];
@@ -102,6 +108,15 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
                 }
             }
 
+            // Reserve pieces — mark as Reserved so they don't appear in available pool for other drafts
+            if (pieceIdsToReserve.Count > 0)
+            {
+                var ids = string.Join(",", pieceIdsToReserve.Distinct());
+                var reserveSql = $"UPDATE Stores_MaterialPieces SET Status = 'Reserved', UpdatedAt = GETUTCDATE() WHERE Id IN ({ids})";
+                using var reserveCmd = new SqlCommand(reserveSql, connection, transaction);
+                await reserveCmd.ExecuteNonQueryAsync();
+            }
+
             transaction.Commit();
             return draftId;
         }
@@ -116,13 +131,34 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
     {
         var sql = @"
             SELECT
-                d.Id, d.DraftNo, d.Status, d.CreatedAt, d.IssuedAt,
+                d.Id, d.DraftNo, d.Status, d.CreatedAt, d.FinalizedAt, d.IssuedAt,
                 LEN(d.RequisitionIds) - LEN(REPLACE(d.RequisitionIds, ',', '')) + 1 AS RequisitionCount,
                 (SELECT COUNT(1) FROM Stores_IssueWindowDraftBarAssignments WHERE DraftId = d.Id) AS TotalBars,
                 (SELECT COUNT(1) FROM Stores_IssueWindowDraftCuts WHERE DraftId = d.Id) AS TotalCuts
             FROM Stores_IssueWindowDrafts d
+            WHERE d.Status IN ('Draft')
             ORDER BY d.CreatedAt DESC";
 
+        return await QueryDraftSummaries(sql);
+    }
+
+    public async Task<IEnumerable<IssueWindowDraftSummaryResponse>> GetFinalizedDraftsAsync()
+    {
+        var sql = @"
+            SELECT
+                d.Id, d.DraftNo, d.Status, d.CreatedAt, d.FinalizedAt, d.IssuedAt,
+                LEN(d.RequisitionIds) - LEN(REPLACE(d.RequisitionIds, ',', '')) + 1 AS RequisitionCount,
+                (SELECT COUNT(1) FROM Stores_IssueWindowDraftBarAssignments WHERE DraftId = d.Id) AS TotalBars,
+                (SELECT COUNT(1) FROM Stores_IssueWindowDraftCuts WHERE DraftId = d.Id) AS TotalCuts
+            FROM Stores_IssueWindowDrafts d
+            WHERE d.Status = 'Finalized'
+            ORDER BY d.FinalizedAt DESC";
+
+        return await QueryDraftSummaries(sql);
+    }
+
+    private async Task<IEnumerable<IssueWindowDraftSummaryResponse>> QueryDraftSummaries(string sql)
+    {
         using var connection = (SqlConnection)_connectionFactory.CreateConnection();
         await connection.OpenAsync();
         using var cmd = new SqlCommand(sql, connection);
@@ -137,6 +173,7 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
                 DraftNo = reader.GetString(reader.GetOrdinal("DraftNo")),
                 Status = reader.GetString(reader.GetOrdinal("Status")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
+                FinalizedAt = reader.IsDBNull(reader.GetOrdinal("FinalizedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("FinalizedAt")),
                 IssuedAt = reader.IsDBNull(reader.GetOrdinal("IssuedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("IssuedAt")),
                 RequisitionCount = reader.GetInt32(reader.GetOrdinal("RequisitionCount")),
                 TotalBars = reader.GetInt32(reader.GetOrdinal("TotalBars")),
@@ -169,6 +206,7 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
             ReceivedBy = draftReader.IsDBNull(draftReader.GetOrdinal("ReceivedBy")) ? null : draftReader.GetString(draftReader.GetOrdinal("ReceivedBy")),
             Notes = draftReader.IsDBNull(draftReader.GetOrdinal("Notes")) ? null : draftReader.GetString(draftReader.GetOrdinal("Notes")),
             CreatedAt = draftReader.GetDateTime(draftReader.GetOrdinal("CreatedAt")),
+            FinalizedAt = draftReader.IsDBNull(draftReader.GetOrdinal("FinalizedAt")) ? null : draftReader.GetDateTime(draftReader.GetOrdinal("FinalizedAt")),
             IssuedAt = draftReader.IsDBNull(draftReader.GetOrdinal("IssuedAt")) ? null : draftReader.GetDateTime(draftReader.GetOrdinal("IssuedAt"))
         };
         draftReader.Close();
@@ -240,12 +278,25 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
         return draft;
     }
 
+    public async Task<bool> FinalizeDraftAsync(int id)
+    {
+        var sql = @"
+            UPDATE Stores_IssueWindowDrafts
+            SET Status = 'Finalized', FinalizedAt = GETDATE()
+            WHERE Id = @Id AND Status = 'Draft'";
+        using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+        using var cmd = new SqlCommand(sql, connection);
+        cmd.Parameters.AddWithValue("@Id", id);
+        return await cmd.ExecuteNonQueryAsync() > 0;
+    }
+
     public async Task<bool> MarkIssuedAsync(int draftId, string issuedBy, string receivedBy)
     {
         var sql = @"
             UPDATE Stores_IssueWindowDrafts
             SET Status = 'Issued', IssuedBy = @IssuedBy, ReceivedBy = @ReceivedBy, IssuedAt = GETDATE()
-            WHERE Id = @Id";
+            WHERE Id = @Id AND Status = 'Finalized'";
         using var connection = (SqlConnection)_connectionFactory.CreateConnection();
         await connection.OpenAsync();
         using var cmd = new SqlCommand(sql, connection);
@@ -257,12 +308,37 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
 
     public async Task<bool> DeleteDraftAsync(int id)
     {
-        // Only allow deleting drafts that are still in Draft status (not yet Issued)
-        var sql = "DELETE FROM Stores_IssueWindowDrafts WHERE Id = @Id AND Status = 'Draft'";
         using var connection = (SqlConnection)_connectionFactory.CreateConnection();
         await connection.OpenAsync();
-        using var cmd = new SqlCommand(sql, connection);
-        cmd.Parameters.AddWithValue("@Id", id);
-        return await cmd.ExecuteNonQueryAsync() > 0;
+        using var transaction = connection.BeginTransaction();
+
+        try
+        {
+            // Release reserved pieces back to Available before deleting
+            var releaseSql = @"
+                UPDATE Stores_MaterialPieces
+                SET Status = 'Available', UpdatedAt = GETUTCDATE()
+                WHERE Id IN (
+                    SELECT PieceId FROM Stores_IssueWindowDraftBarAssignments
+                    WHERE DraftId = @Id AND PieceId IS NOT NULL
+                )";
+            using var releaseCmd = new SqlCommand(releaseSql, connection, transaction);
+            releaseCmd.Parameters.AddWithValue("@Id", id);
+            await releaseCmd.ExecuteNonQueryAsync();
+
+            // Only allow deleting drafts that are still in Draft status (not Finalized or Issued)
+            var deleteSql = "DELETE FROM Stores_IssueWindowDrafts WHERE Id = @Id AND Status = 'Draft'";
+            using var deleteCmd = new SqlCommand(deleteSql, connection, transaction);
+            deleteCmd.Parameters.AddWithValue("@Id", id);
+            var rows = await deleteCmd.ExecuteNonQueryAsync();
+
+            transaction.Commit();
+            return rows > 0;
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
     }
 }

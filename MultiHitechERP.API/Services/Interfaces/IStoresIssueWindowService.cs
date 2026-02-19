@@ -5,7 +5,7 @@ namespace MultiHitechERP.API.Services.Interfaces
 {
     public interface IStoresIssueWindowService
     {
-        // Get all Approved requisitions ready for issuing
+        // Get all Approved requisitions ready for cutting planning
         Task<IEnumerable<IssueWindowRequisitionResponse>> GetApprovedRequisitionsAsync();
 
         // Get material groups (grouped + qty-expanded cut rows) for selected requisitions
@@ -14,25 +14,28 @@ namespace MultiHitechERP.API.Services.Interfaces
         // Get available pieces for a specific material (for bar-select dropdown)
         Task<IEnumerable<IssueWindowAvailablePieceResponse>> GetAvailablePiecesAsync(int materialId, string? grade, decimal? diameterMM);
 
-        // Save a draft cutting plan
+        // Save a draft cutting plan (reserves pieces immediately)
         Task<IssueWindowDraftDetailResponse> SaveDraftAsync(SaveDraftRequest request);
 
-        // List all drafts
+        // List all Draft-status drafts (Cutting Planning page)
         Task<IEnumerable<IssueWindowDraftSummaryResponse>> GetDraftsAsync();
+
+        // List all Finalized drafts (Issue List page)
+        Task<IEnumerable<IssueWindowDraftSummaryResponse>> GetFinalizedDraftsAsync();
 
         // Get draft detail
         Task<IssueWindowDraftDetailResponse?> GetDraftByIdAsync(int id);
 
-        // Issue a saved draft: cuts bars, marks requisitions Issued, updates stock
+        // Finalize a draft: lock it and move it to Issue List (pieces stay Reserved)
+        Task<bool> FinalizeDraftAsync(int id);
+
+        // Issue a finalized draft: cuts bars, marks requisitions Issued, updates stock
         Task<IEnumerable<IssueWindowIssueResultResponse>> IssueDraftAsync(int draftId, IssueDraftRequest request);
 
         // Generate 3 cutting plan suggestions for the selected cuts
         Task<IEnumerable<CuttingPlanResponse>> SuggestCuttingPlanAsync(SuggestCuttingPlanRequest request);
 
-        // Finalize (issue) multiple drafts at once
-        Task<IEnumerable<IssueWindowIssueResultResponse>> FinalizeMultipleDraftsAsync(FinalizeMultipleDraftsRequest request);
-
-        // Delete a draft (only if status = Draft)
+        // Delete a draft (only if status = Draft — releases reserved pieces)
         Task<bool> DeleteDraftAsync(int id);
     }
 }

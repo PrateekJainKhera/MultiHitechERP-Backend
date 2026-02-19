@@ -8,7 +8,9 @@ public interface IIssueWindowDraftRepository
 {
     Task<int> SaveDraftAsync(SaveDraftRequest request);
     Task<IEnumerable<IssueWindowDraftSummaryResponse>> GetDraftsAsync();
+    Task<IEnumerable<IssueWindowDraftSummaryResponse>> GetFinalizedDraftsAsync();
     Task<IssueWindowDraftDetailResponse?> GetDraftByIdAsync(int id);
+    Task<bool> FinalizeDraftAsync(int id);
     Task<bool> MarkIssuedAsync(int draftId, string issuedBy, string receivedBy);
     Task<bool> DeleteDraftAsync(int id);
 }

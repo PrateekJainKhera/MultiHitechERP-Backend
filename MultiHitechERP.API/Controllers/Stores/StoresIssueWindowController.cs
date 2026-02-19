@@ -26,7 +26,6 @@ namespace MultiHitechERP.API.Controllers.Stores
         }
 
         // POST /api/stores/issue-window/material-groups
-        // Body: { requisitionIds: [1,2,3] }
         [HttpPost("material-groups")]
         public async Task<IActionResult> GetMaterialGroups([FromBody] GetMaterialGroupsRequest request)
         {
@@ -48,7 +47,7 @@ namespace MultiHitechERP.API.Controllers.Stores
             return Ok(ApiResponse<IEnumerable<IssueWindowAvailablePieceResponse>>.SuccessResponse(result));
         }
 
-        // POST /api/stores/issue-window/drafts
+        // POST /api/stores/issue-window/drafts — Save draft (reserves pieces immediately)
         [HttpPost("drafts")]
         public async Task<IActionResult> SaveDraft([FromBody] SaveDraftRequest request)
         {
@@ -59,15 +58,23 @@ namespace MultiHitechERP.API.Controllers.Stores
 
             var result = await _service.SaveDraftAsync(request);
             var response = ApiResponse<IssueWindowDraftDetailResponse>.SuccessResponse(result);
-            response.Message = $"Draft {result.DraftNo} saved successfully";
+            response.Message = $"Draft {result.DraftNo} saved — materials reserved";
             return Ok(response);
         }
 
-        // GET /api/stores/issue-window/drafts
+        // GET /api/stores/issue-window/drafts — Draft-status drafts (Cutting Planning page)
         [HttpGet("drafts")]
         public async Task<IActionResult> GetDrafts()
         {
             var result = await _service.GetDraftsAsync();
+            return Ok(ApiResponse<IEnumerable<IssueWindowDraftSummaryResponse>>.SuccessResponse(result));
+        }
+
+        // GET /api/stores/issue-window/issue-list — Finalized drafts (Issue List page)
+        [HttpGet("issue-list")]
+        public async Task<IActionResult> GetIssueList()
+        {
+            var result = await _service.GetFinalizedDraftsAsync();
             return Ok(ApiResponse<IEnumerable<IssueWindowDraftSummaryResponse>>.SuccessResponse(result));
         }
 
@@ -81,7 +88,17 @@ namespace MultiHitechERP.API.Controllers.Stores
             return Ok(ApiResponse<IssueWindowDraftDetailResponse>.SuccessResponse(result));
         }
 
-        // POST /api/stores/issue-window/drafts/{id}/issue
+        // POST /api/stores/issue-window/drafts/{id}/finalize — Lock draft, move to Issue List
+        [HttpPost("drafts/{id:int}/finalize")]
+        public async Task<IActionResult> FinalizeDraft(int id)
+        {
+            var finalized = await _service.FinalizeDraftAsync(id);
+            if (!finalized)
+                return BadRequest(ApiResponse<object>.ErrorResponse($"Draft {id} not found or is not in Draft status"));
+            return Ok(ApiResponse<object>.SuccessResponse(null!, $"Draft {id} finalized — it will appear in Issue List"));
+        }
+
+        // POST /api/stores/issue-window/drafts/{id}/issue — Issue a finalized draft
         [HttpPost("drafts/{id:int}/issue")]
         public async Task<IActionResult> IssueDraft(int id, [FromBody] IssueDraftRequest request)
         {
@@ -103,7 +120,6 @@ namespace MultiHitechERP.API.Controllers.Stores
         }
 
         // POST /api/stores/issue-window/suggest-cutting-plan
-        // Body: SuggestCuttingPlanRequest { cuts, materialId, grade, diameterMM }
         [HttpPost("suggest-cutting-plan")]
         public async Task<IActionResult> SuggestCuttingPlan([FromBody] SuggestCuttingPlanRequest request)
         {
@@ -114,38 +130,14 @@ namespace MultiHitechERP.API.Controllers.Stores
             return Ok(ApiResponse<IEnumerable<CuttingPlanResponse>>.SuccessResponse(plans));
         }
 
-        // DELETE /api/stores/issue-window/drafts/{id}
+        // DELETE /api/stores/issue-window/drafts/{id} — Delete Draft-status draft (releases reserved pieces)
         [HttpDelete("drafts/{id:int}")]
         public async Task<IActionResult> DeleteDraft(int id)
         {
             var deleted = await _service.DeleteDraftAsync(id);
             if (!deleted)
-                return BadRequest(ApiResponse<object>.ErrorResponse($"Draft {id} not found or already issued (cannot delete)"));
-            return Ok(ApiResponse<object>.SuccessResponse(null!, $"Draft {id} deleted successfully"));
-        }
-
-        // POST /api/stores/issue-window/finalize-multiple
-        // Body: FinalizeMultipleDraftsRequest { draftIds, issuedBy, receivedBy }
-        [HttpPost("finalize-multiple")]
-        public async Task<IActionResult> FinalizeMultiple([FromBody] FinalizeMultipleDraftsRequest request)
-        {
-            if (request.DraftIds == null || !request.DraftIds.Any())
-                return BadRequest(ApiResponse<object>.ErrorResponse("No draft IDs provided"));
-
-            try
-            {
-                var results = await _service.FinalizeMultipleDraftsAsync(request);
-                var allSuccess = results.All(r => r.Success);
-                var response = ApiResponse<IEnumerable<IssueWindowIssueResultResponse>>.SuccessResponse(results);
-                response.Message = allSuccess
-                    ? $"All {request.DraftIds.Count} draft(s) issued successfully"
-                    : "Some drafts failed to issue";
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
-            }
+                return BadRequest(ApiResponse<object>.ErrorResponse($"Draft {id} not found or is Finalized/Issued (cannot delete)"));
+            return Ok(ApiResponse<object>.SuccessResponse(null!, $"Draft {id} deleted — reserved materials released"));
         }
     }
 }
