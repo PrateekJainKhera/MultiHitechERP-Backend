@@ -107,6 +107,9 @@ builder.Services.AddScoped<IEstimationRepository, EstimationRepository>();
 builder.Services.AddScoped<IEstimationService, EstimationService>();
 builder.Services.AddScoped<IStoresIssueWindowService, StoresIssueWindowService>();
 builder.Services.AddScoped<IIssueWindowDraftRepository, IssueWindowDraftRepository>();
+builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
+builder.Services.AddScoped<IShiftService, ShiftService>();
+builder.Services.AddScoped<ISchedulingPlannerService, SchedulingPlannerService>();
 
 // CORS for frontend
 builder.Services.AddCors(options =>

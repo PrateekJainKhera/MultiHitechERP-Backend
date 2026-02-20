@@ -1,8 +1,25 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace MultiHitechERP.API.DTOs.Request
 {
+    /// <summary>
+    /// Request body for POST /api/schedules/cross-order-groups
+    /// </summary>
+    public class CrossOrderGroupsRequest
+    {
+        public List<int> OrderIds { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Batch schedule request — one entry per job card
+    /// </summary>
+    public class BatchScheduleRequest
+    {
+        public List<CreateScheduleRequest> Schedules { get; set; } = new();
+    }
+
     /// <summary>
     /// Request DTO for creating a new machine schedule
     /// </summary>

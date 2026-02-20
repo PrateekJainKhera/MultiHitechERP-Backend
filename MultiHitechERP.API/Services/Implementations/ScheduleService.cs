@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.DTOs.Response;
+using MultiHitechERP.API.Models.Planning;
 using MultiHitechERP.API.Models.Scheduling;
 using MultiHitechERP.API.Repositories.Interfaces;
 using MultiHitechERP.API.Services.Interfaces;
@@ -718,6 +719,250 @@ namespace MultiHitechERP.API.Services.Implementations
             {
                 return ApiResponse<bool>.ErrorResponse($"Error rescheduling: {ex.Message}");
             }
+        }
+
+        // ── Child-Part-First Batch Scheduling ──────────────────────────────────
+
+        /// <summary>
+        /// Returns all orders that have at least one PLANNED job card (material issued, machine not yet assigned).
+        /// These are the orders the user can select for batch scheduling.
+        /// </summary>
+        public async Task<ApiResponse<IEnumerable<SchedulableOrderResponse>>> GetSchedulableOrdersAsync()
+        {
+            try
+            {
+                var allJobCards = await _jobCardRepository.GetAllAsync();
+
+                // Job cards in scheduling queue: status Scheduled or PLANNED
+                // "Scheduled" = released to scheduling module; "PLANNED" = planned but not yet released
+                // Machine assignment is tracked separately in Scheduling_MachineSchedules
+                var schedulingCards = allJobCards
+                    .Where(jc => jc.Status == "Scheduled" || jc.Status == "PLANNED" || jc.Status == "Planned")
+                    .ToList();
+
+                if (!schedulingCards.Any())
+                    return ApiResponse<IEnumerable<SchedulableOrderResponse>>.SuccessResponse(
+                        Enumerable.Empty<SchedulableOrderResponse>(), "No schedulable orders found");
+
+                // Find which job cards already have an active machine schedule
+                var jobCardIdsWithSchedule = new HashSet<int>();
+                foreach (var jc in schedulingCards)
+                {
+                    var schedules = await _scheduleRepository.GetByJobCardIdAsync(jc.Id);
+                    if (schedules.Any(s => s.Status == "Scheduled" || s.Status == "InProgress"))
+                        jobCardIdsWithSchedule.Add(jc.Id);
+                }
+
+                // Only include job cards that don't yet have a machine assigned
+                var unassignedCards = schedulingCards
+                    .Where(jc => !jobCardIdsWithSchedule.Contains(jc.Id))
+                    .ToList();
+
+                if (!unassignedCards.Any())
+                    return ApiResponse<IEnumerable<SchedulableOrderResponse>>.SuccessResponse(
+                        Enumerable.Empty<SchedulableOrderResponse>(), "No schedulable orders found");
+
+                // Group by orderId
+                var grouped = unassignedCards
+                    .GroupBy(jc => jc.OrderId)
+                    .Select(g =>
+                    {
+                        var first = g.First();
+                        var totalForOrder = allJobCards.Count(jc => jc.OrderId == g.Key);
+                        return new SchedulableOrderResponse
+                        {
+                            OrderId = g.Key,
+                            OrderNo = first.OrderNo ?? $"ORD-{g.Key}",
+                            CustomerName = null,
+                            DueDate = null,
+                            Priority = first.Priority ?? "MEDIUM",
+                            PendingJobCardCount = g.Count(),
+                            TotalJobCardCount = totalForOrder
+                        };
+                    })
+                    .OrderBy(o => o.OrderNo)
+                    .ToList();
+
+                return ApiResponse<IEnumerable<SchedulableOrderResponse>>.SuccessResponse(grouped);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<SchedulableOrderResponse>>.ErrorResponse($"Error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Cross-order child-part view: takes selected order IDs and returns PLANNED job cards
+        /// grouped by ChildPartName → StepNo, showing all orders that need each step.
+        /// </summary>
+        public async Task<ApiResponse<CrossOrderGroupsResponse>> GetCrossOrderGroupsAsync(IEnumerable<int> orderIds)
+        {
+            try
+            {
+                var orderIdList = orderIds.ToList();
+                if (!orderIdList.Any())
+                    return ApiResponse<CrossOrderGroupsResponse>.ErrorResponse("No orders specified");
+
+                // Collect job cards in scheduling queue for all selected orders
+                var allCards = new List<MultiHitechERP.API.Models.Planning.JobCard>();
+                foreach (var orderId in orderIdList)
+                {
+                    var cards = await _jobCardRepository.GetByOrderIdAsync(orderId);
+                    allCards.AddRange(cards.Where(jc =>
+                        jc.Status == "Scheduled" || jc.Status == "PLANNED" || jc.Status == "Planned"));
+                }
+
+                if (!allCards.Any())
+                    return ApiResponse<CrossOrderGroupsResponse>.SuccessResponse(
+                        new CrossOrderGroupsResponse(), "No PLANNED job cards in selected orders");
+
+                // Fetch process flags (OSP/Manual) and category info
+                var uniqueProcessIds = allCards.Select(jc => jc.ProcessId).Distinct().ToList();
+                var processInfoCache = new Dictionary<int, (bool isOsp, bool isManual, int? catId, string? catName)>();
+                foreach (var pid in uniqueProcessIds)
+                {
+                    var proc = await _processRepository.GetByIdAsync(pid);
+                    processInfoCache[pid] = proc == null
+                        ? (false, false, null, null)
+                        : (proc.IsOutsourced, proc.IsManual, proc.ProcessCategoryId, proc.ProcessCategoryName);
+                }
+
+                // For each job card, check if it already has a machine schedule
+                var scheduleCache = new Dictionary<int, ProcessStepSchedulingItem>();
+                foreach (var jc in allCards)
+                {
+                    var schedules = await _scheduleRepository.GetByJobCardIdAsync(jc.Id);
+                    var active = schedules
+                        .Where(s => s.Status == "Scheduled" || s.Status == "InProgress")
+                        .OrderByDescending(s => s.CreatedAt)
+                        .FirstOrDefault();
+
+                    scheduleCache[jc.Id] = new ProcessStepSchedulingItem
+                    {
+                        JobCardId = jc.Id,
+                        JobCardNo = jc.JobCardNo,
+                        ProcessId = jc.ProcessId,
+                        ProcessName = jc.ProcessName,
+                        ProcessCode = jc.ProcessCode,
+                        StepNo = jc.StepNo,
+                        Quantity = jc.Quantity,
+                        Priority = jc.Priority ?? "MEDIUM",
+                        JobCardStatus = jc.Status,
+                        ScheduleId = active?.Id,
+                        AssignedMachineId = active?.MachineId,
+                        AssignedMachineCode = active?.MachineCode,
+                        AssignedMachineName = active?.MachineName,
+                        ScheduledStartTime = active?.ScheduledStartTime,
+                        ScheduledEndTime = active?.ScheduledEndTime
+                    };
+                }
+
+                // Group: ChildPartName → StepNo
+                var childPartGroups = allCards
+                    .GroupBy(jc => new { PartName = jc.ChildPartName ?? "Unknown Part", jc.CreationType })
+                    .OrderBy(g => g.Key.CreationType == "Assembly" ? 1 : 0)
+                    .ThenBy(g => g.Key.PartName)
+                    .Select(partGroup =>
+                    {
+                        var steps = partGroup
+                            .GroupBy(jc => jc.StepNo ?? 0)
+                            .OrderBy(sg => sg.Key)
+                            .Select(stepGroup =>
+                            {
+                                var firstInStep = stepGroup.First();
+                                var (isOsp, isManual, catId, catName) =
+                                    processInfoCache.GetValueOrDefault(firstInStep.ProcessId,
+                                        (false, false, null, null));
+
+                                return new CrossOrderProcessStep
+                                {
+                                    StepNo = stepGroup.Key,
+                                    ProcessId = firstInStep.ProcessId,
+                                    ProcessName = firstInStep.ProcessName ?? "Unknown Process",
+                                    ProcessCode = firstInStep.ProcessCode,
+                                    IsOsp = isOsp,
+                                    IsManual = isManual,
+                                    ProcessCategoryId = catId,
+                                    ProcessCategoryName = catName,
+                                    JobCards = stepGroup.Select(jc =>
+                                    {
+                                        var si = scheduleCache[jc.Id];
+                                        return new CrossOrderJobCardItem
+                                        {
+                                            JobCardId = jc.Id,
+                                            JobCardNo = jc.JobCardNo,
+                                            OrderId = jc.OrderId,
+                                            OrderNo = jc.OrderNo ?? $"ORD-{jc.OrderId}",
+                                            Quantity = jc.Quantity,
+                                            Priority = jc.Priority ?? "MEDIUM",
+                                            ScheduleId = si.ScheduleId,
+                                            AssignedMachineName = si.AssignedMachineName,
+                                            ScheduledStartTime = si.ScheduledStartTime,
+                                            ScheduledEndTime = si.ScheduledEndTime
+                                        };
+                                    }).ToList()
+                                };
+                            }).ToList();
+
+                        return new CrossOrderChildPartGroup
+                        {
+                            ChildPartName = partGroup.Key.PartName,
+                            CreationType = partGroup.Key.CreationType ?? "ChildPart",
+                            Steps = steps
+                        };
+                    }).ToList();
+
+                return ApiResponse<CrossOrderGroupsResponse>.SuccessResponse(
+                    new CrossOrderGroupsResponse { ChildParts = childPartGroups });
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<CrossOrderGroupsResponse>.ErrorResponse($"Error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Batch-create machine schedules: creates one schedule per request entry.
+        /// Returns per-job-card success/failure results.
+        /// </summary>
+        public async Task<ApiResponse<IEnumerable<BatchScheduleResult>>> BatchCreateSchedulesAsync(
+            IEnumerable<CreateScheduleRequest> requests)
+        {
+            var results = new List<BatchScheduleResult>();
+            foreach (var req in requests)
+            {
+                try
+                {
+                    // Re-use existing CreateScheduleAsync for each job card
+                    var result = await CreateScheduleAsync(req);
+                    var jc = await _jobCardRepository.GetByIdAsync(req.JobCardId);
+                    results.Add(new BatchScheduleResult
+                    {
+                        JobCardId = req.JobCardId,
+                        JobCardNo = jc?.JobCardNo ?? req.JobCardId.ToString(),
+                        Success = result.Success,
+                        ScheduleId = result.Success ? result.Data : null,
+                        Error = result.Success ? null : result.Message
+                    });
+                }
+                catch (Exception ex)
+                {
+                    results.Add(new BatchScheduleResult
+                    {
+                        JobCardId = req.JobCardId,
+                        JobCardNo = req.JobCardId.ToString(),
+                        Success = false,
+                        Error = ex.Message
+                    });
+                }
+            }
+
+            var allOk = results.All(r => r.Success);
+            var msg = allOk
+                ? $"{results.Count} schedules created successfully"
+                : $"{results.Count(r => r.Success)} succeeded, {results.Count(r => !r.Success)} failed";
+
+            return ApiResponse<IEnumerable<BatchScheduleResult>>.SuccessResponse(results, msg);
         }
 
         private static ScheduleResponse MapToResponse(MachineSchedule schedule)

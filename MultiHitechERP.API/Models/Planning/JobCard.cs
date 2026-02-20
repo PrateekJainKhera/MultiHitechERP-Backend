@@ -65,6 +65,11 @@ namespace MultiHitechERP.API.Models.Planning
         public int RejectedQty { get; set; }
         public bool ReadyForAssembly { get; set; }
 
+        // Rework tracking (migration 092)
+        public bool IsRework { get; set; }
+        public int? ParentJobCardId { get; set; }
+        public string JobCardType { get; set; } = "Normal";  // Normal | Rework
+
         // Audit
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }

@@ -55,6 +55,10 @@ namespace MultiHitechERP.API.Models.Scheduling
         public DateTime? RescheduledAt { get; set; }
         public string? RescheduledBy { get; set; }
 
+        // Shift tracking (migration 092)
+        public int? ShiftId { get; set; }
+        public string? ShiftName { get; set; }
+
         // Notes
         public string? Notes { get; set; }
 

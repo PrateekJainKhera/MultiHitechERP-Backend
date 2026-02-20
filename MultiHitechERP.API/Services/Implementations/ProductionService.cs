@@ -111,13 +111,13 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                // Get all order items
-                var orderItems = await _orderItemRepository.GetAllAsync();
                 var result = new List<ProductionOrderSummary>();
+
+                // ── Part 1: Multi-product orders — job cards linked to a specific OrderItemId ──
+                var orderItems = await _orderItemRepository.GetAllAsync();
 
                 foreach (var orderItem in orderItems)
                 {
-                    // Get job cards for this specific order item
                     var jobCards = (await _jobCardRepository.GetByOrderItemIdAsync(orderItem.Id)).ToList();
                     var scheduledJcs = jobCards.Where(jc => jc.Status == "Scheduled").ToList();
                     if (!scheduledJcs.Any()) continue;
@@ -127,13 +127,9 @@ namespace MultiHitechERP.API.Services.Implementations
                     var inProgressSteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "InProgress");
                     var completedChildParts = nonAssemblyJcs
                         .Where(jc => jc.ReadyForAssembly)
-                        .Select(jc => ChildPartKey(jc))
-                        .Distinct()
-                        .Count();
+                        .Select(jc => ChildPartKey(jc)).Distinct().Count();
                     var totalChildParts = nonAssemblyJcs
-                        .Select(jc => ChildPartKey(jc))
-                        .Distinct()
-                        .Count();
+                        .Select(jc => ChildPartKey(jc)).Distinct().Count();
 
                     string prodStatus;
                     if (nonAssemblyJcs.All(jc => jc.ProductionStatus == "Completed"))
@@ -143,21 +139,19 @@ namespace MultiHitechERP.API.Services.Implementations
                     else
                         prodStatus = "Pending";
 
-                    // Get order for customer and product names
                     var order = await _orderRepository.GetByIdAsync(orderItem.OrderId);
-
-                    // Build full order reference with item sequence (e.g., ORD-202602-0001-A)
-                    var fullOrderRef = order?.OrderNo ?? orderItem.OrderId.ToString();
-                    if (!string.IsNullOrEmpty(orderItem.ItemSequence))
-                        fullOrderRef = $"{fullOrderRef}-{orderItem.ItemSequence}";
+                    var baseOrderNo = order?.OrderNo ?? orderItem.OrderId.ToString();
+                    var fullOrderRef = !string.IsNullOrEmpty(orderItem.ItemSequence)
+                        ? $"{baseOrderNo}-{orderItem.ItemSequence}"
+                        : baseOrderNo;
 
                     result.Add(new ProductionOrderSummary
                     {
                         OrderId = orderItem.OrderId,
-                        OrderItemId = orderItem.Id,  // Order item ID for navigation
-                        OrderNo = fullOrderRef,  // Include item sequence
+                        OrderItemId = orderItem.Id,
+                        OrderNo = fullOrderRef,
                         CustomerName = order?.CustomerName,
-                        ProductName = orderItem.ProductName,  // From OrderItem
+                        ProductName = orderItem.ProductName,
                         Priority = orderItem.Priority ?? "Medium",
                         DueDate = orderItem.DueDate,
                         TotalSteps = nonAssemblyJcs.Count,
@@ -169,6 +163,132 @@ namespace MultiHitechERP.API.Services.Implementations
                         ProductionStatus = prodStatus
                     });
                 }
+
+                // ── Part 2: Job cards with no OrderItemId — group by ItemSequence ──
+                var allOrders = await _orderRepository.GetAllAsync();
+                foreach (var order in allOrders)
+                {
+                    // Only consider job cards not linked to any OrderItem
+                    var allUnlinkedJcs = (await _jobCardRepository.GetByOrderIdAsync(order.Id))
+                        .Where(jc => !jc.OrderItemId.HasValue)
+                        .ToList();
+                    if (!allUnlinkedJcs.Any(jc => jc.Status == "Scheduled")) continue;
+
+                    // Load OrderItems for this order (to get product names and sequences)
+                    var orderItemsForOrder = await _orderItemRepository.GetByOrderIdAsync(order.Id);
+
+                    // Group by ItemSequence: multi-product orders have A/B/C..., single-product have null
+                    var groups = allUnlinkedJcs
+                        .GroupBy(jc => jc.ItemSequence ?? "")
+                        .OrderBy(g => g.Key)
+                        .ToList();
+
+                    // If job cards have no ItemSequence but the order has OrderItems,
+                    // use OrderItems to produce separate rows per product
+                    bool jobCardsLackSequence = groups.Count == 1 && groups[0].Key == "" && orderItemsForOrder.Any();
+                    if (jobCardsLackSequence)
+                    {
+                        // Fall back: show one row per OrderItem, sharing all the unlinked job cards
+                        var allJcs = groups[0].ToList();
+                        var scheduledAny = allJcs.Any(jc => jc.Status == "Scheduled");
+                        if (!scheduledAny) continue;
+
+                        foreach (var oi in orderItemsForOrder.OrderBy(oi => oi.ItemSequence))
+                        {
+                            var nonAssemblyJcs = allJcs.Where(jc => jc.CreationType != "Assembly").ToList();
+                            var completedSteps2 = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Completed");
+                            var inProgressSteps2 = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "InProgress");
+                            string prodStatus2;
+                            if (nonAssemblyJcs.All(jc => jc.ProductionStatus == "Completed"))
+                                prodStatus2 = "Completed";
+                            else if (inProgressSteps2 > 0 || completedSteps2 > 0)
+                                prodStatus2 = "InProgress";
+                            else
+                                prodStatus2 = "Pending";
+
+                            var orderRef2 = !string.IsNullOrEmpty(oi.ItemSequence)
+                                ? $"{order.OrderNo}-{oi.ItemSequence}"
+                                : order.OrderNo;
+
+                            result.Add(new ProductionOrderSummary
+                            {
+                                OrderId = order.Id,
+                                OrderItemId = oi.Id,
+                                OrderNo = orderRef2,
+                                CustomerName = order.CustomerName,
+                                ProductName = oi.ProductName ?? order.ProductName,
+                                Priority = oi.Priority ?? order.Priority ?? "Medium",
+                                DueDate = oi.DueDate,
+                                TotalSteps = nonAssemblyJcs.Count,
+                                CompletedSteps = completedSteps2,
+                                InProgressSteps = inProgressSteps2,
+                                ReadySteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Ready"),
+                                TotalChildParts = nonAssemblyJcs.Select(jc => ChildPartKey(jc)).Distinct().Count(),
+                                CompletedChildParts = nonAssemblyJcs.Where(jc => jc.ReadyForAssembly).Select(jc => ChildPartKey(jc)).Distinct().Count(),
+                                ProductionStatus = prodStatus2
+                            });
+                        }
+                        continue;
+                    }
+
+                    foreach (var group in groups)
+                    {
+                        var jobCards = group.ToList();
+                        var scheduledJcs = jobCards.Where(jc => jc.Status == "Scheduled").ToList();
+                        if (!scheduledJcs.Any()) continue;
+
+                        var nonAssemblyJcs = jobCards.Where(jc => jc.CreationType != "Assembly").ToList();
+                        var completedSteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Completed");
+                        var inProgressSteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "InProgress");
+                        var completedChildParts = nonAssemblyJcs
+                            .Where(jc => jc.ReadyForAssembly)
+                            .Select(jc => ChildPartKey(jc)).Distinct().Count();
+                        var totalChildParts = nonAssemblyJcs
+                            .Select(jc => ChildPartKey(jc)).Distinct().Count();
+
+                        string prodStatus;
+                        if (nonAssemblyJcs.All(jc => jc.ProductionStatus == "Completed"))
+                            prodStatus = "Completed";
+                        else if (inProgressSteps > 0 || completedSteps > 0)
+                            prodStatus = "InProgress";
+                        else
+                            prodStatus = "Pending";
+
+                        // Build order reference: "ORD-XXXX-A" when sequence exists, "ORD-XXXX" otherwise
+                        var seq = group.Key;
+                        var orderRef = !string.IsNullOrEmpty(seq)
+                            ? $"{order.OrderNo}-{seq}"
+                            : order.OrderNo;
+
+                        // Get ProductName from the OrderItem matching this sequence (if any)
+                        var matchingOrderItem = orderItemsForOrder
+                            .FirstOrDefault(oi => oi.ItemSequence == seq);
+
+                        result.Add(new ProductionOrderSummary
+                        {
+                            OrderId = order.Id,
+                            OrderItemId = matchingOrderItem?.Id,
+                            OrderNo = orderRef,
+                            CustomerName = order.CustomerName,
+                            ProductName = matchingOrderItem?.ProductName ?? order.ProductName,
+                            Priority = matchingOrderItem?.Priority ?? order.Priority ?? "Medium",
+                            DueDate = matchingOrderItem?.DueDate ?? order.DueDate,
+                            TotalSteps = nonAssemblyJcs.Count,
+                            CompletedSteps = completedSteps,
+                            InProgressSteps = inProgressSteps,
+                            ReadySteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Ready"),
+                            TotalChildParts = totalChildParts,
+                            CompletedChildParts = completedChildParts,
+                            ProductionStatus = prodStatus
+                        });
+                    }
+                }
+
+                // Sort by due date then order number
+                result = result
+                    .OrderBy(r => r.DueDate ?? DateTime.MaxValue)
+                    .ThenBy(r => r.OrderNo)
+                    .ToList();
 
                 return ApiResponse<IEnumerable<ProductionOrderSummary>>.SuccessResponse(result);
             }
@@ -367,15 +487,14 @@ namespace MultiHitechERP.API.Services.Implementations
                 var inProgressChildSteps = childJcs.Count(jc => jc.ProductionStatus == "InProgress" || jc.ProductionStatus == "Paused");
                 var canStartAssembly = childPartGroups.All(g => g.IsReadyForAssembly);
 
-                // Build full order reference with item sequence (e.g., ORD-202602-0001-A)
-                var fullOrderRef = order.OrderNo;
-                if (!string.IsNullOrEmpty(orderItem.ItemSequence))
-                    fullOrderRef = $"{fullOrderRef}-{orderItem.ItemSequence}";
+                var fullRef = !string.IsNullOrEmpty(orderItem.ItemSequence)
+                    ? $"{order.OrderNo}-{orderItem.ItemSequence}"
+                    : order.OrderNo;
 
                 var detail = new ProductionOrderDetail
                 {
                     OrderId = order.Id,
-                    OrderNo = fullOrderRef,  // Include item sequence
+                    OrderNo = fullRef,
                     CustomerName = order.CustomerName,
                     ProductName = orderItem.ProductName,  // From OrderItem
                     Priority = orderItem.Priority ?? "Medium",

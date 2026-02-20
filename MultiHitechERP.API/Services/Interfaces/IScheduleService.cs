@@ -28,5 +28,13 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<bool>> DeleteScheduleAsync(int id);
         Task<ApiResponse<bool>> UpdateStatusAsync(int id, string status, string? updatedBy = null);
         Task<ApiResponse<bool>> RescheduleAsync(int scheduleId, DateTime newStartTime, DateTime newEndTime, string reason, string? rescheduledBy = null);
+
+        // ── Child-Part-First Batch Scheduling ──────────────────────────────────
+        /// <summary>Orders with at least one PLANNED job card (material issued, machine not yet assigned)</summary>
+        Task<ApiResponse<IEnumerable<SchedulableOrderResponse>>> GetSchedulableOrdersAsync();
+        /// <summary>Cross-order child-part view: groups PLANNED job cards across selected orders by ChildPart → Step</summary>
+        Task<ApiResponse<CrossOrderGroupsResponse>> GetCrossOrderGroupsAsync(IEnumerable<int> orderIds);
+        /// <summary>Batch-create machine schedules for multiple job cards at once</summary>
+        Task<ApiResponse<IEnumerable<BatchScheduleResult>>> BatchCreateSchedulesAsync(IEnumerable<CreateScheduleRequest> requests);
     }
 }

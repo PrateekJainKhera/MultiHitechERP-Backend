@@ -21,11 +21,34 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
+        // SQL fragment shared across read queries — resolves CustomerName and ProductName via JOIN
+        private const string SelectOrderWithNames = @"
+            SELECT
+                o.Id, o.OrderNo, o.OrderDate, o.DueDate, o.AdjustedDueDate,
+                o.CustomerId,
+                ISNULL(o.CustomerName, c.CustomerName) AS CustomerName,
+                o.ProductId,
+                ISNULL(o.ProductName, mp.ModelName) AS ProductName,
+                o.Quantity, o.OriginalQuantity,
+                o.QtyCompleted, o.QtyRejected, o.QtyInProgress, o.QtyScrap,
+                o.Status, o.Priority, o.PlanningStatus,
+                o.OrderSource, o.AgentCustomerId, o.AgentCommission, o.SchedulingStrategy,
+                o.DrawingReviewStatus, o.DrawingReviewedBy, o.DrawingReviewedAt, o.DrawingReviewNotes,
+                o.PrimaryDrawingId, o.DrawingSource, o.LinkedProductTemplateId,
+                o.CustomerMachine, o.MaterialGradeRemark,
+                o.CurrentProcess, o.CurrentMachine, o.CurrentOperator,
+                o.ProductionStartDate, o.ProductionEndDate,
+                o.DelayReason, o.RescheduleCount,
+                o.MaterialGradeApproved, o.MaterialGradeApprovalDate, o.MaterialGradeApprovedBy,
+                o.OrderValue, o.AdvancePayment, o.BalancePayment,
+                o.CreatedAt, o.CreatedBy, o.UpdatedAt, o.UpdatedBy, o.Version
+            FROM Orders o
+            LEFT JOIN Masters_Customers c ON o.CustomerId = c.Id
+            LEFT JOIN Masters_Products mp ON o.ProductId = mp.Id";
+
         public async Task<Order?> GetByIdAsync(int id)
         {
-            const string query = @"
-                SELECT * FROM Orders
-                WHERE Id = @Id";
+            var query = $"{SelectOrderWithNames} WHERE o.Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
@@ -45,9 +68,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<Order?> GetByOrderNoAsync(string orderNo)
         {
-            const string query = @"
-                SELECT * FROM Orders
-                WHERE OrderNo = @OrderNo";
+            var query = $"{SelectOrderWithNames} WHERE o.OrderNo = @OrderNo";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
@@ -67,9 +88,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<IEnumerable<Order>> GetAllAsync()
         {
-            const string query = @"
-                SELECT * FROM Orders
-                ORDER BY CreatedAt DESC";
+            var query = $"{SelectOrderWithNames} ORDER BY o.CreatedAt DESC";
 
             var orders = new List<Order>();
 

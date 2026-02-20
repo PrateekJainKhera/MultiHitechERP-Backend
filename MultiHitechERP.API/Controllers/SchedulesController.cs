@@ -99,6 +99,36 @@ namespace MultiHitechERP.API.Controllers
         }
 
         /// <summary>
+        /// CHILD-PART-FIRST: Orders with PLANNED job cards ready for machine assignment
+        /// </summary>
+        [HttpGet("schedulable-orders")]
+        public async Task<IActionResult> GetSchedulableOrders()
+        {
+            var result = await _scheduleService.GetSchedulableOrdersAsync();
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// CHILD-PART-FIRST: Cross-order child-part view across selected orders
+        /// </summary>
+        [HttpPost("cross-order-groups")]
+        public async Task<IActionResult> GetCrossOrderGroups([FromBody] CrossOrderGroupsRequest request)
+        {
+            var result = await _scheduleService.GetCrossOrderGroupsAsync(request.OrderIds);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// CHILD-PART-FIRST: Batch-create schedules for multiple job cards at once
+        /// </summary>
+        [HttpPost("batch")]
+        public async Task<IActionResult> BatchCreate([FromBody] BatchScheduleRequest request)
+        {
+            var result = await _scheduleService.BatchCreateSchedulesAsync(request.Schedules);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
         /// Create a new schedule
         /// </summary>
         [HttpPost]
