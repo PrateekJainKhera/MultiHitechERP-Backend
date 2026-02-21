@@ -421,7 +421,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Inventory_Transactions (
-                    Id, MaterialId, TransactionType, TransactionNo, TransactionDate,
+                    MaterialId, TransactionType, TransactionNo, TransactionDate,
                     Quantity, UOM,
                     ReferenceType, ReferenceId, ReferenceNo,
                     FromLocation, ToLocation,
@@ -432,7 +432,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     CreatedAt, CreatedBy
                 )
                 VALUES (
-                    @Id, @MaterialId, @TransactionType, @TransactionNo, @TransactionDate,
+                    @MaterialId, @TransactionType, @TransactionNo, @TransactionDate,
                     @Quantity, @UOM,
                     @ReferenceType, @ReferenceId, @ReferenceNo,
                     @FromLocation, @ToLocation,
@@ -441,13 +441,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     @JobCardId, @RequisitionId,
                     @SupplierId, @GRNNo,
                     @CreatedAt, @CreatedBy
-                )";
+                );
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
 
-            var id = 0;
-            command.Parameters.AddWithValue("@Id", id);
             command.Parameters.AddWithValue("@MaterialId", transaction.MaterialId);
             command.Parameters.AddWithValue("@TransactionType", transaction.TransactionType);
             command.Parameters.AddWithValue("@TransactionNo", transaction.TransactionNo);
@@ -472,9 +471,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@CreatedBy", (object?)transaction.CreatedBy ?? DBNull.Value);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
-
-            return id;
+            var result = await command.ExecuteScalarAsync();
+            return result != null ? (int)result : 0;
         }
 
         public async Task<IEnumerable<InventoryTransaction>> GetTransactionsByMaterialIdAsync(int materialId)
@@ -734,7 +732,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             string itemType = "RawMaterial")  // Added itemType parameter with default value
         {
             // Use MERGE to handle both INSERT and UPDATE in a single atomic operation
-            // If MaterialCode is null/empty, fetch it from Masters_Materials
+            // Use a VALUES-based source (always 1 row) so WHEN NOT MATCHED always fires for new items.
+            // If ItemCode is null, fall back to Masters_Materials.MaterialCode via subquery.
             const string query = @"
                 MERGE Inventory_Stock AS target
                 USING (
@@ -742,10 +741,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                         @ItemType AS ItemType,
                         @ItemId AS ItemId,
                         @Location AS Location,
-                        ISNULL(@ItemCode, m.MaterialCode) AS ItemCode,
+                        COALESCE(@ItemCode, (SELECT MaterialCode FROM Masters_Materials WHERE Id = @ItemId)) AS ItemCode,
                         @ItemName AS ItemName
-                    FROM Masters_Materials m
-                    WHERE m.Id = @ItemId
                 ) AS source
                 ON (target.ItemType = source.ItemType AND target.ItemId = source.ItemId AND target.Location = source.Location)
                 WHEN MATCHED THEN

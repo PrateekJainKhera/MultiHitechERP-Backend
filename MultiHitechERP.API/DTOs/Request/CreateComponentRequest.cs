@@ -22,9 +22,7 @@ namespace MultiHitechERP.API.DTOs.Request
 
         public string? Specifications { get; set; }
 
-        [Required(ErrorMessage = "Lead time days is required")]
-        [Range(0, int.MaxValue, ErrorMessage = "Lead time days must be a positive value")]
-        public int LeadTimeDays { get; set; }
+        public int? LeadTimeDays { get; set; }
 
         [Required(ErrorMessage = "Unit is required")]
         [StringLength(20, ErrorMessage = "Unit cannot exceed 20 characters")]
