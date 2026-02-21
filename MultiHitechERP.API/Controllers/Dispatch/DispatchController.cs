@@ -20,10 +20,12 @@ namespace MultiHitechERP.API.Controllers.Dispatch
     public class DispatchController : ControllerBase
     {
         private readonly IDispatchService _service;
+        private readonly IS3Service _s3Service;
 
-        public DispatchController(IDispatchService service)
+        public DispatchController(IDispatchService service, IS3Service s3Service)
         {
             _service = service;
+            _s3Service = s3Service;
         }
 
         /// <summary>
@@ -281,13 +283,10 @@ namespace MultiHitechERP.API.Controllers.Dispatch
 
             if (invoiceDocument != null && invoiceDocument.Length > 0)
             {
-                var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "dispatch");
-                Directory.CreateDirectory(uploadDir);
                 var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(invoiceDocument.FileName)}";
-                var filePath = Path.Combine(uploadDir, fileName);
-                using var stream = new FileStream(filePath, FileMode.Create);
-                await invoiceDocument.CopyToAsync(stream);
-                invoiceDocPath = $"/uploads/dispatch/{fileName}";
+                var s3Key = $"dispatch/{fileName}";
+                using var stream = invoiceDocument.OpenReadStream();
+                invoiceDocPath = await _s3Service.UploadAsync(stream, s3Key, invoiceDocument.ContentType);
             }
 
             var response = await _service.SimpleDispatchAsync(

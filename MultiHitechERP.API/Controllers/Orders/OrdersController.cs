@@ -22,17 +22,20 @@ namespace MultiHitechERP.API.Controllers.Orders
         private readonly IDrawingService _drawingService;
         private readonly IOrderCustomerDrawingRepository _customerDrawingRepo;
         private readonly ILogger<OrdersController> _logger;
+        private readonly IS3Service _s3Service;
 
         public OrdersController(
             IOrderService orderService,
             IDrawingService drawingService,
             IOrderCustomerDrawingRepository customerDrawingRepo,
-            ILogger<OrdersController> logger)
+            ILogger<OrdersController> logger,
+            IS3Service s3Service)
         {
             _orderService = orderService;
             _drawingService = drawingService;
             _customerDrawingRepo = customerDrawingRepo;
             _logger = logger;
+            _s3Service = s3Service;
         }
 
         /// <summary>
@@ -455,22 +458,19 @@ namespace MultiHitechERP.API.Controllers.Orders
             if (file == null || file.Length == 0)
                 return BadRequest(ApiResponse<object>.ErrorResponse("No file provided"));
 
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "order-drawings");
-            Directory.CreateDirectory(uploadsFolder);
-
             var ext = Path.GetExtension(file.FileName);
             var storedName = $"{Guid.NewGuid()}{ext}";
-            var fullPath = Path.Combine(uploadsFolder, storedName);
+            var s3Key = $"order-drawings/{storedName}";
 
-            using (var stream = new FileStream(fullPath, FileMode.Create))
-                await file.CopyToAsync(stream);
+            using var fileStream = file.OpenReadStream();
+            var fileUrl = await _s3Service.UploadAsync(fileStream, s3Key, file.ContentType);
 
             var drawing = new OrderCustomerDrawing
             {
                 OrderId = orderId,
                 OriginalFileName = file.FileName,
                 StoredFileName = storedName,
-                FilePath = $"/uploads/order-drawings/{storedName}",
+                FilePath = s3Key,
                 FileSize = file.Length,
                 MimeType = file.ContentType,
                 DrawingType = drawingType,
@@ -493,9 +493,8 @@ namespace MultiHitechERP.API.Controllers.Orders
             if (drawing == null || drawing.OrderId != orderId)
                 return NotFound(ApiResponse<object>.ErrorResponse("Drawing not found"));
 
-            var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", drawing.FilePath.TrimStart('/'));
-            if (System.IO.File.Exists(fullPath))
-                System.IO.File.Delete(fullPath);
+            // Delete from S3 (FilePath now stores the s3Key)
+            try { await _s3Service.DeleteAsync(drawing.FilePath); } catch { /* ignore if already gone */ }
 
             await _customerDrawingRepo.DeleteAsync(drawingId);
             return Ok(ApiResponse<bool>.SuccessResponse(true, "Drawing deleted"));
@@ -503,7 +502,9 @@ namespace MultiHitechERP.API.Controllers.Orders
 
         private static OrderCustomerDrawingResponse MapDrawing(OrderCustomerDrawing d, HttpRequest request)
         {
-            var baseUrl = $"{request.Scheme}://{request.Host}";
+            // FilePath stores the S3 key (e.g. "order-drawings/guid.pdf")
+            // Build the full public S3 URL for download
+            var s3BaseUrl = "https://indas-analytics-prod.s3.ap-south-1.amazonaws.com";
             return new OrderCustomerDrawingResponse
             {
                 Id = d.Id,
@@ -513,7 +514,7 @@ namespace MultiHitechERP.API.Controllers.Orders
                 Notes = d.Notes,
                 FileSize = d.FileSize,
                 MimeType = d.MimeType,
-                DownloadUrl = $"{baseUrl}{d.FilePath}",
+                DownloadUrl = $"{s3BaseUrl}/{d.FilePath}",
                 UploadedAt = d.UploadedAt,
                 UploadedBy = d.UploadedBy,
             };

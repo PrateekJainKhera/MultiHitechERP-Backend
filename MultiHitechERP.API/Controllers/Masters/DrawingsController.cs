@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Hosting;
 using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.Services.Interfaces;
 using MultiHitechERP.API.DTOs.Response;
@@ -15,12 +14,12 @@ namespace MultiHitechERP.API.Controllers.Masters
     public class DrawingsController : ControllerBase
     {
         private readonly IDrawingService _drawingService;
-        private readonly IWebHostEnvironment _environment;
+        private readonly IS3Service _s3Service;
 
-        public DrawingsController(IDrawingService drawingService, IWebHostEnvironment environment)
+        public DrawingsController(IDrawingService drawingService, IS3Service s3Service)
         {
             _drawingService = drawingService;
-            _environment = environment;
+            _s3Service = s3Service;
         }
 
         [HttpGet]
@@ -85,33 +84,25 @@ namespace MultiHitechERP.API.Controllers.Masters
                 if (file.Length > 10 * 1024 * 1024)
                     return BadRequest(ApiResponse<int>.ErrorResponse("File size exceeds 10MB limit"));
 
-                // Generate file path
+                // Generate S3 key
                 var year = DateTime.Now.Year.ToString();
                 var month = DateTime.Now.Month.ToString("D2");
-                var uploadsFolder = Path.Combine(_environment.WebRootPath ?? _environment.ContentRootPath, "uploads", "drawings", year, month);
-
-                // Create directory if it doesn't exist
-                Directory.CreateDirectory(uploadsFolder);
-
-                // Generate unique filename
                 var drawingNumber = !string.IsNullOrWhiteSpace(request.DrawingNumber)
                     ? request.DrawingNumber.Trim()
                     : $"DWG-{DateTime.Now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N").Substring(0, 6)}";
                 var fileName = $"{drawingNumber}_{Path.GetFileName(file.FileName)}";
-                var filePath = Path.Combine(uploadsFolder, fileName);
+                var s3Key = $"drawings/{year}/{month}/{fileName}";
 
-                // Save file
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
+                // Upload to S3
+                using var fileStream = file.OpenReadStream();
+                var fileUrl = await _s3Service.UploadAsync(fileStream, s3Key, file.ContentType);
 
                 // Update request with file information
                 request.DrawingNumber = drawingNumber;
                 request.FileName = Path.GetFileName(file.FileName);
                 request.FileType = extension.TrimStart('.');
-                request.FileUrl = $"/uploads/drawings/{year}/{month}/{fileName}";
-                request.FileSize = (decimal)(file.Length / 1024.0); // Convert to KB
+                request.FileUrl = fileUrl;
+                request.FileSize = (decimal)(file.Length / 1024.0);
 
                 // Create drawing record
                 var result = await _drawingService.CreateDrawingAsync(request);
@@ -134,9 +125,6 @@ namespace MultiHitechERP.API.Controllers.Masters
                 var results = new System.Collections.Generic.List<object>();
                 var year = DateTime.Now.Year.ToString();
                 var month = DateTime.Now.Month.ToString("D2");
-                var uploadsFolder = Path.Combine(_environment.WebRootPath ?? _environment.ContentRootPath, "uploads", "drawings", year, month);
-
-                Directory.CreateDirectory(uploadsFolder);
 
                 foreach (var file in files)
                 {
@@ -158,27 +146,24 @@ namespace MultiHitechERP.API.Controllers.Masters
                         continue;
                     }
 
-                    // Generate unique filename
+                    // Generate S3 key and upload
                     var drawingNumber = $"DWG-{DateTime.Now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N").Substring(0, 6)}";
                     var fileName = $"{drawingNumber}_{Path.GetFileName(file.FileName)}";
-                    var filePath = Path.Combine(uploadsFolder, fileName);
+                    var s3Key = $"drawings/{year}/{month}/{fileName}";
 
-                    // Save file
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                    }
+                    using var fileStream = file.OpenReadStream();
+                    var fileUrl = await _s3Service.UploadAsync(fileStream, s3Key, file.ContentType);
 
                     // Create drawing record with minimal information
                     var request = new CreateDrawingRequest
                     {
                         DrawingNumber = drawingNumber,
                         DrawingName = Path.GetFileNameWithoutExtension(file.FileName),
-                        DrawingType = "other", // Default, can be updated later
+                        DrawingType = "other",
                         Status = "draft",
                         FileName = Path.GetFileName(file.FileName),
                         FileType = extension.TrimStart('.'),
-                        FileUrl = $"/uploads/drawings/{year}/{month}/{fileName}",
+                        FileUrl = fileUrl,
                         FileSize = (decimal)(file.Length / 1024.0),
                         LinkedProductId = linkedProductId,
                         LinkedCustomerId = linkedCustomerId,

@@ -110,6 +110,7 @@ builder.Services.AddScoped<IIssueWindowDraftRepository, IssueWindowDraftReposito
 builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
 builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<ISchedulingPlannerService, SchedulingPlannerService>();
+builder.Services.AddSingleton<IS3Service, S3Service>();
 
 // CORS for frontend
 builder.Services.AddCors(options =>
