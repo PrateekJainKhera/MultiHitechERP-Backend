@@ -56,10 +56,17 @@ namespace MultiHitechERP.API.Controllers.Stores
             if (request.BarAssignments == null || !request.BarAssignments.Any())
                 return BadRequest(ApiResponse<object>.ErrorResponse("No bar assignments in draft"));
 
-            var result = await _service.SaveDraftAsync(request);
-            var response = ApiResponse<IssueWindowDraftDetailResponse>.SuccessResponse(result);
-            response.Message = $"Draft {result.DraftNo} saved — materials reserved";
-            return Ok(response);
+            try
+            {
+                var result = await _service.SaveDraftAsync(request);
+                var response = ApiResponse<IssueWindowDraftDetailResponse>.SuccessResponse(result);
+                response.Message = $"Draft {result.DraftNo} saved — materials reserved";
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse($"Save draft failed: {ex.Message}"));
+            }
         }
 
         // GET /api/stores/issue-window/drafts — Draft-status drafts (Cutting Planning page)
@@ -92,10 +99,17 @@ namespace MultiHitechERP.API.Controllers.Stores
         [HttpPost("drafts/{id:int}/finalize")]
         public async Task<IActionResult> FinalizeDraft(int id)
         {
-            var finalized = await _service.FinalizeDraftAsync(id);
-            if (!finalized)
-                return BadRequest(ApiResponse<object>.ErrorResponse($"Draft {id} not found or is not in Draft status"));
-            return Ok(ApiResponse<object>.SuccessResponse(null!, $"Draft {id} finalized — it will appear in Issue List"));
+            try
+            {
+                var finalized = await _service.FinalizeDraftAsync(id);
+                if (!finalized)
+                    return BadRequest(ApiResponse<object>.ErrorResponse($"Draft {id} not found or is not in Draft status"));
+                return Ok(ApiResponse<object>.SuccessResponse(null!, $"Draft {id} finalized — it will appear in Issue List"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse($"Finalize failed: {ex.Message}"));
+            }
         }
 
         // POST /api/stores/issue-window/drafts/{id}/issue — Issue a finalized draft
@@ -134,10 +148,17 @@ namespace MultiHitechERP.API.Controllers.Stores
         [HttpDelete("drafts/{id:int}")]
         public async Task<IActionResult> DeleteDraft(int id)
         {
-            var deleted = await _service.DeleteDraftAsync(id);
-            if (!deleted)
-                return BadRequest(ApiResponse<object>.ErrorResponse($"Draft {id} not found or is Finalized/Issued (cannot delete)"));
-            return Ok(ApiResponse<object>.SuccessResponse(null!, $"Draft {id} deleted — reserved materials released"));
+            try
+            {
+                var deleted = await _service.DeleteDraftAsync(id);
+                if (!deleted)
+                    return BadRequest(ApiResponse<object>.ErrorResponse($"Draft {id} not found or is Finalized/Issued (cannot delete)"));
+                return Ok(ApiResponse<object>.SuccessResponse(null!, $"Draft {id} deleted — reserved materials released"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse($"Delete failed: {ex.Message}"));
+            }
         }
     }
 }
