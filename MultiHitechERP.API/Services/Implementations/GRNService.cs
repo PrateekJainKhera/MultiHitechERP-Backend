@@ -152,7 +152,9 @@ namespace MultiHitechERP.API.Services.Implementations
                     quantityToAdd,
                     uom,
                     "Main Warehouse",
-                    request.CreatedBy
+                    request.CreatedBy,
+                    "RawMaterial",
+                    request.GRNNo   // e.g. GRN-202602-001 — marks as GRN inward
                 );
             }
 

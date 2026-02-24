@@ -91,7 +91,7 @@ namespace MultiHitechERP.API.Controllers.Masters
                     ? request.DrawingNumber.Trim()
                     : $"DWG-{DateTime.Now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N").Substring(0, 6)}";
                 var fileName = $"{drawingNumber}_{Path.GetFileName(file.FileName)}";
-                var s3Key = $"drawings/{year}/{month}/{fileName}";
+                var s3Key = $"multihitech/drawings/{year}/{month}/{fileName}";
 
                 // Upload to S3
                 using var fileStream = file.OpenReadStream();
@@ -149,7 +149,7 @@ namespace MultiHitechERP.API.Controllers.Masters
                     // Generate S3 key and upload
                     var drawingNumber = $"DWG-{DateTime.Now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N").Substring(0, 6)}";
                     var fileName = $"{drawingNumber}_{Path.GetFileName(file.FileName)}";
-                    var s3Key = $"drawings/{year}/{month}/{fileName}";
+                    var s3Key = $"multihitech/drawings/{year}/{month}/{fileName}";
 
                     using var fileStream = file.OpenReadStream();
                     var fileUrl = await _s3Service.UploadAsync(fileStream, s3Key, file.ContentType);

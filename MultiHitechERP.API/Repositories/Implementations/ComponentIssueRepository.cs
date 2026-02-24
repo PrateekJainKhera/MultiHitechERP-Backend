@@ -92,14 +92,16 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string sql = @"
                 SELECT
                     c.Id, c.PartNumber, c.ComponentName, c.Category, c.Unit,
-                    ISNULL(s.AvailableStock, 0) AS AvailableStock,
-                    ISNULL(s.CurrentStock,   0) AS CurrentStock,
-                    ISNULL(s.Location,       '') AS StockLocation
+                    ISNULL(SUM(s.AvailableStock), 0) AS AvailableStock,
+                    ISNULL(SUM(s.CurrentStock),   0) AS CurrentStock,
+                    ISNULL(MAX(s.Location),       '') AS StockLocation,
+                    MAX(s.SourceRef)                  AS SourceRef
                 FROM Masters_Components c
                 LEFT JOIN Inventory_Stock s
                     ON s.ItemType = 'Component' AND s.ItemId = c.Id
                 WHERE c.IsActive = 1
-                  AND ISNULL(s.AvailableStock, 0) > 0
+                GROUP BY c.Id, c.PartNumber, c.ComponentName, c.Category, c.Unit
+                HAVING ISNULL(SUM(s.AvailableStock), 0) > 0
                 ORDER BY c.ComponentName";
 
             var list = new List<ComponentWithStockResponse>();
@@ -119,6 +121,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     AvailableStock = reader.GetDecimal(reader.GetOrdinal("AvailableStock")),
                     CurrentStock   = reader.GetDecimal(reader.GetOrdinal("CurrentStock")),
                     StockLocation  = reader.GetString(reader.GetOrdinal("StockLocation")),
+                    SourceRef      = reader.IsDBNull(reader.GetOrdinal("SourceRef")) ? null : reader.GetString(reader.GetOrdinal("SourceRef")),
                 });
             }
             return list;

@@ -14,11 +14,9 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required]
         public string RollerType { get; set; } = string.Empty;
 
-        [Required]
-        public decimal Diameter { get; set; }
+        public decimal? Diameter { get; set; }
 
-        [Required]
-        public decimal Length { get; set; }
+        public decimal? Length { get; set; }
 
         public string? MaterialGrade { get; set; }
         public string? DrawingNo { get; set; }

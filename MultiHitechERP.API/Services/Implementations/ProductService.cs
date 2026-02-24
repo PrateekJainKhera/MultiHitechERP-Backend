@@ -78,11 +78,11 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (!validRollerTypes.Contains(request.RollerType))
                     return ApiResponse<int>.ErrorResponse("Roller type must be either 'Printing Roller', 'Magnetic Roller', or 'Other'");
 
-                // Business validation: Validate dimensions
-                if (request.Diameter <= 0)
+                // Business validation: Validate dimensions (only if a value is provided)
+                if (request.Diameter.HasValue && request.Diameter <= 0)
                     return ApiResponse<int>.ErrorResponse("Diameter must be greater than 0");
 
-                if (request.Length <= 0)
+                if (request.Length.HasValue && request.Length <= 0)
                     return ApiResponse<int>.ErrorResponse("Length must be greater than 0");
 
                 // Validate and get machine model
@@ -157,11 +157,11 @@ namespace MultiHitechERP.API.Services.Implementations
                         return ApiResponse<bool>.ErrorResponse($"Product with part code '{request.PartCode}' already exists");
                 }
 
-                // Business validation: Validate dimensions
-                if (request.Diameter <= 0)
+                // Business validation: Validate dimensions (only if a value is provided)
+                if (request.Diameter.HasValue && request.Diameter <= 0)
                     return ApiResponse<bool>.ErrorResponse("Diameter must be greater than 0");
 
-                if (request.Length <= 0)
+                if (request.Length.HasValue && request.Length <= 0)
                     return ApiResponse<bool>.ErrorResponse("Length must be greater than 0");
 
                 // Validate and get machine model

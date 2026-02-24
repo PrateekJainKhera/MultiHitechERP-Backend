@@ -16,6 +16,7 @@ namespace MultiHitechERP.API.DTOs.Response
 
         // Capacity & Scheduling
         public decimal DailyCapacityHours { get; set; }
+        public decimal? MaxLengthMM { get; set; }
 
         // Process Categories
         public List<int> ProcessCategoryIds { get; set; } = new List<int>();

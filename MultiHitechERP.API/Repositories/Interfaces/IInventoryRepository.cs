@@ -57,6 +57,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
             string uom,
             string location,
             string updatedBy,
-            string itemType = "RawMaterial");  // Added itemType parameter
+            string itemType = "RawMaterial",
+            string? sourceRef = null,   // e.g. "OS-202602-001" or "GRN-202602-001"
+            int? warehouseId = null);   // FK to Stores_MasterWarehouses
     }
 }

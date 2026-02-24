@@ -729,11 +729,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
             string uom,
             string location,
             string updatedBy,
-            string itemType = "RawMaterial")  // Added itemType parameter with default value
+            string itemType = "RawMaterial",
+            string? sourceRef = null,
+            int? warehouseId = null)
         {
-            // Use MERGE to handle both INSERT and UPDATE in a single atomic operation
-            // Use a VALUES-based source (always 1 row) so WHEN NOT MATCHED always fires for new items.
-            // If ItemCode is null, fall back to Masters_Materials.MaterialCode via subquery.
+            // Use MERGE to handle both INSERT and UPDATE in a single atomic operation.
+            // SourceRef stores the originating document (OS-xxx or GRN-xxx) for traceability.
+            // WarehouseId is a FK to Stores_MasterWarehouses for proper warehouse linkage.
+            // On INSERT: set SourceRef + WarehouseId; on UPDATE: keep existing values if already set.
             const string query = @"
                 MERGE Inventory_Stock AS target
                 USING (
@@ -748,21 +751,25 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 WHEN MATCHED THEN
                     UPDATE SET
                         CurrentStock = CurrentStock + @LengthToAdd,
-                        LastUpdated = @LastUpdated,
-                        UpdatedBy = @UpdatedBy
+                        SourceRef    = COALESCE(target.SourceRef, @SourceRef),
+                        WarehouseId  = COALESCE(target.WarehouseId, @WarehouseId),
+                        LastUpdated  = @LastUpdated,
+                        UpdatedBy    = @UpdatedBy
                 WHEN NOT MATCHED THEN
-                    INSERT (ItemType, ItemId, ItemCode, ItemName, CurrentStock, ReservedStock, UOM, Location, MinStockLevel, LastUpdated, UpdatedBy)
-                    VALUES (@ItemType, @ItemId, source.ItemCode, @ItemName, @LengthToAdd, 0, @UOM, @Location, 0, @LastUpdated, @UpdatedBy);";
+                    INSERT (ItemType, ItemId, ItemCode, ItemName, CurrentStock, ReservedStock, UOM, Location, MinStockLevel, SourceRef, WarehouseId, LastUpdated, UpdatedBy)
+                    VALUES (@ItemType, @ItemId, source.ItemCode, @ItemName, @LengthToAdd, 0, @UOM, @Location, 0, @SourceRef, @WarehouseId, @LastUpdated, @UpdatedBy);";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@ItemType", itemType);  // ✅ Use parameter instead of hardcoded value
+            command.Parameters.AddWithValue("@ItemType", itemType);
             command.Parameters.AddWithValue("@ItemId", materialId);
             command.Parameters.AddWithValue("@ItemCode", (object?)materialCode ?? DBNull.Value);
             command.Parameters.AddWithValue("@ItemName", materialName);
             command.Parameters.AddWithValue("@LengthToAdd", lengthToAdd);
             command.Parameters.AddWithValue("@UOM", uom);
             command.Parameters.AddWithValue("@Location", location);
+            command.Parameters.AddWithValue("@SourceRef", (object?)sourceRef ?? DBNull.Value);
+            command.Parameters.AddWithValue("@WarehouseId", (object?)warehouseId ?? DBNull.Value);
             command.Parameters.AddWithValue("@LastUpdated", DateTime.UtcNow);
             command.Parameters.AddWithValue("@UpdatedBy", updatedBy);
 
@@ -809,7 +816,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 LastCountDate = null, // Not in Inventory_Stock yet
                 CreatedAt = DateTime.UtcNow, // Default for now
                 UpdatedAt = reader.IsDBNull(reader.GetOrdinal("LastUpdated")) ? null : reader.GetDateTime(reader.GetOrdinal("LastUpdated")),
-                UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy"))
+                UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy")),
+                SourceRef = reader.IsDBNull(reader.GetOrdinal("SourceRef")) ? null : reader.GetString(reader.GetOrdinal("SourceRef")),
+                WarehouseId = reader.IsDBNull(reader.GetOrdinal("WarehouseId")) ? null : reader.GetInt32(reader.GetOrdinal("WarehouseId"))
             };
         }
 

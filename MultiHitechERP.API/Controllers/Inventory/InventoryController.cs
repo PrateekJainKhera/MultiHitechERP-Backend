@@ -16,10 +16,12 @@ namespace MultiHitechERP.API.Controllers.Inventory
     public class InventoryController : ControllerBase
     {
         private readonly IInventoryService _service;
+        private readonly IWarehouseService _warehouseService;
 
-        public InventoryController(IInventoryService service)
+        public InventoryController(IInventoryService service, IWarehouseService warehouseService)
         {
             _service = service;
+            _warehouseService = warehouseService;
         }
 
         /// <summary>
@@ -236,6 +238,15 @@ namespace MultiHitechERP.API.Controllers.Inventory
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<int>.ErrorResponse("Invalid request data"));
 
+            // Resolve warehouse name from WarehouseId if provided
+            string storageLocation = request.StorageLocation ?? "Main Warehouse";
+            if (request.WarehouseId.HasValue)
+            {
+                var whResp = await _warehouseService.GetByIdAsync(request.WarehouseId.Value);
+                if (whResp.Success && whResp.Data != null)
+                    storageLocation = $"{whResp.Data.Name} — {whResp.Data.Rack}/{whResp.Data.RackNo}";
+            }
+
             var response = await _service.ReceiveComponentAsync(
                 request.ComponentId,
                 request.ComponentName,
@@ -250,9 +261,10 @@ namespace MultiHitechERP.API.Controllers.Inventory
                 request.PONo ?? "",
                 request.PODate,
                 request.ReceiptDate,
-                request.StorageLocation ?? "Main Warehouse",
+                storageLocation,
                 request.Remarks ?? "",
-                request.ReceivedBy
+                request.ReceivedBy,
+                request.WarehouseId
             );
 
             if (!response.Success)
@@ -391,7 +403,9 @@ namespace MultiHitechERP.API.Controllers.Inventory
                 LastCountDate = inventory.LastCountDate,
                 CreatedAt = inventory.CreatedAt,
                 UpdatedAt = inventory.UpdatedAt,
-                UpdatedBy = inventory.UpdatedBy
+                UpdatedBy = inventory.UpdatedBy,
+                SourceRef = inventory.SourceRef,
+                WarehouseId = inventory.WarehouseId
             };
         }
 

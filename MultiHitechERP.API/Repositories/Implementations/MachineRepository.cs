@@ -120,10 +120,10 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 INSERT INTO Masters_Machines (
                     MachineCode, MachineName, MachineType, Location, Department,
-                    Status, Notes, DailyCapacityHours, IsActive, CreatedAt, CreatedBy
+                    Status, Notes, DailyCapacityHours, MaxLengthMM, IsActive, CreatedAt, CreatedBy
                 ) VALUES (
                     @MachineCode, @MachineName, @MachineType, @Location, @Department,
-                    @Status, @Notes, @DailyCapacityHours, @IsActive, @CreatedAt, @CreatedBy
+                    @Status, @Notes, @DailyCapacityHours, @MaxLengthMM, @IsActive, @CreatedAt, @CreatedBy
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -139,6 +139,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Status", (object?)machine.Status ?? DBNull.Value);
             command.Parameters.AddWithValue("@Notes", (object?)machine.Notes ?? DBNull.Value);
             command.Parameters.AddWithValue("@DailyCapacityHours", machine.DailyCapacityHours);
+            command.Parameters.AddWithValue("@MaxLengthMM", (object?)machine.MaxLengthMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", machine.IsActive);
             command.Parameters.AddWithValue("@CreatedAt", machine.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", (object?)machine.CreatedBy ?? DBNull.Value);
@@ -154,7 +155,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     MachineName = @MachineName, MachineType = @MachineType,
                     Location = @Location, Department = @Department,
                     Status = @Status, Notes = @Notes, DailyCapacityHours = @DailyCapacityHours,
-                    IsActive = @IsActive, UpdatedAt = @UpdatedAt, UpdatedBy = @UpdatedBy
+                    MaxLengthMM = @MaxLengthMM, IsActive = @IsActive, UpdatedAt = @UpdatedAt, UpdatedBy = @UpdatedBy
                 WHERE Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -169,6 +170,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Status", (object?)machine.Status ?? DBNull.Value);
             command.Parameters.AddWithValue("@Notes", (object?)machine.Notes ?? DBNull.Value);
             command.Parameters.AddWithValue("@DailyCapacityHours", machine.DailyCapacityHours);
+            command.Parameters.AddWithValue("@MaxLengthMM", (object?)machine.MaxLengthMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", machine.IsActive);
             command.Parameters.AddWithValue("@UpdatedAt", (object?)machine.UpdatedAt ?? DBNull.Value);
             command.Parameters.AddWithValue("@UpdatedBy", (object?)machine.UpdatedBy ?? DBNull.Value);
@@ -340,6 +342,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? null : reader.GetString(reader.GetOrdinal("Status")),
                 Notes = reader.IsDBNull(reader.GetOrdinal("Notes")) ? null : reader.GetString(reader.GetOrdinal("Notes")),
                 DailyCapacityHours = reader.GetDecimal(reader.GetOrdinal("DailyCapacityHours")),
+                MaxLengthMM = reader.IsDBNull(reader.GetOrdinal("MaxLengthMM")) ? null : reader.GetDecimal(reader.GetOrdinal("MaxLengthMM")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),

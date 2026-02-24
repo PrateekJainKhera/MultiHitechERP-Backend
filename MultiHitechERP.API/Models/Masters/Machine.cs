@@ -16,6 +16,7 @@ namespace MultiHitechERP.API.Models.Masters
 
         // Capacity & Scheduling
         public decimal DailyCapacityHours { get; set; } = 8.0m; // Default 8 hours/day
+        public decimal? MaxLengthMM { get; set; }               // Max material length this machine can process (null = no limit)
 
         // Process Categories (many-to-many - populated separately)
         public List<int> ProcessCategoryIds { get; set; } = new List<int>();

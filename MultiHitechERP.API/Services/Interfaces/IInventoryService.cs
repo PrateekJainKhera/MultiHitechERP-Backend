@@ -52,7 +52,8 @@ namespace MultiHitechERP.API.Services.Interfaces
             DateTime receiptDate,
             string storageLocation,
             string remarks,
-            string receivedBy);
+            string receivedBy,
+            int? warehouseId = null);
 
         // Transactions
         Task<ApiResponse<IEnumerable<InventoryTransaction>>> GetTransactionsByMaterialIdAsync(int materialId);

@@ -21,6 +21,7 @@ namespace MultiHitechERP.API.DTOs.Request
         // Capacity & Scheduling
         [Range(0.1, 24.0, ErrorMessage = "Daily capacity must be between 0.1 and 24 hours")]
         public decimal DailyCapacityHours { get; set; } = 8.0m;
+        public decimal? MaxLengthMM { get; set; }
 
         // Process Categories
         public List<int> ProcessCategoryIds { get; set; } = new List<int>();

@@ -99,8 +99,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@ModelId", product.ModelId);
             command.Parameters.AddWithValue("@ModelName", product.ModelName);
             command.Parameters.AddWithValue("@RollerType", product.RollerType);
-            command.Parameters.AddWithValue("@Diameter", product.Diameter);
-            command.Parameters.AddWithValue("@Length", product.Length);
+            command.Parameters.AddWithValue("@Diameter", (object?)product.Diameter ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Length", (object?)product.Length ?? DBNull.Value);
             command.Parameters.AddWithValue("@MaterialGrade", (object?)product.MaterialGrade ?? DBNull.Value);
             command.Parameters.AddWithValue("@SurfaceFinish", (object?)product.SurfaceFinish ?? DBNull.Value);
             command.Parameters.AddWithValue("@Hardness", (object?)product.Hardness ?? DBNull.Value);
@@ -169,8 +169,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@CustomerName", (object?)product.CustomerName ?? DBNull.Value);
             command.Parameters.AddWithValue("@ModelName", product.ModelName);
             command.Parameters.AddWithValue("@RollerType", product.RollerType);
-            command.Parameters.AddWithValue("@Diameter", product.Diameter);
-            command.Parameters.AddWithValue("@Length", product.Length);
+            command.Parameters.AddWithValue("@Diameter", (object?)product.Diameter ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Length", (object?)product.Length ?? DBNull.Value);
             command.Parameters.AddWithValue("@MaterialGrade", (object?)product.MaterialGrade ?? DBNull.Value);
             command.Parameters.AddWithValue("@SurfaceFinish", (object?)product.SurfaceFinish ?? DBNull.Value);
             command.Parameters.AddWithValue("@Hardness", (object?)product.Hardness ?? DBNull.Value);
@@ -315,8 +315,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 ModelId = reader.GetInt32(reader.GetOrdinal("ModelId")),
                 ModelName = reader.GetString(reader.GetOrdinal("ModelName")),
                 RollerType = reader.GetString(reader.GetOrdinal("RollerType")),
-                Diameter = reader.GetDecimal(reader.GetOrdinal("Diameter")),
-                Length = reader.GetDecimal(reader.GetOrdinal("Length")),
+                Diameter = reader.IsDBNull(reader.GetOrdinal("Diameter")) ? null : reader.GetDecimal(reader.GetOrdinal("Diameter")),
+                Length = reader.IsDBNull(reader.GetOrdinal("Length")) ? null : reader.GetDecimal(reader.GetOrdinal("Length")),
                 MaterialGrade = reader.IsDBNull(reader.GetOrdinal("MaterialGrade")) ? null : reader.GetString(reader.GetOrdinal("MaterialGrade")),
                 SurfaceFinish = reader.IsDBNull(reader.GetOrdinal("SurfaceFinish")) ? null : reader.GetString(reader.GetOrdinal("SurfaceFinish")),
                 Hardness = reader.IsDBNull(reader.GetOrdinal("Hardness")) ? null : reader.GetString(reader.GetOrdinal("Hardness")),

@@ -18,8 +18,8 @@ namespace MultiHitechERP.API.Models.Masters
         public string RollerType { get; set; } = string.Empty;
 
         // Dimensions
-        public decimal Diameter { get; set; }
-        public decimal Length { get; set; }
+        public decimal? Diameter { get; set; }
+        public decimal? Length { get; set; }
 
         // Material & Finish
         public string? MaterialGrade { get; set; }

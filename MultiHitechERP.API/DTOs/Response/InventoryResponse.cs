@@ -53,5 +53,9 @@ namespace MultiHitechERP.API.DTOs.Response
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public string? UpdatedBy { get; set; }
+
+        // Source traceability
+        public string? SourceRef   { get; set; }  // e.g. "OS-202602-001" or "GRN-202602-001"
+        public int?    WarehouseId { get; set; }  // FK to Stores_MasterWarehouses
     }
 }

@@ -468,7 +468,8 @@ namespace MultiHitechERP.API.Services.Implementations
             DateTime receiptDate,
             string storageLocation,
             string remarks,
-            string receivedBy)
+            string receivedBy,
+            int? warehouseId = null)
         {
             try
             {
@@ -485,7 +486,9 @@ namespace MultiHitechERP.API.Services.Implementations
                     unit,
                     storageLocation,
                     receivedBy,
-                    "Component"  // ✅ Pass "Component" as ItemType
+                    "Component",
+                    null,        // sourceRef — not set for direct purchase receipt (no doc number here)
+                    warehouseId
                 );
 
                 // Create transaction record

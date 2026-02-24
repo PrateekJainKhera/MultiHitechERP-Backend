@@ -10,8 +10,8 @@ namespace MultiHitechERP.API.DTOs.Response
         public int ModelId { get; set; }
         public string ModelName { get; set; } = string.Empty;
         public string RollerType { get; set; } = string.Empty;
-        public decimal Diameter { get; set; }
-        public decimal Length { get; set; }
+        public decimal? Diameter { get; set; }
+        public decimal? Length { get; set; }
         public string? MaterialGrade { get; set; }
 
         // Legacy drawing fields (kept for backward compatibility)

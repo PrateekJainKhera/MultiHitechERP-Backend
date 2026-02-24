@@ -149,6 +149,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     Status = request.Status?.Trim() ?? "Idle",
                     Notes = request.Notes?.Trim(),
                     DailyCapacityHours = request.DailyCapacityHours,
+                    MaxLengthMM = request.MaxLengthMM,
                     IsActive = true,
                     CreatedBy = "System"
                 };
@@ -184,6 +185,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 existingMachine.Status = request.Status?.Trim();
                 existingMachine.Notes = request.Notes?.Trim();
                 existingMachine.DailyCapacityHours = request.DailyCapacityHours;
+                existingMachine.MaxLengthMM = request.MaxLengthMM;
                 existingMachine.IsActive = request.IsActive;
                 existingMachine.UpdatedBy = "System";
 
@@ -244,6 +246,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 Status = machine.Status,
                 Notes = machine.Notes,
                 DailyCapacityHours = machine.DailyCapacityHours,
+                MaxLengthMM = machine.MaxLengthMM,
                 ProcessCategoryIds = machine.ProcessCategoryIds,
                 ProcessCategoryNames = machine.ProcessCategoryNames,
                 IsActive = machine.IsActive,

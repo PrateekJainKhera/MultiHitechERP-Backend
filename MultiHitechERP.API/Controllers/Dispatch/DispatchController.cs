@@ -284,7 +284,7 @@ namespace MultiHitechERP.API.Controllers.Dispatch
             if (invoiceDocument != null && invoiceDocument.Length > 0)
             {
                 var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(invoiceDocument.FileName)}";
-                var s3Key = $"dispatch/{fileName}";
+                var s3Key = $"multihitech/dispatch/{fileName}";
                 using var stream = invoiceDocument.OpenReadStream();
                 invoiceDocPath = await _s3Service.UploadAsync(stream, s3Key, invoiceDocument.ContentType);
             }

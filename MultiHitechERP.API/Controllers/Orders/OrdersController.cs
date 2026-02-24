@@ -460,7 +460,7 @@ namespace MultiHitechERP.API.Controllers.Orders
 
             var ext = Path.GetExtension(file.FileName);
             var storedName = $"{Guid.NewGuid()}{ext}";
-            var s3Key = $"order-drawings/{storedName}";
+            var s3Key = $"multihitech/order-drawings/{storedName}";
 
             using var fileStream = file.OpenReadStream();
             var fileUrl = await _s3Service.UploadAsync(fileStream, s3Key, file.ContentType);

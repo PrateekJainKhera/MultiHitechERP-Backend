@@ -9,8 +9,9 @@ namespace MultiHitechERP.API.DTOs.Response
         public string Unit            { get; set; } = "Pcs";
 
         // Stock fields from Inventory_Stock
-        public decimal AvailableStock { get; set; }
-        public decimal CurrentStock   { get; set; }
-        public string  StockLocation  { get; set; } = string.Empty;
+        public decimal  AvailableStock { get; set; }
+        public decimal  CurrentStock   { get; set; }
+        public string   StockLocation  { get; set; } = string.Empty;
+        public string?  SourceRef      { get; set; }  // e.g. "OS-202602-001" or "GRN-202602-001"
     }
 }

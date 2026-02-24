@@ -40,6 +40,7 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required(ErrorMessage = "Receipt date is required")]
         public DateTime ReceiptDate { get; set; } = DateTime.UtcNow;
 
+        public int?    WarehouseId     { get; set; }   // FK to Stores_MasterWarehouses
         public string? StorageLocation { get; set; } = "Main Warehouse";
 
         public string? Remarks { get; set; }
