@@ -19,7 +19,10 @@ namespace MultiHitechERP.API.Services.Interfaces
         /// <summary>Full production detail for one order item, grouped by child part (NEW)</summary>
         Task<ApiResponse<ProductionOrderDetail>> GetOrderItemDetailAsync(int orderItemId);
 
-        /// <summary>Operator action on a job card: start | pause | resume | complete</summary>
+        /// <summary>Operator action on a job card: start | pause | resume | complete | direct-complete</summary>
         Task<ApiResponse<bool>> HandleActionAsync(int jobCardId, ProductionActionRequest request);
+
+        /// <summary>Process-based execution view: ProcessCategory → ChildPart → Orders (all scheduled job cards)</summary>
+        Task<ApiResponse<IEnumerable<ExecutionViewCategory>>> GetExecutionViewAsync();
     }
 }

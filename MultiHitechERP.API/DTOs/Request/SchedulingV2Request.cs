@@ -6,6 +6,7 @@ namespace MultiHitechERP.API.DTOs.Request
     public class GetJobCardsForOrdersRequest
     {
         public List<int> OrderIds { get; set; } = new();
+        public List<int>? OrderItemIds { get; set; }  // non-null for multi-product order items
     }
 
     public class GetCategoryMachineSuggestionsRequest

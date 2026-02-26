@@ -229,7 +229,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Planning_JobCards
-                (JobCardNo, CreationType, OrderId, OrderNo,
+                (JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
                  DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
                  ChildPartId, ChildPartName, ChildPartTemplateId,
                  ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
@@ -237,7 +237,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                  Quantity, Status, Priority, ManufacturingDimensions,
                  CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version)
                 VALUES
-                (@JobCardNo, @CreationType, @OrderId, @OrderNo,
+                (@JobCardNo, @CreationType, @OrderId, @OrderNo, @OrderItemId, @ItemSequence,
                  @DrawingId, @DrawingNumber, @DrawingRevision, @DrawingName, @DrawingSelectionType,
                  @ChildPartId, @ChildPartName, @ChildPartTemplateId,
                  @ProcessId, @ProcessName, @ProcessCode, @StepNo, @ProcessTemplateId,

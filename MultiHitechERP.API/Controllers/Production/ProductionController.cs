@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MultiHitechERP.API.DTOs.Request;
@@ -62,13 +63,31 @@ namespace MultiHitechERP.API.Controllers.Production
 
         /// <summary>
         /// POST /api/production/job-cards/{jobCardId}/action
-        /// Operator action: { "action": "start" | "pause" | "resume" | "complete", ... }
+        /// Operator action: { "action": "start" | "pause" | "resume" | "complete" | "direct-complete", ... }
         /// </summary>
         [HttpPost("job-cards/{jobCardId:int}/action")]
         public async Task<IActionResult> Action(int jobCardId, [FromBody] ProductionActionRequest request)
         {
             var result = await _productionService.HandleActionAsync(jobCardId, request);
             return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// GET /api/production/execution-view
+        /// Process-based execution view: ProcessCategory → ChildPart → Orders (all scheduled job cards)
+        /// </summary>
+        [HttpGet("execution-view")]
+        public async Task<IActionResult> GetExecutionView()
+        {
+            try
+            {
+                var result = await _productionService.GetExecutionViewAsync();
+                return result.Success ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
     }
 }

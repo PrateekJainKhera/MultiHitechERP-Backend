@@ -3,6 +3,58 @@ using System.Collections.Generic;
 
 namespace MultiHitechERP.API.DTOs.Response
 {
+    // ─── Process-Category Execution View ────────────────────────────────────────
+
+    /// <summary>One job card row in the process-based execution view</summary>
+    public class ExecutionViewRow
+    {
+        public int JobCardId { get; set; }
+        public string JobCardNo { get; set; } = string.Empty;
+        public int OrderId { get; set; }
+        public int? OrderItemId { get; set; }
+        public string OrderNo { get; set; } = string.Empty;
+        public string? ChildPartName { get; set; }
+        public string? ProcessName { get; set; }
+        public int? StepNo { get; set; }
+        public int Quantity { get; set; }
+        public int CompletedQty { get; set; }
+        public int RejectedQty { get; set; }
+        public string ProductionStatus { get; set; } = "Pending";
+        public bool IsLocked { get; set; }       // true when previous step not done
+        public string? WaitingFor { get; set; }  // ProcessName of the blocking step
+        public string? MachineName { get; set; }
+        public DateTime? ActualStartTime { get; set; }
+        public DateTime? ActualEndTime { get; set; }
+
+        // OSP fields
+        public bool IsOsp { get; set; }
+        /// <summary>null = not sent yet, "Sent" = at vendor, "Received" = done (job card auto-completed)</summary>
+        public string? OspStatus { get; set; }
+    }
+
+    /// <summary>Child part group within a process category</summary>
+    public class ExecutionViewChildPart
+    {
+        public string ChildPartName { get; set; } = string.Empty;
+        public int? ChildPartId { get; set; }
+        public bool IsReadyForAssembly { get; set; }
+        public List<ExecutionViewRow> JobCards { get; set; } = new();
+    }
+
+    /// <summary>Top-level process category section</summary>
+    public class ExecutionViewCategory
+    {
+        public int? ProcessCategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string? CategoryCode { get; set; }
+        public int TotalJobs { get; set; }
+        public int ReadyJobs { get; set; }
+        public int InProgressJobs { get; set; }
+        public int CompletedJobs { get; set; }
+        public List<ExecutionViewChildPart> ChildParts { get; set; } = new();
+    }
+
+
     /// <summary>One row in the Production Dashboard orders list</summary>
     public class ProductionOrderSummary
     {

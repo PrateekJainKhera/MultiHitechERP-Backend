@@ -17,6 +17,7 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IOrderItemRepository _orderItemRepository;
         private readonly IProcessRepository _processRepository;
         private readonly IMaterialPieceRepository _pieceRepository;
+        private readonly IOSPTrackingRepository _ospRepository;
 
         public ProductionService(
             IJobCardRepository jobCardRepository,
@@ -24,7 +25,8 @@ namespace MultiHitechERP.API.Services.Implementations
             IOrderRepository orderRepository,
             IOrderItemRepository orderItemRepository,
             IProcessRepository processRepository,
-            IMaterialPieceRepository pieceRepository)
+            IMaterialPieceRepository pieceRepository,
+            IOSPTrackingRepository ospRepository)
         {
             _jobCardRepository = jobCardRepository;
             _scheduleRepository = scheduleRepository;
@@ -32,6 +34,7 @@ namespace MultiHitechERP.API.Services.Implementations
             _orderItemRepository = orderItemRepository;
             _processRepository = processRepository;
             _pieceRepository = pieceRepository;
+            _ospRepository = ospRepository;
         }
 
         // Helper: stable key for grouping job cards by child part
@@ -559,6 +562,17 @@ namespace MultiHitechERP.API.Services.Implementations
                         actualEnd = DateTime.UtcNow;
                         break;
 
+                    case "direct-complete":
+                        // Allows completing from Ready, InProgress, or Paused in one shot
+                        if (jobCard.ProductionStatus == "Ready")
+                            actualStart = DateTime.UtcNow;
+                        else if (jobCard.ProductionStatus != "InProgress" && jobCard.ProductionStatus != "Paused")
+                            return ApiResponse<bool>.ErrorResponse($"Cannot complete: job card is '{jobCard.ProductionStatus}'");
+                        newStatus = "Completed";
+                        actualEnd = DateTime.UtcNow;
+                        action = "complete"; // trigger cascade
+                        break;
+
                     default:
                         return ApiResponse<bool>.ErrorResponse($"Unknown action '{request.Action}'. Use: start | pause | resume | complete");
                 }
@@ -676,6 +690,153 @@ namespace MultiHitechERP.API.Services.Implementations
                         );
                     }
                 }
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 4. Process-based Execution View — ProcessCategory → ChildPart → Orders
+        // ─────────────────────────────────────────────────────────────────────
+        public async Task<ApiResponse<IEnumerable<ExecutionViewCategory>>> GetExecutionViewAsync()
+        {
+            try
+            {
+                // All scheduled, non-assembly job cards
+                var allScheduled = (await _jobCardRepository.GetByStatusAsync("Scheduled"))
+                    .Where(jc => jc.CreationType != "Assembly")
+                    .ToList();
+
+                if (!allScheduled.Any())
+                    return ApiResponse<IEnumerable<ExecutionViewCategory>>.SuccessResponse(new List<ExecutionViewCategory>());
+
+                // Cache process → category info (one DB call per unique process)
+                var processCache = new Dictionary<int, Models.Masters.Process>();
+                foreach (var pid in allScheduled.Select(jc => jc.ProcessId).Distinct())
+                {
+                    var proc = await _processRepository.GetByIdAsync(pid);
+                    if (proc != null) processCache[pid] = proc;
+                }
+
+                // Cache OSP status per job card (only "Sent" entries)
+                var ospStatusMap = await _ospRepository.GetActiveOspStatusByJobCardIdsAsync(
+                    allScheduled.Select(jc => jc.Id));
+
+                // Cache schedule → machine name
+                var machineCache = new Dictionary<int, string?>();
+                foreach (var jc in allScheduled)
+                {
+                    var schedules = await _scheduleRepository.GetByJobCardIdAsync(jc.Id);
+                    var active = schedules
+                        .Where(s => s.Status == "Scheduled" || s.Status == "InProgress")
+                        .OrderByDescending(s => s.CreatedAt)
+                        .FirstOrDefault();
+                    machineCache[jc.Id] = active?.MachineName;
+                }
+
+                // Group by ProcessCategory
+                var categoryGroups = allScheduled
+                    .GroupBy(jc =>
+                    {
+                        processCache.TryGetValue(jc.ProcessId, out var p);
+                        return new
+                        {
+                            CategoryId = p?.ProcessCategoryId,
+                            CategoryName = p?.ProcessCategoryName ?? "Uncategorized",
+                            CategoryCode = (string?)null
+                        };
+                    })
+                    .OrderBy(g => g.Key.CategoryName != null && g.Key.CategoryName.Contains("Assembly") ? 1 : 0)
+                    .ThenBy(g => g.Key.CategoryName)
+                    .Select(categoryGroup =>
+                    {
+                        // Group by child part within this category
+                        var childPartGroups = categoryGroup
+                            .GroupBy(jc => ChildPartKey(jc))
+                            .OrderBy(g => g.Key)
+                            .Select(childGroup =>
+                            {
+                                var rows = childGroup
+                                    .OrderBy(jc => jc.OrderNo)
+                                    .ThenBy(jc => jc.StepNo)
+                                    .Select(jc =>
+                                    {
+                                        bool isLocked = jc.ProductionStatus == "Pending";
+                                        string? waitingFor = null;
+
+                                        if (isLocked)
+                                        {
+                                            // Find the step blocking this one (same order + child part, lower step, not completed)
+                                            var blockingStep = allScheduled
+                                                .Where(other =>
+                                                    other.OrderId == jc.OrderId &&
+                                                    ChildPartKey(other) == ChildPartKey(jc) &&
+                                                    other.StepNo < jc.StepNo &&
+                                                    other.ProductionStatus != "Completed")
+                                                .OrderByDescending(other => other.StepNo)
+                                                .FirstOrDefault();
+                                            waitingFor = blockingStep?.ProcessName;
+                                        }
+
+                                        machineCache.TryGetValue(jc.Id, out var machineName);
+                                        processCache.TryGetValue(jc.ProcessId, out var procInfo);
+                                        ospStatusMap.TryGetValue(jc.Id, out var ospStatus);
+
+                                        return new ExecutionViewRow
+                                        {
+                                            JobCardId = jc.Id,
+                                            JobCardNo = jc.JobCardNo,
+                                            OrderId = jc.OrderId,
+                                            OrderItemId = jc.OrderItemId,
+                                            OrderNo = !string.IsNullOrEmpty(jc.ItemSequence)
+                                                ? $"{jc.OrderNo}-{jc.ItemSequence}"
+                                                : (jc.OrderNo ?? jc.OrderId.ToString()),
+                                            ChildPartName = jc.ChildPartName,
+                                            ProcessName = jc.ProcessName,
+                                            StepNo = jc.StepNo,
+                                            Quantity = jc.Quantity,
+                                            CompletedQty = jc.CompletedQty,
+                                            RejectedQty = jc.RejectedQty,
+                                            ProductionStatus = jc.ProductionStatus,
+                                            IsLocked = isLocked,
+                                            WaitingFor = waitingFor,
+                                            MachineName = machineName,
+                                            ActualStartTime = jc.ActualStartTime,
+                                            ActualEndTime = jc.ActualEndTime,
+                                            IsOsp = procInfo?.IsOutsourced ?? false,
+                                            OspStatus = ospStatus,  // "Sent" or null
+                                        };
+                                    }).ToList();
+
+                                var first = childGroup.First();
+                                bool isReadyForAssembly = childGroup.All(jc => jc.ReadyForAssembly || jc.ProductionStatus == "Completed");
+
+                                return new ExecutionViewChildPart
+                                {
+                                    ChildPartName = first.ChildPartName ?? "Unknown Part",
+                                    ChildPartId = first.ChildPartId,
+                                    IsReadyForAssembly = isReadyForAssembly,
+                                    JobCards = rows
+                                };
+                            }).ToList();
+
+                        var key = categoryGroup.Key;
+                        return new ExecutionViewCategory
+                        {
+                            ProcessCategoryId = key.CategoryId,
+                            CategoryName = key.CategoryName,
+                            CategoryCode = key.CategoryCode,
+                            TotalJobs = categoryGroup.Count(),
+                            ReadyJobs = categoryGroup.Count(jc => jc.ProductionStatus == "Ready"),
+                            InProgressJobs = categoryGroup.Count(jc => jc.ProductionStatus == "InProgress" || jc.ProductionStatus == "Paused"),
+                            CompletedJobs = categoryGroup.Count(jc => jc.ProductionStatus == "Completed"),
+                            ChildParts = childPartGroups
+                        };
+                    }).ToList();
+
+                return ApiResponse<IEnumerable<ExecutionViewCategory>>.SuccessResponse(categoryGroups);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<ExecutionViewCategory>>.ErrorResponse($"Error loading execution view: {ex.Message}");
             }
         }
 

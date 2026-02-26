@@ -39,12 +39,14 @@ namespace MultiHitechERP.API.Services.Implementations
             {
                 using var conn = _connectionFactory.CreateConnection();
 
-                // Use CTE to pre-compute per-JC flags first, then aggregate
+                // Use CTE to pre-compute per-JC flags first, then aggregate per order-item
                 const string sql = @"
                     WITH JcFlags AS (
                         SELECT
                             jc.Id AS JobCardId,
                             jc.OrderId,
+                            jc.OrderItemId,
+                            jc.ItemSequence,
                             jc.OrderNo,
                             jc.Priority,
                             CASE WHEN (
@@ -66,6 +68,8 @@ namespace MultiHitechERP.API.Services.Implementations
                     )
                     SELECT
                         f.OrderId,
+                        f.OrderItemId,
+                        MAX(f.ItemSequence) AS ItemSequence,
                         MAX(f.OrderNo) AS OrderNo,
                         MAX(ISNULL(c.CustomerName, '')) AS CustomerName,
                         MAX(o.DueDate) AS DueDate,
@@ -76,16 +80,22 @@ namespace MultiHitechERP.API.Services.Implementations
                     FROM JcFlags f
                     LEFT JOIN Orders o ON o.Id = f.OrderId
                     LEFT JOIN Masters_Customers c ON c.Id = o.CustomerId
-                    GROUP BY f.OrderId
+                    GROUP BY f.OrderId, f.OrderItemId
                     HAVING SUM(CASE WHEN f.MaterialIssued = 1 AND f.AlreadyScheduled = 0 THEN 1 ELSE 0 END) > 0
                     ORDER BY MAX(o.DueDate), MAX(f.OrderNo)";
 
                 var rows = await conn.QueryAsync(sql);
 
-                var result = rows.Select(r => new SchedulableOrderV2Response
+                var result = rows.Select(r =>
                 {
+                    var baseOrderNo = (string)r.OrderNo ?? "";
+                    var itemSeq = (string?)r.ItemSequence;
+                    return new SchedulableOrderV2Response
+                    {
                     OrderId = (int)r.OrderId,
-                    OrderNo = (string)r.OrderNo ?? "",
+                    OrderItemId = (int?)r.OrderItemId,
+                    ItemSequence = itemSeq,
+                    OrderNo = !string.IsNullOrEmpty(itemSeq) ? $"{baseOrderNo}-{itemSeq}" : baseOrderNo,
                     CustomerName = (string?)r.CustomerName,
                     DueDate = (DateTime?)r.DueDate,
                     Priority = (string)r.Priority ?? "Medium",
@@ -93,6 +103,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     MaterialIssuedCount = (int)r.MaterialIssuedCount,
                     AlreadyScheduledCount = (int)r.AlreadyScheduledCount,
                     ReadyToScheduleCount = Math.Max(0, (int)r.MaterialIssuedCount - (int)r.AlreadyScheduledCount)
+                    };
                 }).ToList();
 
                 return ApiResponse<IEnumerable<SchedulableOrderV2Response>>.SuccessResponse(result);
@@ -106,22 +117,44 @@ namespace MultiHitechERP.API.Services.Implementations
         // ── STEP 2: Job Cards For Orders ────────────────────────────────────────
 
         public async Task<ApiResponse<IEnumerable<ChildPartJobGroupResponse>>> GetJobCardsForOrdersAsync(
-            IEnumerable<int> orderIds)
+            IEnumerable<int> orderIds, IEnumerable<int>? orderItemIds = null)
         {
             try
             {
                 var orderIdList = orderIds.ToList();
-                if (!orderIdList.Any())
+                var orderItemIdList = orderItemIds?.ToList() ?? new List<int>();
+
+                if (!orderIdList.Any() && !orderItemIdList.Any())
                     return ApiResponse<IEnumerable<ChildPartJobGroupResponse>>.ErrorResponse("No orders specified");
 
                 using var conn = _connectionFactory.CreateConnection();
 
-                const string sql = @"
+                // Build WHERE clause: filter by orderItemId when available, else by orderId
+                string whereClause;
+                object parameters;
+                if (orderItemIdList.Any() && orderIdList.Any())
+                {
+                    whereClause = "(jc.OrderItemId IN @OrderItemIds OR (jc.OrderItemId IS NULL AND jc.OrderId IN @OrderIds))";
+                    parameters = new { OrderItemIds = orderItemIdList, OrderIds = orderIdList };
+                }
+                else if (orderItemIdList.Any())
+                {
+                    whereClause = "jc.OrderItemId IN @OrderItemIds";
+                    parameters = new { OrderItemIds = orderItemIdList };
+                }
+                else
+                {
+                    whereClause = "jc.OrderId IN @OrderIds";
+                    parameters = new { OrderIds = orderIdList };
+                }
+
+                var sql = $@"
                     SELECT
                         jc.Id AS JobCardId,
                         jc.JobCardNo,
                         jc.OrderId,
                         jc.OrderNo,
+                        jc.ItemSequence,
                         ISNULL(c.CustomerName, '') AS CustomerName,
                         o.DueDate,
                         ISNULL(jc.ChildPartName, 'Unknown Part') AS ChildPartName,
@@ -159,14 +192,14 @@ namespace MultiHitechERP.API.Services.Implementations
                     LEFT JOIN Masters_Customers c ON c.Id = o.CustomerId
                     LEFT JOIN Masters_Processes p ON p.Id = jc.ProcessId
                     LEFT JOIN Masters_ProcessCategories pc ON pc.Id = p.ProcessCategoryId
-                    WHERE jc.OrderId IN @OrderIds
+                    WHERE {whereClause}
                     AND jc.Status NOT IN ('Completed', 'Cancelled')
                     ORDER BY
                         CASE WHEN jc.CreationType = 'Assembly' THEN 1 ELSE 0 END,
                         ISNULL(jc.ChildPartName, 'Unknown Part'),
                         jc.StepNo";
 
-                var rows = await conn.QueryAsync(sql, new { OrderIds = orderIdList });
+                var rows = await conn.QueryAsync(sql, parameters);
 
                 // Map rows to JobCardForSchedulingResponse
                 var jobCards = rows.Select(r =>
@@ -177,12 +210,14 @@ namespace MultiHitechERP.API.Services.Implementations
                     var qty = (int)(r.Quantity ?? 1);
                     var estMin = (int)Math.Max(15, setupMin + (int)(qty * cycleMin));
 
+                    var jcBaseNo = (string)r.OrderNo ?? "";
+                    var jcSeq = (string?)r.ItemSequence;
                     return new JobCardForSchedulingResponse
                     {
                         JobCardId = (int)r.JobCardId,
                         JobCardNo = (string)r.JobCardNo ?? "",
                         OrderId = (int)r.OrderId,
-                        OrderNo = (string)r.OrderNo ?? "",
+                        OrderNo = !string.IsNullOrEmpty(jcSeq) ? $"{jcBaseNo}-{jcSeq}" : jcBaseNo,
                         CustomerName = (string?)r.CustomerName,
                         DueDate = (DateTime?)r.DueDate,
                         ChildPartName = (string?)r.ChildPartName,

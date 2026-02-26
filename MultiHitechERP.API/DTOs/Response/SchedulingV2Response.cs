@@ -8,6 +8,8 @@ namespace MultiHitechERP.API.DTOs.Response
     public class SchedulableOrderV2Response
     {
         public int OrderId { get; set; }
+        public int? OrderItemId { get; set; }     // null for legacy single-product orders
+        public string? ItemSequence { get; set; } // "A", "B", "C", etc.
         public string OrderNo { get; set; } = string.Empty;
         public string? CustomerName { get; set; }
         public DateTime? DueDate { get; set; }

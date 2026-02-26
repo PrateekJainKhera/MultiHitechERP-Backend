@@ -11,8 +11,8 @@ namespace MultiHitechERP.API.Services.Interfaces
         /// <summary>Step 1 — Orders that have at least one job card with material issued and not yet machine-scheduled</summary>
         Task<ApiResponse<IEnumerable<SchedulableOrderV2Response>>> GetSchedulableOrdersAsync();
 
-        /// <summary>Step 2 — All job cards for selected orders, grouped by child part, with material status flag</summary>
-        Task<ApiResponse<IEnumerable<ChildPartJobGroupResponse>>> GetJobCardsForOrdersAsync(IEnumerable<int> orderIds);
+        /// <summary>Step 2 — All job cards for selected orders/order-items, grouped by child part, with material status flag</summary>
+        Task<ApiResponse<IEnumerable<ChildPartJobGroupResponse>>> GetJobCardsForOrdersAsync(IEnumerable<int> orderIds, IEnumerable<int>? orderItemIds = null);
 
         /// <summary>Step 4 — Per-process-category machine suggestions for the selected job cards</summary>
         Task<ApiResponse<IEnumerable<CategoryMachineSuggestionResponse>>> GetCategoryMachineSuggestionsAsync(

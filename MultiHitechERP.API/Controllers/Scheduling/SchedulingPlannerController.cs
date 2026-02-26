@@ -24,11 +24,11 @@ namespace MultiHitechERP.API.Controllers.Scheduling
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        /// <summary>Step 2 — Job cards for selected orders, grouped by child part</summary>
+        /// <summary>Step 2 — Job cards for selected orders/order-items, grouped by child part</summary>
         [HttpPost("job-cards")]
         public async Task<IActionResult> GetJobCardsForOrders([FromBody] GetJobCardsForOrdersRequest request)
         {
-            var result = await _plannerService.GetJobCardsForOrdersAsync(request.OrderIds);
+            var result = await _plannerService.GetJobCardsForOrdersAsync(request.OrderIds, request.OrderItemIds);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
