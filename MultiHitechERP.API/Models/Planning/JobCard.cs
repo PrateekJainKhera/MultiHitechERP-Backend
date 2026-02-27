@@ -21,6 +21,9 @@ namespace MultiHitechERP.API.Models.Planning
         public int? OrderItemId { get; set; }
         public string? ItemSequence { get; set; }  // A, B, C, D...
 
+        // Machine Model (from Masters_Products via Orders_OrderItems)
+        public string? MachineModelName { get; set; }
+
         // Drawing
         public int? DrawingId { get; set; }
         public string? DrawingNumber { get; set; }

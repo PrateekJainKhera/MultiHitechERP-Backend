@@ -23,16 +23,20 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<JobCard?> GetByIdAsync(int id)
         {
             const string query = @"
-                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
-                       DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
-                       ChildPartId, ChildPartName, ChildPartTemplateId,
-                       ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
-                       WorkInstructions, QualityCheckpoints, SpecialNotes,
-                       Quantity, Status, Priority, ManufacturingDimensions,
-                       ProductionStatus, ActualStartTime, ActualEndTime,
-                       CompletedQty, RejectedQty, ReadyForAssembly,
-                       CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
-                FROM Planning_JobCards WHERE Id = @Id";
+                SELECT jc.Id, jc.JobCardNo, jc.CreationType, jc.OrderId, jc.OrderNo, jc.OrderItemId, jc.ItemSequence,
+                       jc.DrawingId, jc.DrawingNumber, jc.DrawingRevision, jc.DrawingName, jc.DrawingSelectionType,
+                       jc.ChildPartId, jc.ChildPartName, jc.ChildPartTemplateId,
+                       jc.ProcessId, jc.ProcessName, jc.ProcessCode, jc.StepNo, jc.ProcessTemplateId,
+                       jc.WorkInstructions, jc.QualityCheckpoints, jc.SpecialNotes,
+                       jc.Quantity, jc.Status, jc.Priority, jc.ManufacturingDimensions,
+                       jc.ProductionStatus, jc.ActualStartTime, jc.ActualEndTime,
+                       jc.CompletedQty, jc.RejectedQty, jc.ReadyForAssembly,
+                       jc.CreatedAt, jc.CreatedBy, jc.UpdatedAt, jc.UpdatedBy, jc.Version,
+                       p.ModelName AS MachineModelName
+                FROM Planning_JobCards jc
+                LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
+                LEFT JOIN Masters_Products p ON oi.ProductId = p.Id
+                WHERE jc.Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
@@ -555,7 +559,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         private static JobCard MapToJobCard(SqlDataReader reader)
         {
-            return new JobCard
+            var jc = new JobCard
             {
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 JobCardNo = reader.GetString(reader.GetOrdinal("JobCardNo")),
@@ -596,6 +600,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy")),
                 Version = reader.GetInt32(reader.GetOrdinal("Version"))
             };
+            // MachineModelName is only present in queries that JOIN Orders_OrderItems + Masters_Products
+            try
+            {
+                var ord = reader.GetOrdinal("MachineModelName");
+                jc.MachineModelName = reader.IsDBNull(ord) ? null : reader.GetString(ord);
+            }
+            catch { }
+            return jc;
         }
 
         private static void AddJobCardParameters(SqlCommand command, JobCard jobCard)

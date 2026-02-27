@@ -17,6 +17,9 @@ namespace MultiHitechERP.API.DTOs.Response
         public int? OrderItemId { get; set; }
         public string? ItemSequence { get; set; }  // A, B, C, D...
 
+        // Machine Model (denormalized from Masters_Products via Orders_OrderItems)
+        public string? MachineModelName { get; set; }
+
         // Drawing
         public int? DrawingId { get; set; }
         public string? DrawingNumber { get; set; }

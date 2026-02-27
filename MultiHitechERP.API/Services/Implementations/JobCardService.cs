@@ -503,6 +503,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 OrderNo = jobCard.OrderNo,
                 OrderItemId = jobCard.OrderItemId,
                 ItemSequence = jobCard.ItemSequence,
+                MachineModelName = jobCard.MachineModelName,
                 DrawingId = jobCard.DrawingId,
                 DrawingNumber = jobCard.DrawingNumber,
                 DrawingRevision = jobCard.DrawingRevision,
