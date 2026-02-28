@@ -155,7 +155,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<bool> DeleteAsync(int id)
         {
-            const string query = "UPDATE Masters_Vendors SET IsActive = 0 WHERE Id = @Id";
+            const string query = "DELETE FROM Masters_Vendors WHERE Id = @Id";
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@Id", id);
