@@ -15,6 +15,7 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<IEnumerable<MaterialPieceResponse>> GetAvailablePiecesAsync();
         Task<IEnumerable<MaterialPieceResponse>> GetWastagePiecesAsync();
         Task<bool> UpdateLengthAsync(int pieceId, decimal newLengthMM, string updatedBy);
+        Task<bool> AdjustLengthAsync(int pieceId, decimal newLengthMM, string remark, string adjustedBy);
         Task<bool> MarkAsWastageAsync(int pieceId, string reason, decimal? scrapValue, string updatedBy);
         
         // Stock availability for planning

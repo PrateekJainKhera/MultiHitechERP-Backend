@@ -17,6 +17,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<MaterialPiece>> GetWastagePiecesAsync();
         Task<bool> UpdateAsync(MaterialPiece piece);
         Task<bool> UpdateLengthAsync(int pieceId, decimal newLengthMM);
+        Task<bool> AdjustLengthAsync(int pieceId, decimal newLengthMM, decimal newWeightKG, string updatedBy);
         Task<bool> MarkAsWastageAsync(int pieceId, string reason, decimal? scrapValue);
         Task<bool> DeleteAsync(int id);
 

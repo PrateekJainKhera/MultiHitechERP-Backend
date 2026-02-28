@@ -70,6 +70,27 @@ namespace MultiHitechERP.API.Services.Implementations
             return await _pieceRepo.UpdateLengthAsync(pieceId, newLengthMM);
         }
 
+        public async Task<bool> AdjustLengthAsync(int pieceId, decimal newLengthMM, string remark, string adjustedBy)
+        {
+            var piece = await _pieceRepo.GetByIdAsync(pieceId);
+            if (piece == null)
+                throw new System.Exception("Material piece not found");
+
+            if (piece.Status != "Available" && piece.Status != "Reserved")
+                throw new System.Exception($"Cannot adjust length of a piece with status '{piece.Status}'. Only Available or Reserved pieces can be adjusted.");
+
+            if (newLengthMM <= 0)
+                throw new System.Exception("New length must be greater than 0");
+
+            // Recalculate weight proportionally based on original
+            decimal newWeightKG = piece.OriginalLengthMM > 0
+                ? (newLengthMM / piece.OriginalLengthMM) * piece.OriginalWeightKG
+                : piece.CurrentWeightKG;
+
+            var updatedBy = $"{adjustedBy}: {remark}";
+            return await _pieceRepo.AdjustLengthAsync(pieceId, newLengthMM, newWeightKG, updatedBy);
+        }
+
         public async Task<bool> MarkAsWastageAsync(int pieceId, string reason, decimal? scrapValue, string updatedBy)
         {
             return await _pieceRepo.MarkAsWastageAsync(pieceId, reason, scrapValue);

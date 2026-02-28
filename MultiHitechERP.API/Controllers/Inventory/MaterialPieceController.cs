@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Services.Interfaces;
 using System.Collections.Generic;
@@ -199,6 +200,23 @@ namespace MultiHitechERP.API.Controllers.Inventory
                     Success = false,
                     Message = ex.Message
                 });
+            }
+        }
+
+        [HttpPatch("{id}/adjust-length")]
+        public async Task<ActionResult<ApiResponse<object>>> AdjustLength(int id, [FromBody] AdjustLengthRequest request)
+        {
+            try
+            {
+                var success = await _materialPieceService.AdjustLengthAsync(id, request.NewLengthMM, request.Remark, request.AdjustedBy);
+                if (!success)
+                    return NotFound(new ApiResponse<object> { Success = false, Message = "Material piece not found" });
+
+                return Ok(new ApiResponse<object> { Success = true, Message = "Length adjusted successfully" });
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = ex.Message });
             }
         }
     }

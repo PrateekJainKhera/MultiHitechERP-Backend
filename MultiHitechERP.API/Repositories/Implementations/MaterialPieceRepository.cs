@@ -135,6 +135,30 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return result > 0;
         }
 
+        public async Task<bool> AdjustLengthAsync(int pieceId, decimal newLengthMM, decimal newWeightKG, string updatedBy)
+        {
+            // Update both Original and Current so the CHK_MaterialPieces_Length constraint
+            // (CurrentLengthMM <= OriginalLengthMM) is never violated — this is a full correction.
+            var sql = @"
+                UPDATE Stores_MaterialPieces
+                SET OriginalLengthMM = @NewLengthMM,
+                    CurrentLengthMM  = @NewLengthMM,
+                    OriginalWeightKG = @NewWeightKG,
+                    CurrentWeightKG  = @NewWeightKG,
+                    UpdatedAt        = GETUTCDATE(),
+                    UpdatedBy        = @UpdatedBy
+                WHERE Id = @Id";
+
+            var result = await GetConnection().ExecuteAsync(sql, new
+            {
+                Id           = pieceId,
+                NewLengthMM  = newLengthMM,
+                NewWeightKG  = newWeightKG,
+                UpdatedBy    = updatedBy
+            });
+            return result > 0;
+        }
+
         public async Task<bool> MarkAsWastageAsync(int pieceId, string reason, decimal? scrapValue)
         {
             var sql = @"
