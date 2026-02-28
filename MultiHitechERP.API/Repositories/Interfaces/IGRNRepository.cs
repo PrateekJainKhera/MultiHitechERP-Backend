@@ -11,6 +11,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<GRN?> GetByGRNNoAsync(string grnNo);
         Task<IEnumerable<GRN>> GetAllAsync();
         Task<IEnumerable<GRN>> GetBySupplierId(int supplierId);
+        Task<IEnumerable<GRN>> GetByStatusAsync(string status);
         Task<bool> UpdateAsync(GRN grn);
         Task<bool> DeleteAsync(int id);
 

@@ -26,14 +26,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 INSERT INTO Stores_GRN (
                     GRNNo, GRNDate, SupplierId, SupplierName, SupplierBatchNo,
                     PONo, PODate, InvoiceNo, InvoiceDate,
-                    TotalPieces, TotalWeight, TotalValue, Status,
+                    TotalPieces, TotalWeight, TotalBilledWeight, TotalValue, Status, RequiresApproval,
                     QualityCheckStatus, QualityCheckedBy, QualityCheckedAt, QualityRemarks,
                     Remarks, CreatedAt, CreatedBy
                 )
                 VALUES (
                     @GRNNo, @GRNDate, @SupplierId, @SupplierName, @SupplierBatchNo,
                     @PONo, @PODate, @InvoiceNo, @InvoiceDate,
-                    @TotalPieces, @TotalWeight, @TotalValue, @Status,
+                    @TotalPieces, @TotalWeight, @TotalBilledWeight, @TotalValue, @Status, @RequiresApproval,
                     @QualityCheckStatus, @QualityCheckedBy, @QualityCheckedAt, @QualityRemarks,
                     @Remarks, GETUTCDATE(), @CreatedBy
                 );
@@ -66,6 +66,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await GetConnection().QueryAsync<GRN>(sql, new { SupplierId = supplierId });
         }
 
+        public async Task<IEnumerable<GRN>> GetByStatusAsync(string status)
+        {
+            var sql = "SELECT * FROM Stores_GRN WHERE Status = @Status ORDER BY CreatedAt DESC";
+            return await GetConnection().QueryAsync<GRN>(sql, new { Status = status });
+        }
+
         public async Task<bool> UpdateAsync(GRN grn)
         {
             var sql = @"
@@ -80,8 +86,16 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     InvoiceDate = @InvoiceDate,
                     TotalPieces = @TotalPieces,
                     TotalWeight = @TotalWeight,
+                    TotalBilledWeight = @TotalBilledWeight,
                     TotalValue = @TotalValue,
                     Status = @Status,
+                    RequiresApproval = @RequiresApproval,
+                    ApprovedBy = @ApprovedBy,
+                    ApprovedAt = @ApprovedAt,
+                    ApprovalNotes = @ApprovalNotes,
+                    RejectedBy = @RejectedBy,
+                    RejectedAt = @RejectedAt,
+                    RejectionNotes = @RejectionNotes,
                     QualityCheckStatus = @QualityCheckStatus,
                     QualityCheckedBy = @QualityCheckedBy,
                     QualityCheckedAt = @QualityCheckedAt,
@@ -110,13 +124,15 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     GRNId, SequenceNo, MaterialId, MaterialName, Grade,
                     MaterialType, Diameter, OuterDiameter, InnerDiameter, Width, Thickness,
                     MaterialDensity, TotalWeightKG, CalculatedLengthMM, WeightPerMeterKG,
-                    NumberOfPieces, LengthPerPieceMM, UnitPrice, LineTotal, Remarks
+                    NumberOfPieces, LengthPerPieceMM, BilledLengthPerPieceMM, BilledWeightKG, LengthVariancePct,
+                    UnitPrice, LineTotal, Remarks
                 )
                 VALUES (
                     @GRNId, @SequenceNo, @MaterialId, @MaterialName, @Grade,
                     @MaterialType, @Diameter, @OuterDiameter, @InnerDiameter, @Width, @Thickness,
                     @MaterialDensity, @TotalWeightKG, @CalculatedLengthMM, @WeightPerMeterKG,
-                    @NumberOfPieces, @LengthPerPieceMM, @UnitPrice, @LineTotal, @Remarks
+                    @NumberOfPieces, @LengthPerPieceMM, @BilledLengthPerPieceMM, @BilledWeightKG, @LengthVariancePct,
+                    @UnitPrice, @LineTotal, @Remarks
                 );
                 SELECT CAST(SCOPE_IDENTITY() as int);";
 

@@ -44,6 +44,25 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
             draftCmd.Parameters.AddWithValue("@Notes", (object?)request.Notes ?? DBNull.Value);
             var draftId = Convert.ToInt32(await draftCmd.ExecuteScalarAsync());
 
+            // Pre-load MinLengthMM for all materials referenced in bar assignments
+            var materialMinLengths = new Dictionary<int, int>();
+            var uniqueMaterialIds = request.BarAssignments
+                .Where(b => b.MaterialId.HasValue)
+                .Select(b => b.MaterialId!.Value)
+                .Distinct()
+                .ToList();
+            if (uniqueMaterialIds.Any())
+            {
+                var paramNames = uniqueMaterialIds.Select((_, i) => $"@mid{i}").ToList();
+                var minLenSql = $"SELECT Id, MinLengthMM FROM Masters_Materials WHERE Id IN ({string.Join(",", paramNames)})";
+                using var minLenCmd = new SqlCommand(minLenSql, connection, transaction);
+                for (int i = 0; i < uniqueMaterialIds.Count; i++)
+                    minLenCmd.Parameters.AddWithValue($"@mid{i}", uniqueMaterialIds[i]);
+                using var minLenReader = await minLenCmd.ExecuteReaderAsync();
+                while (await minLenReader.ReadAsync())
+                    materialMinLengths[minLenReader.GetInt32(0)] = minLenReader.GetInt32(1);
+            }
+
             // Insert bar assignments and their cuts
             var pieceIdsToReserve = new List<int>();
 
@@ -52,7 +71,8 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
                 var bar = request.BarAssignments[sortOrder];
                 decimal totalCut = bar.Cuts.Sum(c => c.CutLengthMM);
                 decimal remaining = bar.PieceCurrentLengthMM - totalCut;
-                bool willBeScrap = remaining < 300m;
+                int minLen = bar.MaterialId.HasValue && materialMinLengths.TryGetValue(bar.MaterialId.Value, out var ml) ? ml : 300;
+                bool willBeScrap = remaining < minLen;
 
                 var insertBarSql = @"
                     INSERT INTO Stores_IssueWindowDraftBarAssignments

@@ -11,18 +11,20 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IMaterialPieceRepository _pieceRepo;
         private readonly IMaterialRequisitionService _reqService;
         private readonly IIssueWindowDraftRepository _draftRepo;
-        private const int MinUsableLengthMM = 300;
+        private readonly IMaterialRepository _materialRepo;
 
         public StoresIssueWindowService(
             IMaterialRequisitionRepository reqRepo,
             IMaterialPieceRepository pieceRepo,
             IMaterialRequisitionService reqService,
-            IIssueWindowDraftRepository draftRepo)
+            IIssueWindowDraftRepository draftRepo,
+            IMaterialRepository materialRepo)
         {
             _reqRepo = reqRepo;
             _pieceRepo = pieceRepo;
             _reqService = reqService;
             _draftRepo = draftRepo;
+            _materialRepo = materialRepo;
         }
 
         // ── Get approved requisitions ─────────────────────────────────────────────
@@ -308,11 +310,19 @@ namespace MultiHitechERP.API.Services.Implementations
                 .Select(p => (p.Id, p.PieceNo, LengthMM: p.CurrentLengthMM))
                 .ToList();
 
+            // Look up per-material scrap threshold (MinLengthMM)
+            int minLengthMM = 300;
+            if (request.MaterialId.HasValue)
+            {
+                var material = await _materialRepo.GetByIdAsync(request.MaterialId.Value);
+                if (material != null) minLengthMM = material.MinLengthMM;
+            }
+
             var plans = new List<CuttingPlanResponse>
             {
-                BuildPlan(request.Cuts, pool, PlanStrategy.MinWaste,    1, "Min Waste",    "Best-fit — minimizes scrap, uses bars most efficiently"),
-                BuildPlan(request.Cuts, pool, PlanStrategy.FewestBars,  2, "Fewest Bars",  "First-fit — packs more cuts per bar, fewer saw setups"),
-                BuildPlan(request.Cuts, pool, PlanStrategy.GroupBySize, 3, "Group by Size", "Same-length cuts on same bar — one saw setting per cut length"),
+                BuildPlan(request.Cuts, pool, PlanStrategy.MinWaste,    1, "Min Waste",    "Best-fit — minimizes scrap, uses bars most efficiently",    minLengthMM),
+                BuildPlan(request.Cuts, pool, PlanStrategy.FewestBars,  2, "Fewest Bars",  "First-fit — packs more cuts per bar, fewer saw setups",     minLengthMM),
+                BuildPlan(request.Cuts, pool, PlanStrategy.GroupBySize, 3, "Group by Size", "Same-length cuts on same bar — one saw setting per cut length", minLengthMM),
             };
 
             return plans;
@@ -335,7 +345,8 @@ namespace MultiHitechERP.API.Services.Implementations
             PlanStrategy strategy,
             int planIndex,
             string label,
-            string description)
+            string description,
+            int minLengthMM = 300)
         {
             // Independent copy of the pool for each plan simulation
             var pool = strategy == PlanStrategy.FewestBars
@@ -396,7 +407,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 BarLengthMM = b.BarLengthMM,
                 TotalCutMM = b.Cuts.Sum(c => c.CutLengthMM),
                 RemainingMM = b.RemainingMM,
-                WillBeScrap = b.RemainingMM < MinUsableLengthMM,
+                WillBeScrap = b.RemainingMM < minLengthMM,
                 Cuts = b.Cuts.Select(c => new PlanCutItemResponse
                 {
                     RequisitionItemId = c.RequisitionItemId,

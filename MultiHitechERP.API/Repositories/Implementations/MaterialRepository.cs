@@ -54,11 +54,11 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 INSERT INTO Masters_Materials (
                     MaterialCode, MaterialName, MaterialType, Grade, Shape,
                     Diameter, InnerDiameter, Width, LengthInMM,
-                    Density, WeightKG, IsActive, CreatedAt, CreatedBy, UpdatedAt
+                    Density, WeightKG, MinLengthMM, IsActive, CreatedAt, CreatedBy, UpdatedAt
                 ) VALUES (
                     @MaterialCode, @MaterialName, @MaterialType, @Grade, @Shape,
                     @Diameter, @InnerDiameter, @Width, @LengthInMM,
-                    @Density, @WeightKG, @IsActive, @CreatedAt, @CreatedBy, @UpdatedAt
+                    @Density, @WeightKG, @MinLengthMM, @IsActive, @CreatedAt, @CreatedBy, @UpdatedAt
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -80,6 +80,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LengthInMM", material.LengthInMM);
             command.Parameters.AddWithValue("@Density", material.Density);
             command.Parameters.AddWithValue("@WeightKG", material.WeightKG);
+            command.Parameters.AddWithValue("@MinLengthMM", material.MinLengthMM);
             command.Parameters.AddWithValue("@IsActive", material.IsActive);
             command.Parameters.AddWithValue("@CreatedAt", material.CreatedAt);
             command.Parameters.AddWithValue("@CreatedBy", (object?)material.CreatedBy ?? DBNull.Value);
@@ -106,6 +107,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     LengthInMM = @LengthInMM,
                     Density = @Density,
                     WeightKG = @WeightKG,
+                    MinLengthMM = @MinLengthMM,
                     UpdatedAt = @UpdatedAt
                 WHERE Id = @Id";
 
@@ -125,6 +127,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LengthInMM", material.LengthInMM);
             command.Parameters.AddWithValue("@Density", material.Density);
             command.Parameters.AddWithValue("@WeightKG", material.WeightKG);
+            command.Parameters.AddWithValue("@MinLengthMM", material.MinLengthMM);
             command.Parameters.AddWithValue("@UpdatedAt", material.UpdatedAt);
 
             await connection.OpenAsync();
@@ -252,6 +255,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 LengthInMM = reader.GetDecimal(reader.GetOrdinal("LengthInMM")),
                 Density = reader.GetDecimal(reader.GetOrdinal("Density")),
                 WeightKG = reader.GetDecimal(reader.GetOrdinal("WeightKG")),
+                MinLengthMM = reader.GetInt32(reader.GetOrdinal("MinLengthMM")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy"))

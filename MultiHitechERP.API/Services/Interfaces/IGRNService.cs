@@ -15,5 +15,8 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<bool> UpdateStatusAsync(int id, string status, string updatedBy);
         Task<bool> DeleteAsync(int id);
         Task<GRNResponse?> GetGRNWithLinesAsync(int id);
+        Task<GRNResponse> ApproveGRNAsync(int id, string approvedBy, string? notes);
+        Task<GRNResponse> RejectGRNAsync(int id, string rejectedBy, string notes);
+        Task<IEnumerable<GRNResponse>> GetPendingApprovalAsync();
     }
 }

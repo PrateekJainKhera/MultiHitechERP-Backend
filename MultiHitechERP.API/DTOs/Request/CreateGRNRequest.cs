@@ -3,6 +3,12 @@ using System.Collections.Generic;
 
 namespace MultiHitechERP.API.DTOs.Request
 {
+    public class GRNApprovalRequest
+    {
+        public string ActionBy { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+    }
+
     public class CreateGRNRequest
     {
         public string GRNNo { get; set; } = string.Empty;
@@ -46,9 +52,10 @@ namespace MultiHitechERP.API.DTOs.Request
         public decimal MaterialDensity { get; set; } = 7.85m; // Default MS/EN8
 
         // Quantities
-        public decimal TotalWeightKG { get; set; }
+        public decimal TotalWeightKG { get; set; }           // Actual weight (from piece dimensions × density)
+        public decimal? BilledWeightKG { get; set; }         // Vendor invoice weight for this batch
         public int NumberOfPieces { get; set; }
-        public decimal? LengthPerPieceMM { get; set; }
+        public decimal? LengthPerPieceMM { get; set; }       // Actual measured length per piece
 
         // Storage
         public int? WarehouseId { get; set; }

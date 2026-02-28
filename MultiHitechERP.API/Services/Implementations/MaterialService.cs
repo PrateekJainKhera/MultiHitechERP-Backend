@@ -58,18 +58,13 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (exists)
                     return ApiResponse<int>.ErrorResponse($"Material '{request.MaterialName}' already exists");
 
-                // Business validation: Validate MaterialType
-                var validTypes = new[] { "Steel", "Stainless Steel", "Aluminum", "Metal", "Other" };
-                if (!validTypes.Contains(request.MaterialType))
-                    return ApiResponse<int>.ErrorResponse($"Invalid material type. Must be one of: {string.Join(", ", validTypes)}");
-
                 // Business validation: Validate Grade
                 var validGrades = new[] { "EN8", "EN19", "EN24", "SS304", "SS316", "Alloy Steel", "6061", "6063", "Standard" };
                 if (!validGrades.Contains(request.Grade))
                     return ApiResponse<int>.ErrorResponse($"Invalid grade. Must be one of: {string.Join(", ", validGrades)}");
 
                 // Business validation: Validate Shape
-                var validShapes = new[] { "Rod", "Pipe", "Forged", "Sheet" };
+                var validShapes = new[] { "Rod", "Pipe", "Forged", "Sheet", "Flat" };
                 if (!validShapes.Contains(request.Shape))
                     return ApiResponse<int>.ErrorResponse($"Invalid shape. Must be one of: {string.Join(", ", validShapes)}");
 
@@ -117,6 +112,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     LengthInMM = request.LengthInMM,
                     Density = request.Density,
                     WeightKG = request.WeightKG,
+                    MinLengthMM = request.MinLengthMM,
                     IsActive = request.IsActive,
                     CreatedBy = request.CreatedBy?.Trim() ?? "System"
                 };
@@ -147,18 +143,13 @@ namespace MultiHitechERP.API.Services.Implementations
                         return ApiResponse<bool>.ErrorResponse($"Material '{request.MaterialName}' already exists");
                 }
 
-                // Business validation: Validate MaterialType
-                var validTypes = new[] { "Steel", "Stainless Steel", "Aluminum", "Metal", "Other" };
-                if (!validTypes.Contains(request.MaterialType))
-                    return ApiResponse<bool>.ErrorResponse($"Invalid material type. Must be one of: {string.Join(", ", validTypes)}");
-
                 // Business validation: Validate Grade
                 var validGrades = new[] { "EN8", "EN19", "EN24", "SS304", "SS316", "Alloy Steel", "6061", "6063", "Standard" };
                 if (!validGrades.Contains(request.Grade))
                     return ApiResponse<bool>.ErrorResponse($"Invalid grade. Must be one of: {string.Join(", ", validGrades)}");
 
                 // Business validation: Validate Shape
-                var validShapes = new[] { "Rod", "Pipe", "Forged", "Sheet" };
+                var validShapes = new[] { "Rod", "Pipe", "Forged", "Sheet", "Flat" };
                 if (!validShapes.Contains(request.Shape))
                     return ApiResponse<bool>.ErrorResponse($"Invalid shape. Must be one of: {string.Join(", ", validShapes)}");
 
@@ -194,6 +185,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 existingMaterial.LengthInMM = request.LengthInMM;
                 existingMaterial.Density = request.Density;
                 existingMaterial.WeightKG = request.WeightKG;
+                existingMaterial.MinLengthMM = request.MinLengthMM;
 
                 var success = await _materialRepository.UpdateAsync(existingMaterial);
                 if (!success)
@@ -288,6 +280,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 LengthInMM = material.LengthInMM,
                 Density = material.Density,
                 WeightKG = material.WeightKG,
+                MinLengthMM = material.MinLengthMM,
                 IsActive = material.IsActive,
                 CreatedAt = material.CreatedAt,
                 CreatedBy = material.CreatedBy,

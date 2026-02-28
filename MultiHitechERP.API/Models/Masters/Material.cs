@@ -27,6 +27,9 @@ namespace MultiHitechERP.API.Models.Masters
         public decimal Density { get; set; } // Density in g/cm³
         public decimal WeightKG { get; set; } // Weight in KG
 
+        // Scrap Threshold
+        public int MinLengthMM { get; set; } = 300; // Pieces shorter than this are classified as scrap after cutting
+
         // Status
         public bool IsActive { get; set; } = true;
 

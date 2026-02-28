@@ -35,7 +35,12 @@ namespace MultiHitechERP.API.Models.Stores
 
         // Piece Breakdown
         public int NumberOfPieces { get; set; }
-        public decimal? LengthPerPieceMM { get; set; }
+        public decimal? LengthPerPieceMM { get; set; }      // Actual measured length
+
+        // Vendor Billed Values (for reconciliation / reports)
+        public decimal? BilledLengthPerPieceMM { get; set; } // What vendor billed
+        public decimal? BilledWeightKG { get; set; }          // Billed weight for this line
+        public decimal? LengthVariancePct { get; set; }       // % difference billed vs actual
 
         // Pricing
         public decimal? UnitPrice { get; set; } // Price per KG

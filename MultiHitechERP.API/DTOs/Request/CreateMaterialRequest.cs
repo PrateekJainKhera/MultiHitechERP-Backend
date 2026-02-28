@@ -36,6 +36,10 @@ namespace MultiHitechERP.API.DTOs.Request
         [Range(0, double.MaxValue, ErrorMessage = "Weight must be non-negative")]
         public decimal WeightKG { get; set; } = 0;
 
+        // Scrap threshold: pieces shorter than this (in mm) are classified as scrap after cutting
+        [Range(1, 9999, ErrorMessage = "Min length must be between 1 and 9999 mm")]
+        public int MinLengthMM { get; set; } = 300;
+
         public bool IsActive { get; set; } = true;
         public string? CreatedBy { get; set; }
     }

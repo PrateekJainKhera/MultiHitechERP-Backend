@@ -40,6 +40,7 @@ builder.Services.AddScoped<IProcessCategoryRepository, ProcessCategoryRepository
 builder.Services.AddScoped<IChildPartTypeRepository, ChildPartTypeRepository>();
 builder.Services.AddScoped<IRollerTypeRepository, RollerTypeRepository>();
 builder.Services.AddScoped<IMachineTypeRepository, MachineTypeRepository>();
+builder.Services.AddScoped<IMaterialTypeRepository, MaterialTypeRepository>();
 builder.Services.AddScoped<IProductDefaultMaterialRepository, ProductDefaultMaterialRepository>();
 builder.Services.AddScoped<IWarehouseRepository, WarehouseRepository>();
 builder.Services.AddScoped<IProcessMachineCapabilityRepository, ProcessMachineCapabilityRepository>();

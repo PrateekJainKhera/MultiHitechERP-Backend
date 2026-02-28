@@ -24,20 +24,56 @@ namespace MultiHitechERP.API.Controllers.Inventory
             try
             {
                 var result = await _grnService.CreateGRNAsync(request);
-                return Ok(new ApiResponse<GRNResponse>
-                {
-                    Success = true,
-                    Message = "GRN created successfully and material pieces added to inventory",
-                    Data = result
-                });
+                var message = result.RequiresApproval
+                    ? "GRN submitted for approval — variance exceeds 5%. Material will be added to inventory after admin approval."
+                    : "GRN created successfully and material pieces added to inventory";
+                return Ok(new ApiResponse<GRNResponse> { Success = true, Message = message, Data = result });
             }
             catch (System.Exception ex)
             {
-                return BadRequest(new ApiResponse<GRNResponse>
-                {
-                    Success = false,
-                    Message = ex.Message
-                });
+                return BadRequest(new ApiResponse<GRNResponse> { Success = false, Message = ex.Message });
+            }
+        }
+
+        [HttpGet("pending-approval")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<GRNResponse>>>> GetPendingApproval()
+        {
+            try
+            {
+                var result = await _grnService.GetPendingApprovalAsync();
+                return Ok(new ApiResponse<IEnumerable<GRNResponse>> { Success = true, Data = result });
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new ApiResponse<IEnumerable<GRNResponse>> { Success = false, Message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/approve")]
+        public async Task<ActionResult<ApiResponse<GRNResponse>>> Approve(int id, [FromBody] GRNApprovalRequest request)
+        {
+            try
+            {
+                var result = await _grnService.ApproveGRNAsync(id, request.ActionBy, request.Notes);
+                return Ok(new ApiResponse<GRNResponse> { Success = true, Message = "GRN approved — material pieces added to inventory", Data = result });
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new ApiResponse<GRNResponse> { Success = false, Message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/reject")]
+        public async Task<ActionResult<ApiResponse<GRNResponse>>> Reject(int id, [FromBody] GRNApprovalRequest request)
+        {
+            try
+            {
+                var result = await _grnService.RejectGRNAsync(id, request.ActionBy, request.Notes ?? "");
+                return Ok(new ApiResponse<GRNResponse> { Success = true, Message = "GRN rejected", Data = result });
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new ApiResponse<GRNResponse> { Success = false, Message = ex.Message });
             }
         }
 

@@ -21,19 +21,22 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IMaterialIssueRepository _issueRepository;
         private readonly IInventoryRepository _inventoryRepository;
         private readonly IJobCardRepository _jobCardRepository;
+        private readonly IMaterialRepository _materialRepository;
 
         public MaterialRequisitionService(
             IMaterialRequisitionRepository requisitionRepository,
             IMaterialPieceRepository pieceRepository,
             IMaterialIssueRepository issueRepository,
             IInventoryRepository inventoryRepository,
-            IJobCardRepository jobCardRepository)
+            IJobCardRepository jobCardRepository,
+            IMaterialRepository materialRepository)
         {
             _requisitionRepository = requisitionRepository;
             _pieceRepository = pieceRepository;
             _issueRepository = issueRepository;
             _inventoryRepository = inventoryRepository;
             _jobCardRepository = jobCardRepository;
+            _materialRepository = materialRepository;
         }
 
         public async Task<ApiResponse<MaterialRequisition>> GetByIdAsync(int id)
@@ -393,6 +396,9 @@ namespace MultiHitechERP.API.Services.Implementations
                             .ToList();
                     }
 
+                    // Cache MinLengthMM per materialId to avoid repeated DB lookups
+                    var minLengthCache = new Dictionary<int, int>();
+
                     // Process each piece
                     for (int i = 0; i < pieceIds.Count; i++)
                     {
@@ -405,6 +411,14 @@ namespace MultiHitechERP.API.Services.Implementations
 
                         var effectiveJobCardId = item.JobCardId ?? jobCardId;
 
+                        // Look up per-material scrap threshold (MinLengthMM)
+                        if (!minLengthCache.TryGetValue(piece.MaterialId, out var minLen))
+                        {
+                            var mat = await _materialRepository.GetByIdAsync(piece.MaterialId);
+                            minLen = mat?.MinLengthMM ?? 300;
+                            minLengthCache[piece.MaterialId] = minLen;
+                        }
+
                         // Use CutPieceAsync for partial cutting (Level 2 tracking)
                         var cutSuccess = await _pieceRepository.CutPieceAsync(
                             pieceId: pieceId,
@@ -413,7 +427,7 @@ namespace MultiHitechERP.API.Services.Implementations
                             cutByOperator: issuedBy,
                             orderNo: requisition.OrderNo,
                             childPartName: item.MaterialName,
-                            minimumUsableLengthMM: 300
+                            minimumUsableLengthMM: minLen
                         );
 
                         if (cutSuccess)

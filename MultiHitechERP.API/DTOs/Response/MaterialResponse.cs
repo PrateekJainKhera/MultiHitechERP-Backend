@@ -16,6 +16,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public decimal LengthInMM { get; set; }
         public decimal Density { get; set; }
         public decimal WeightKG { get; set; }
+        public int MinLengthMM { get; set; } = 300;
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }

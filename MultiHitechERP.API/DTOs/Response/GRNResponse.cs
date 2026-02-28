@@ -28,6 +28,15 @@ namespace MultiHitechERP.API.DTOs.Response
         // Status
         public string Status { get; set; } = string.Empty;
 
+        // Approval
+        public bool RequiresApproval { get; set; }
+        public string? ApprovedBy { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+        public string? ApprovalNotes { get; set; }
+        public string? RejectedBy { get; set; }
+        public DateTime? RejectedAt { get; set; }
+        public string? RejectionNotes { get; set; }
+
         // Quality
         public string? QualityCheckStatus { get; set; }
         public string? QualityCheckedBy { get; set; }
@@ -76,7 +85,10 @@ namespace MultiHitechERP.API.DTOs.Response
 
         // Piece Breakdown
         public int NumberOfPieces { get; set; }
-        public decimal? LengthPerPieceMM { get; set; }
+        public decimal? LengthPerPieceMM { get; set; }       // Actual measured
+        public decimal? BilledLengthPerPieceMM { get; set; } // Vendor billed
+        public decimal? BilledWeightKG { get; set; }
+        public decimal? LengthVariancePct { get; set; }
 
         // Pricing
         public decimal? UnitPrice { get; set; }

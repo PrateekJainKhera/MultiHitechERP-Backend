@@ -25,11 +25,21 @@ namespace MultiHitechERP.API.Models.Stores
 
         // Totals
         public int TotalPieces { get; set; } = 0;
-        public decimal? TotalWeight { get; set; }
+        public decimal? TotalWeight { get; set; }       // Sum of actual received weights
+        public decimal? TotalBilledWeight { get; set; } // Sum of vendor-billed weights
         public decimal? TotalValue { get; set; }
 
-        // Status: Draft, Received, Verified, Cancelled
+        // Status: Draft, PendingApproval, Received, Verified, Rejected, Cancelled
         public string Status { get; set; } = "Draft";
+
+        // Approval Workflow (triggered when any line has >5% length variance)
+        public bool RequiresApproval { get; set; } = false;
+        public string? ApprovedBy { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+        public string? ApprovalNotes { get; set; }
+        public string? RejectedBy { get; set; }
+        public DateTime? RejectedAt { get; set; }
+        public string? RejectionNotes { get; set; }
 
         // Quality Check
         public string? QualityCheckStatus { get; set; }
