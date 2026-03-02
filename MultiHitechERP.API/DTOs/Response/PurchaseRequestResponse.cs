@@ -32,6 +32,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public decimal? EstimatedUnitCost { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
+        public decimal? MaterialWeightKgPerMm { get; set; }
         public List<CuttingListItemResponse> CuttingList { get; set; } = new();
     }
 

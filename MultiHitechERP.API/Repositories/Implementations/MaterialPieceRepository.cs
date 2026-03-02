@@ -202,6 +202,20 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await GetConnection().ExecuteScalarAsync<decimal>(sql, new { MaterialId = materialId });
         }
 
+        public async Task<(int Pieces, decimal TotalLengthMM, decimal TotalWeightKG)> GetStockSummaryByMaterialIdAsync(int materialId)
+        {
+            var sql = @"
+                SELECT
+                    COUNT(*) AS Pieces,
+                    ISNULL(SUM(CurrentLengthMM), 0) AS TotalLengthMM,
+                    ISNULL(SUM(CurrentWeightKG), 0) AS TotalWeightKG
+                FROM Stores_MaterialPieces
+                WHERE MaterialId = @MaterialId AND Status = 'Available'";
+
+            var result = await GetConnection().QuerySingleAsync(sql, new { MaterialId = materialId });
+            return ((int)result.Pieces, (decimal)result.TotalLengthMM, (decimal)result.TotalWeightKG);
+        }
+
         // Requisition/Issue methods
         public async Task<IEnumerable<MaterialPiece>> GetAvailablePiecesByFIFOAsync(int materialId, decimal requiredQuantityMM)
         {

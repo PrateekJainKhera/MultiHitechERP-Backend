@@ -24,6 +24,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         // Stock queries
         Task<decimal> GetTotalStockByMaterialIdAsync(int materialId);
         Task<decimal> GetAvailableStockByMaterialIdAsync(int materialId);
+        Task<(int Pieces, decimal TotalLengthMM, decimal TotalWeightKG)> GetStockSummaryByMaterialIdAsync(int materialId);
 
         // Requisition/Issue methods (for MaterialRequisitionService compatibility)
         Task<IEnumerable<MaterialPiece>> GetAvailablePiecesByFIFOAsync(int materialId, decimal requiredQuantityMM);

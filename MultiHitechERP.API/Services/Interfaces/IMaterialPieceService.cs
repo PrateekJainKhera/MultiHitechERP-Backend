@@ -22,5 +22,6 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<decimal> GetTotalStockByMaterialIdAsync(int materialId);
         Task<decimal> GetAvailableStockByMaterialIdAsync(int materialId);
         Task<bool> CheckMaterialAvailability(int materialId, decimal requiredLengthMM);
+        Task<(int Pieces, decimal TotalLengthMM, decimal TotalWeightKG)> GetStockSummaryByMaterialIdAsync(int materialId);
     }
 }

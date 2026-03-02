@@ -203,6 +203,24 @@ namespace MultiHitechERP.API.Controllers.Inventory
             }
         }
 
+        [HttpGet("stock/summary/{materialId}")]
+        public async Task<ActionResult<ApiResponse<object>>> GetStockSummary(int materialId)
+        {
+            try
+            {
+                var (pieces, totalLengthMM, totalWeightKG) = await _materialPieceService.GetStockSummaryByMaterialIdAsync(materialId);
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = new { pieces, totalLengthMM, totalWeightKG }
+                });
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = ex.Message });
+            }
+        }
+
         [HttpPatch("{id}/adjust-length")]
         public async Task<ActionResult<ApiResponse<object>>> AdjustLength(int id, [FromBody] AdjustLengthRequest request)
         {

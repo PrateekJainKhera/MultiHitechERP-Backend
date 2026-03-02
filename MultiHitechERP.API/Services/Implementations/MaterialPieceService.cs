@@ -112,6 +112,11 @@ namespace MultiHitechERP.API.Services.Implementations
             return availableStock >= requiredLengthMM;
         }
 
+        public async Task<(int Pieces, decimal TotalLengthMM, decimal TotalWeightKG)> GetStockSummaryByMaterialIdAsync(int materialId)
+        {
+            return await _pieceRepo.GetStockSummaryByMaterialIdAsync(materialId);
+        }
+
         private MaterialPieceResponse MapToResponse(MaterialPiece piece)
         {
             return new MaterialPieceResponse

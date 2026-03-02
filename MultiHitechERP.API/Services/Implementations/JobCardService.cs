@@ -347,6 +347,50 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<bool>> UpdateQuantityAsync(int id, UpdateJobCardQuantityRequest request)
+        {
+            try
+            {
+                var jobCard = await _jobCardRepository.GetByIdAsync(id);
+                if (jobCard == null)
+                    return ApiResponse<bool>.ErrorResponse("Job card not found");
+
+                jobCard.Quantity = request.NewQuantity;
+                jobCard.UpdatedBy = request.UpdatedBy;
+                jobCard.Version++;
+
+                var success = await _jobCardRepository.UpdateAsync(jobCard);
+                if (!success)
+                    return ApiResponse<bool>.ErrorResponse("Failed to update job card quantity");
+
+                // Sync quantity to parent order item or order
+                if (jobCard.OrderItemId.HasValue)
+                {
+                    var orderItem = await _orderItemRepository.GetByIdAsync(jobCard.OrderItemId.Value);
+                    if (orderItem != null)
+                    {
+                        orderItem.Quantity = request.NewQuantity;
+                        await _orderItemRepository.UpdateAsync(orderItem);
+                    }
+                }
+                else
+                {
+                    var order = await _orderRepository.GetByIdAsync(jobCard.OrderId);
+                    if (order != null)
+                    {
+                        order.Quantity = request.NewQuantity;
+                        await _orderRepository.UpdateAsync(order);
+                    }
+                }
+
+                return ApiResponse<bool>.SuccessResponse(true, "Quantity updated successfully");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResponse($"Error updating quantity: {ex.Message}");
+            }
+        }
+
         public async Task<ApiResponse<bool>> DeleteJobCardAsync(int id)
         {
             try

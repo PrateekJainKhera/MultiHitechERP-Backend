@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MultiHitechERP.API.DTOs.Request;
@@ -80,6 +81,21 @@ namespace MultiHitechERP.API.Controllers.Planning
 
             var result = await _jobCardService.UpdateJobCardAsync(request);
             return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        [HttpPatch("{id}/update-quantity")]
+        public async Task<IActionResult> UpdateQuantity(int id, [FromBody] UpdateJobCardQuantityRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid) return BadRequest(ModelState);
+                var result = await _jobCardService.UpdateQuantityAsync(id, request);
+                return result.Success ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]

@@ -272,6 +272,24 @@ namespace MultiHitechERP.API.Controllers.Orders
         }
 
         /// <summary>
+        /// Update order or order-item quantity
+        /// </summary>
+        [HttpPatch("{id}/update-quantity")]
+        public async Task<IActionResult> UpdateQuantity(int id, [FromBody] UpdateOrderQuantityRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid) return BadRequest(ModelState);
+                var result = await _orderService.UpdateQuantityAsync(id, request.NewQuantity, request.OrderItemId, request.UpdatedBy);
+                return result.Success ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Delete an order
         /// </summary>
         [HttpDelete("{id}")]
@@ -537,6 +555,14 @@ namespace MultiHitechERP.API.Controllers.Orders
     {
         public string ReviewedBy { get; set; } = string.Empty;
         public string Reason { get; set; } = string.Empty;
+    }
+
+    public class UpdateOrderQuantityRequest
+    {
+        [Required, Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
+        public int NewQuantity { get; set; }
+        public int? OrderItemId { get; set; }
+        public string UpdatedBy { get; set; } = "Admin";
     }
 
 }

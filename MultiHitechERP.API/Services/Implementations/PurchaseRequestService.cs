@@ -12,15 +12,18 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IPurchaseRequestRepository _prRepo;
         private readonly IPurchaseOrderRepository _poRepo;
         private readonly IVendorRepository _vendorRepo;
+        private readonly IMaterialRepository _materialRepo;
 
         public PurchaseRequestService(
             IPurchaseRequestRepository prRepo,
             IPurchaseOrderRepository poRepo,
-            IVendorRepository vendorRepo)
+            IVendorRepository vendorRepo,
+            IMaterialRepository materialRepo)
         {
             _prRepo = prRepo;
             _poRepo = poRepo;
             _vendorRepo = vendorRepo;
+            _materialRepo = materialRepo;
         }
 
         public async Task<ApiResponse<IEnumerable<PurchaseRequestResponse>>> GetAllAsync()
@@ -272,6 +275,16 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (v != null) vendorNames[vid] = v.VendorName;
             }
 
+            // Load material weight per mm for RawMaterial items
+            var materialWeightPerMm = new Dictionary<int, decimal>();
+            var rawMaterialItemIds = pr.Items.Where(i => i.ItemType == "RawMaterial").Select(i => i.ItemId).Distinct();
+            foreach (var matId in rawMaterialItemIds)
+            {
+                var mat = await _materialRepo.GetByIdAsync(matId);
+                if (mat != null && mat.LengthInMM > 0)
+                    materialWeightPerMm[matId] = mat.WeightKG / mat.LengthInMM;
+            }
+
             return new PurchaseRequestResponse
             {
                 Id = pr.Id,
@@ -301,6 +314,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     EstimatedUnitCost = i.EstimatedUnitCost,
                     Status = i.Status,
                     Notes = i.Notes,
+                    MaterialWeightKgPerMm = i.ItemType == "RawMaterial" && materialWeightPerMm.TryGetValue(i.ItemId, out var wpm) ? wpm : null,
                     CuttingList = i.CuttingList.Select(c => new CuttingListItemResponse
                     {
                         Id = c.Id,

@@ -22,6 +22,7 @@ namespace MultiHitechERP.API.Services.Interfaces
         // Create, Update, Delete
         Task<ApiResponse<int>> CreateJobCardAsync(CreateJobCardRequest request);
         Task<ApiResponse<bool>> UpdateJobCardAsync(UpdateJobCardRequest request);
+        Task<ApiResponse<bool>> UpdateQuantityAsync(int id, UpdateJobCardQuantityRequest request);
         Task<ApiResponse<bool>> DeleteJobCardAsync(int id);
 
         // Status

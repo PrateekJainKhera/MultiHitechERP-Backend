@@ -428,6 +428,34 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<bool>> UpdateQuantityAsync(int orderId, int newQuantity, int? orderItemId, string updatedBy)
+        {
+            try
+            {
+                if (orderItemId.HasValue)
+                {
+                    var item = await _orderItemRepository.GetByIdAsync(orderItemId.Value);
+                    if (item == null) return ApiResponse<bool>.ErrorResponse("Order item not found");
+                    item.Quantity = newQuantity;
+                    item.UpdatedBy = updatedBy;
+                    await _orderItemRepository.UpdateAsync(item);
+                }
+                else
+                {
+                    var order = await _orderRepository.GetByIdAsync(orderId);
+                    if (order == null) return ApiResponse<bool>.ErrorResponse("Order not found");
+                    order.Quantity = newQuantity;
+                    order.UpdatedBy = updatedBy;
+                    await _orderRepository.UpdateAsync(order);
+                }
+                return ApiResponse<bool>.SuccessResponse(true, "Quantity updated");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResponse($"Error updating quantity: {ex.Message}");
+            }
+        }
+
         public async Task<ApiResponse<bool>> DeleteOrderAsync(int id)
         {
             try
