@@ -47,8 +47,15 @@ namespace MultiHitechERP.API.DTOs.Response
         // Quantity (target)
         public int Quantity { get; set; }
 
-        // Status (Planning: Pending | Planned | Released)
+        // Status (Planning: Pending | Planned | Scheduled)
         public string Status { get; set; } = "Pending";
+
+        // Production Status (Pending | Ready | InProgress | Paused | Completed)
+        public string ProductionStatus { get; set; } = "Pending";
+
+        // Production Quantities
+        public int CompletedQty { get; set; }
+        public int RejectedQty { get; set; }
 
         // Priority
         public string Priority { get; set; } = "Medium";

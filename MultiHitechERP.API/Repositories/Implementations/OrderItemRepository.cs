@@ -457,6 +457,21 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 LEFT JOIN Masters_Products p ON oi.ProductId = p.Id
                 WHERE oi.QtyCompleted > oi.QtyDispatched
                   AND oi.QtyCompleted > 0
+                  -- QC gate: if this order item has a completed Assembly job card,
+                  -- it must also have a Passed QC record before appearing here.
+                  AND (
+                      NOT EXISTS (
+                          SELECT 1 FROM Planning_JobCards
+                          WHERE OrderItemId = oi.Id
+                            AND ChildPartName LIKE '%Assembly%'
+                            AND ProductionStatus = 'Completed'
+                      )
+                      OR EXISTS (
+                          SELECT 1 FROM Production_OrderItemQC
+                          WHERE OrderItemId = oi.Id
+                            AND QCStatus = 'Passed'
+                      )
+                  )
                 ORDER BY oi.DueDate ASC";
 
             using var connection = new SqlConnection(_connectionString);

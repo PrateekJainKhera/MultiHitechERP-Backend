@@ -24,5 +24,8 @@ namespace MultiHitechERP.API.Services.Interfaces
 
         /// <summary>Process-based execution view: ProcessCategory → ChildPart → Orders (all scheduled job cards)</summary>
         Task<ApiResponse<IEnumerable<ExecutionViewCategory>>> GetExecutionViewAsync();
+
+        /// <summary>Fix stuck cards: sets Step1/no-step Scheduled+Pending cards to Ready</summary>
+        Task<ApiResponse<int>> FixStuckCardsAsync();
     }
 }

@@ -343,8 +343,9 @@ namespace MultiHitechERP.API.Services.Implementations
                 var scheduledCards = jobCards.Where(jc => jc.Status == "Scheduled").ToList();
 
                 // Separate assembly from child-part steps
-                var assemblyJcs = scheduledCards.Where(jc => jc.CreationType == "Assembly").ToList();
-                var childJcs = scheduledCards.Where(jc => jc.CreationType != "Assembly").ToList();
+                // (All job cards have CreationType='auto'; assembly cards are identified by ChildPartName)
+                var assemblyJcs = scheduledCards.Where(jc => jc.ChildPartName != null && jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase)).ToList();
+                var childJcs = scheduledCards.Where(jc => jc.ChildPartName == null || !jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase)).ToList();
 
                 // Group child part steps by ChildPartKey (id when available, name otherwise)
                 var childPartGroups = childJcs
@@ -452,8 +453,9 @@ namespace MultiHitechERP.API.Services.Implementations
                 var scheduledCards = jobCards.Where(jc => jc.Status == "Scheduled").ToList();
 
                 // Separate assembly from child-part steps
-                var assemblyJcs = scheduledCards.Where(jc => jc.CreationType == "Assembly").ToList();
-                var childJcs = scheduledCards.Where(jc => jc.CreationType != "Assembly").ToList();
+                // (All job cards have CreationType='auto'; assembly cards are identified by ChildPartName)
+                var assemblyJcs = scheduledCards.Where(jc => jc.ChildPartName != null && jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase)).ToList();
+                var childJcs = scheduledCards.Where(jc => jc.ChildPartName == null || !jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase)).ToList();
 
                 // Group child part steps by ChildPartKey (id when available, name otherwise)
                 var childPartGroups = childJcs
@@ -608,7 +610,7 @@ namespace MultiHitechERP.API.Services.Implementations
         private async Task CascadeOnCompleteAsync(Models.Planning.JobCard completedCard)
         {
             // Only cascade for non-assembly child part steps
-            if (completedCard.CreationType == "Assembly") return;
+            if (completedCard.ChildPartName != null && completedCard.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase)) return;
 
             // For multi-product orders: only cascade within the same order item
             // For legacy orders: OrderItemId will be null, so we use OrderId
@@ -623,7 +625,7 @@ namespace MultiHitechERP.API.Services.Implementations
             var nextStep = allOrderCards
                 .Where(jc =>
                     ChildPartKey(jc) == completedKey &&
-                    jc.CreationType != "Assembly" &&
+                    (jc.ChildPartName == null || !jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase)) &&
                     jc.Status == "Scheduled" &&
                     jc.StepNo > completedCard.StepNo)
                 .OrderBy(jc => jc.StepNo)
@@ -641,7 +643,7 @@ namespace MultiHitechERP.API.Services.Implementations
 
             // Check if ALL steps of this child part are now Completed
             var childPartSteps = allOrderCards
-                .Where(jc => ChildPartKey(jc) == completedKey && jc.CreationType != "Assembly")
+                .Where(jc => ChildPartKey(jc) == completedKey && (jc.ChildPartName == null || !jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase)))
                 .ToList();
 
             // Re-fetch the completed step so its status is updated
@@ -664,7 +666,7 @@ namespace MultiHitechERP.API.Services.Implementations
             if (allDone)
             {
                 // Check if ALL child parts across the order are done
-                var allChildCards = allOrderCards.Where(jc => jc.CreationType != "Assembly").ToList();
+                var allChildCards = allOrderCards.Where(jc => jc.ChildPartName == null || !jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase)).ToList();
 
                 // Re-fetch to get latest status
                 var freshChildCards = new List<Models.Planning.JobCard>();
@@ -680,7 +682,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 {
                     // Unlock assembly step only if it has been scheduled (machine assigned)
                     var assemblyCard = allOrderCards.FirstOrDefault(jc =>
-                        jc.CreationType == "Assembly" && jc.Status == "Scheduled");
+                        jc.ChildPartName != null && jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase) && jc.Status == "Scheduled");
                     if (assemblyCard != null && assemblyCard.ProductionStatus == "Pending")
                     {
                         await _jobCardRepository.UpdateProductionStatusAsync(
@@ -700,9 +702,9 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                // All scheduled, non-assembly job cards
+                // All scheduled job cards (including Assembly when they are Ready/InProgress/Completed)
                 var allScheduled = (await _jobCardRepository.GetByStatusAsync("Scheduled"))
-                    .Where(jc => jc.CreationType != "Assembly")
+                    .Where(jc => jc.CreationType != "Assembly" || jc.ProductionStatus != "Pending")
                     .ToList();
 
                 if (!allScheduled.Any())
@@ -837,6 +839,40 @@ namespace MultiHitechERP.API.Services.Implementations
             catch (Exception ex)
             {
                 return ApiResponse<IEnumerable<ExecutionViewCategory>>.ErrorResponse($"Error loading execution view: {ex.Message}");
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 5. Fix Stuck Cards — one-time repair for cards stuck at Pending
+        // ─────────────────────────────────────────────────────────────────────
+        public async Task<ApiResponse<int>> FixStuckCardsAsync()
+        {
+            try
+            {
+                // Get all Scheduled cards still showing Pending production status
+                var allScheduled = (await _jobCardRepository.GetByStatusAsync("Scheduled")).ToList();
+                var stuck = allScheduled
+                    .Where(jc =>
+                        jc.ProductionStatus == "Pending" &&
+                        jc.CreationType != "Assembly" &&
+                        (jc.StepNo == 1 || !jc.StepNo.HasValue))
+                    .ToList();
+
+                int fixed_ = 0;
+                foreach (var jc in stuck)
+                {
+                    await _jobCardRepository.UpdateProductionStatusAsync(
+                        jc.Id, "Ready",
+                        jc.ActualStartTime, jc.ActualEndTime,
+                        jc.CompletedQty, jc.RejectedQty);
+                    fixed_++;
+                }
+
+                return ApiResponse<int>.SuccessResponse(fixed_, $"Fixed {fixed_} stuck job card(s) → Ready");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<int>.ErrorResponse($"Error fixing stuck cards: {ex.Message}");
             }
         }
 

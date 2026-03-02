@@ -569,13 +569,13 @@ namespace MultiHitechERP.API.Services.Implementations
                 await _jobCardRepository.UpdateStatusAsync(request.JobCardId, "Scheduled");
 
                 // Determine ProductionStatus for this job card:
-                // - Step 1 of a child part → Ready (can start immediately)
+                // - Step 1 (or no step number) → Ready (can start immediately)
                 // - Step N>1 → Ready only if the previous step is already Completed
                 // - Assembly → stays Pending (cascade will set Ready when all parts done)
                 string productionStatus = "Pending";
                 if (jobCard.CreationType != "Assembly")
                 {
-                    if (jobCard.StepNo == 1)
+                    if (jobCard.StepNo == 1 || !jobCard.StepNo.HasValue)
                     {
                         productionStatus = "Ready";
                     }

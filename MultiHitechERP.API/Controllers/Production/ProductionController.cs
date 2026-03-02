@@ -89,5 +89,16 @@ namespace MultiHitechERP.API.Controllers.Production
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+
+        /// <summary>
+        /// POST /api/production/fix-stuck-cards
+        /// One-time fix: sets Scheduled+Pending cards that are Step 1 or have no step number to Ready
+        /// </summary>
+        [HttpPost("fix-stuck-cards")]
+        public async Task<IActionResult> FixStuckCards()
+        {
+            var result = await _productionService.FixStuckCardsAsync();
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
     }
 }

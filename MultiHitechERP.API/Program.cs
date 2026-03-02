@@ -116,6 +116,8 @@ builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<ISchedulingPlannerService, SchedulingPlannerService>();
 builder.Services.AddScoped<IOSPTrackingRepository, OSPTrackingRepository>();
 builder.Services.AddScoped<IOSPTrackingService, OSPTrackingService>();
+builder.Services.AddScoped<IOrderItemQCRepository, OrderItemQCRepository>();
+builder.Services.AddScoped<IOrderItemQCService, OrderItemQCService>();
 builder.Services.AddSingleton<IS3Service, S3Service>();
 
 // CORS for frontend
