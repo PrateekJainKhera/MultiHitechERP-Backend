@@ -419,9 +419,11 @@ namespace MultiHitechERP.API.Services.Implementations
             {
                 try
                 {
-                    // Get job card info
+                    // Get job card info (include step/child-part fields for ProductionStatus logic)
                     var jcRow = await conn.QueryFirstOrDefaultAsync(
-                        "SELECT Id, JobCardNo, OrderId, OrderNo, ProcessId, ProcessName, ProcessCode FROM Planning_JobCards WHERE Id = @Id",
+                        @"SELECT Id, JobCardNo, OrderId, OrderNo, ProcessId, ProcessName, ProcessCode,
+                                 StepNo, ChildPartId, ChildPartName, CreationType
+                          FROM Planning_JobCards WHERE Id = @Id",
                         new { Id = req.JobCardId });
 
                     if (jcRow == null)
@@ -493,10 +495,49 @@ namespace MultiHitechERP.API.Services.Implementations
                             Notes = req.Notes
                         });
 
-                    // Update job card status
+                    // Determine ProductionStatus (mirrors ScheduleService.CreateScheduleAsync logic)
+                    string productionStatus = "Pending";
+                    string creationType = (string?)jcRow.CreationType ?? "";
+                    if (creationType != "Assembly")
+                    {
+                        int? stepNo = (int?)jcRow.StepNo;
+                        if (stepNo == 1 || !stepNo.HasValue)
+                        {
+                            productionStatus = "Ready";
+                        }
+                        else
+                        {
+                            // Check if previous step in same child part is already Completed
+                            int? childPartId = (int?)jcRow.ChildPartId;
+                            string childPartName = (string?)jcRow.ChildPartName ?? "";
+                            var prevCompleted = await conn.QueryFirstOrDefaultAsync<int?>(@"
+                                SELECT 1 FROM Planning_JobCards
+                                WHERE OrderId = @OrderId
+                                  AND CreationType != 'Assembly'
+                                  AND StepNo = @PrevStep
+                                  AND ((@ChildPartId IS NOT NULL AND ChildPartId = @ChildPartId)
+                                       OR (@ChildPartId IS NULL AND ISNULL(ChildPartName,'') = @ChildPartName))
+                                  AND ProductionStatus = 'Completed'",
+                                new
+                                {
+                                    OrderId = (int)jcRow.OrderId,
+                                    PrevStep = stepNo - 1,
+                                    ChildPartId = childPartId,
+                                    ChildPartName = childPartName
+                                });
+                            if (prevCompleted.HasValue)
+                                productionStatus = "Ready";
+                        }
+                    }
+
+                    // Update job card status + ProductionStatus
                     await conn.ExecuteAsync(
-                        "UPDATE Planning_JobCards SET Status = 'Scheduled', UpdatedAt = GETUTCDATE() WHERE Id = @Id",
-                        new { Id = req.JobCardId });
+                        @"UPDATE Planning_JobCards
+                          SET Status = 'Scheduled',
+                              ProductionStatus = @ProductionStatus,
+                              UpdatedAt = GETUTCDATE()
+                          WHERE Id = @Id",
+                        new { Id = req.JobCardId, ProductionStatus = productionStatus });
 
                     results.Add(new BatchScheduleV2Result
                     {

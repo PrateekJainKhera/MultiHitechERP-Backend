@@ -594,6 +594,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 {
                     await CascadeOnCompleteAsync(jobCard);
                     await _pieceRepository.ConsumePiecesByJobCardAsync(jobCardId);
+
+                    // Roll up QtyCompleted to Orders_OrderItems when production is fully done
+                    // This enables the dispatch page to pick up the item (requires QtyCompleted > 0)
+                    await RollUpQtyCompletedIfDoneAsync(jobCard, request.CompletedQty);
                 }
 
                 return ApiResponse<bool>.SuccessResponse(true, $"Job card {action}ed successfully");
@@ -691,6 +695,80 @@ namespace MultiHitechERP.API.Services.Implementations
                             assemblyCard.CompletedQty, assemblyCard.RejectedQty
                         );
                     }
+                }
+        }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Roll up QtyCompleted to Orders_OrderItems when production finishes
+        // so the dispatch page can see the item (requires QtyCompleted > 0)
+        // ─────────────────────────────────────────────────────────────────────
+        private async Task RollUpQtyCompletedIfDoneAsync(Models.Planning.JobCard completedCard, int completedQty)
+        {
+            bool isAssembly = completedCard.ChildPartName != null &&
+                              completedCard.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase);
+
+            // Case 1: Assembly step just completed — this IS the final gate
+            if (isAssembly)
+            {
+                int? orderItemId = completedCard.OrderItemId;
+                if (orderItemId.HasValue)
+                {
+                    var orderItem = await _orderItemRepository.GetByIdAsync(orderItemId.Value);
+                    if (orderItem != null)
+                    {
+                        int qty = completedQty > 0 ? completedQty : completedCard.Quantity;
+                        await _orderItemRepository.UpdateQuantitiesAsync(
+                            orderItem.Id,
+                            orderItem.QtyCompleted + qty,
+                            orderItem.QtyRejected,
+                            0, // QtyInProgress reset
+                            orderItem.QtyScrap);
+                    }
+                }
+                return;
+            }
+
+            // Case 2: No assembly step exists — check if ALL child-part steps are done
+            var allCards = completedCard.OrderItemId.HasValue
+                ? (await _jobCardRepository.GetByOrderItemIdAsync(completedCard.OrderItemId.Value)).ToList()
+                : (await _jobCardRepository.GetByOrderIdAsync(completedCard.OrderId)).ToList();
+
+            bool hasAssembly = allCards.Any(jc =>
+                jc.ChildPartName != null &&
+                jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase));
+
+            // If there IS an assembly step, don't roll up here — wait for assembly to complete (Case 1)
+            if (hasAssembly) return;
+
+            // Re-fetch the completed card to get its updated status
+            var freshCompleted = await _jobCardRepository.GetByIdAsync(completedCard.Id);
+
+            // Check if ALL cards are now Completed
+            var freshCards = new List<Models.Planning.JobCard>();
+            foreach (var jc in allCards)
+            {
+                var fresh = jc.Id == completedCard.Id ? freshCompleted : await _jobCardRepository.GetByIdAsync(jc.Id);
+                if (fresh != null) freshCards.Add(fresh);
+            }
+
+            bool allDone = freshCards.All(jc => jc.ProductionStatus == "Completed");
+            if (!allDone) return;
+
+            // All steps done, no assembly — roll up qty
+            int? itemId = completedCard.OrderItemId;
+            if (itemId.HasValue)
+            {
+                var orderItem = await _orderItemRepository.GetByIdAsync(itemId.Value);
+                if (orderItem != null)
+                {
+                    int qty = completedQty > 0 ? completedQty : completedCard.Quantity;
+                    await _orderItemRepository.UpdateQuantitiesAsync(
+                        orderItem.Id,
+                        orderItem.QtyCompleted + qty,
+                        orderItem.QtyRejected,
+                        0, // QtyInProgress reset
+                        orderItem.QtyScrap);
                 }
             }
         }
