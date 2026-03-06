@@ -120,6 +120,10 @@ builder.Services.AddScoped<IOrderItemQCRepository, OrderItemQCRepository>();
 builder.Services.AddScoped<IOrderItemQCService, OrderItemQCService>();
 builder.Services.AddSingleton<IS3Service, S3Service>();
 
+// Auth
+builder.Services.AddScoped<MultiHitechERP.API.Repositories.Interfaces.IAuthRepository, MultiHitechERP.API.Repositories.Implementations.AuthRepository>();
+builder.Services.AddScoped<MultiHitechERP.API.Services.IAuthService, MultiHitechERP.API.Services.AuthService>();
+
 // CORS for frontend
 builder.Services.AddCors(options =>
 {
@@ -132,6 +136,25 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Seed admin user on startup if not exists
+using (var scope = app.Services.CreateScope())
+{
+    var authRepo = scope.ServiceProvider.GetRequiredService<MultiHitechERP.API.Repositories.Interfaces.IAuthRepository>();
+    try
+    {
+        if (!await authRepo.AdminExistsAsync())
+        {
+            var adminRole = (await authRepo.GetAllRolesAsync()).FirstOrDefault(r => r.RoleName == "Admin");
+            if (adminRole != null)
+            {
+                var hash = BCrypt.Net.BCrypt.HashPassword("admin123");
+                await authRepo.SeedAdminAsync(hash, adminRole.Id);
+            }
+        }
+    }
+    catch { /* DB not ready yet — skip */ }
+}
 
 // Configure middleware
 if (app.Environment.IsDevelopment())
