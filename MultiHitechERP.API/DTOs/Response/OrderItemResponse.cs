@@ -20,6 +20,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public int QtyRejected { get; set; }
         public int QtyInProgress { get; set; }
         public int QtyScrap { get; set; }
+        public int QtyDispatched { get; set; }
 
         // Dates & Priority
         public DateTime DueDate { get; set; }

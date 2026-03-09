@@ -786,6 +786,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         QtyRejected = item.QtyRejected,
                         QtyInProgress = item.QtyInProgress,
                         QtyScrap = item.QtyScrap,
+                        QtyDispatched = item.QtyDispatched,
                         DueDate = item.DueDate,
                         AdjustedDueDate = null, // OrderItem doesn't track adjusted due date
                         Priority = item.Priority,
