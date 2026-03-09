@@ -14,5 +14,6 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<bool> DeleteAsync(int id);
         Task<string> GetNextDrawingNumberAsync();
         Task<bool> ExistsAsync(string drawingNumber);
+        Task UpdateStatusByProductIdAsync(int productId, string status, string? approvedBy);
     }
 }

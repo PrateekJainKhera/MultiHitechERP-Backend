@@ -14,13 +14,16 @@ namespace MultiHitechERP.API.Services.Implementations
     {
         private readonly IProductRepository _productRepository;
         private readonly IMachineModelRepository _machineModelRepository;
+        private readonly IDrawingRepository _drawingRepository;
 
         public ProductService(
             IProductRepository productRepository,
-            IMachineModelRepository machineModelRepository)
+            IMachineModelRepository machineModelRepository,
+            IDrawingRepository drawingRepository)
         {
             _productRepository = productRepository;
             _machineModelRepository = machineModelRepository;
+            _drawingRepository = drawingRepository;
         }
 
         public async Task<ApiResponse<ProductResponse>> GetByIdAsync(int id)
@@ -289,6 +292,12 @@ namespace MultiHitechERP.API.Services.Implementations
                 var success = await _productRepository.UpdateAsync(product);
                 if (!success)
                     return ApiResponse<bool>.ErrorResponse("Failed to update drawing review status");
+
+                // Sync master drawing status when drawing review changes
+                if (status == "Approved")
+                    await _drawingRepository.UpdateStatusByProductIdAsync(productId, "approved", reviewedBy);
+                else if (status == "Rejected" || status == "RevisionRequired")
+                    await _drawingRepository.UpdateStatusByProductIdAsync(productId, "draft", null);
 
                 return ApiResponse<bool>.SuccessResponse(true, $"Drawing review status updated to '{status}' successfully");
             }

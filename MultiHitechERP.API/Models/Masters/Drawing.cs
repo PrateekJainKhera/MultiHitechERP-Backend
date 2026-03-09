@@ -26,7 +26,9 @@ namespace MultiHitechERP.API.Models.Masters
         // Linking to other entities
         public int? LinkedPartId { get; set; }
         public int? LinkedProductId { get; set; }
+        public string? LinkedProductName { get; set; }
         public int? LinkedCustomerId { get; set; }
+        public string? LinkedCustomerName { get; set; }
         public int? LinkedOrderId { get; set; }
 
         // Metadata

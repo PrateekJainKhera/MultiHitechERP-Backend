@@ -19,7 +19,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<Drawing?> GetByIdAsync(int id)
         {
-            const string query = "SELECT * FROM Masters_Drawings WHERE Id = @Id";
+            const string query = @"
+                SELECT d.*, p.PartCode AS LinkedProductName, c.CustomerName AS LinkedCustomerName
+                FROM Masters_Drawings d
+                LEFT JOIN Masters_Products p ON d.LinkedProductId = p.Id
+                LEFT JOIN Masters_Customers c ON d.LinkedCustomerId = c.Id
+                WHERE d.Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
@@ -33,7 +38,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<IEnumerable<Drawing>> GetAllAsync()
         {
-            const string query = "SELECT * FROM Masters_Drawings ORDER BY DrawingName";
+            const string query = @"
+                SELECT d.*, p.PartCode AS LinkedProductName, c.CustomerName AS LinkedCustomerName
+                FROM Masters_Drawings d
+                LEFT JOIN Masters_Products p ON d.LinkedProductId = p.Id
+                LEFT JOIN Masters_Customers c ON d.LinkedCustomerId = c.Id
+                ORDER BY d.DrawingName";
 
             var drawings = new List<Drawing>();
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -195,6 +205,23 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return $"DWG-{maxNum + 1:D3}";
         }
 
+        public async Task UpdateStatusByProductIdAsync(int productId, string status, string? approvedBy)
+        {
+            var query = status == "approved"
+                ? @"UPDATE Masters_Drawings SET Status = @Status, ApprovedBy = @ApprovedBy, ApprovedAt = GETUTCDATE(), UpdatedAt = GETUTCDATE() WHERE LinkedProductId = @ProductId"
+                : @"UPDATE Masters_Drawings SET Status = @Status, UpdatedAt = GETUTCDATE() WHERE LinkedProductId = @ProductId";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@ProductId", productId);
+            command.Parameters.AddWithValue("@Status", status);
+            if (status == "approved")
+                command.Parameters.AddWithValue("@ApprovedBy", (object?)approvedBy ?? DBNull.Value);
+
+            await connection.OpenAsync();
+            await command.ExecuteNonQueryAsync();
+        }
+
         public async Task<bool> ExistsAsync(string drawingNumber)
         {
             const string query = "SELECT COUNT(1) FROM Masters_Drawings WHERE DrawingNumber = @DrawingNumber";
@@ -225,7 +252,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 ManufacturingDimensionsJSON = reader.IsDBNull(reader.GetOrdinal("ManufacturingDimensionsJSON")) ? null : reader.GetString(reader.GetOrdinal("ManufacturingDimensionsJSON")),
                 LinkedPartId = reader.IsDBNull(reader.GetOrdinal("LinkedPartId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedPartId")),
                 LinkedProductId = reader.IsDBNull(reader.GetOrdinal("LinkedProductId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedProductId")),
+                LinkedProductName = reader.IsDBNull(reader.GetOrdinal("LinkedProductName")) ? null : reader.GetString(reader.GetOrdinal("LinkedProductName")),
                 LinkedCustomerId = reader.IsDBNull(reader.GetOrdinal("LinkedCustomerId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedCustomerId")),
+                LinkedCustomerName = reader.IsDBNull(reader.GetOrdinal("LinkedCustomerName")) ? null : reader.GetString(reader.GetOrdinal("LinkedCustomerName")),
                 LinkedOrderId = reader.IsDBNull(reader.GetOrdinal("LinkedOrderId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedOrderId")),
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                 Notes = reader.IsDBNull(reader.GetOrdinal("Notes")) ? null : reader.GetString(reader.GetOrdinal("Notes")),
