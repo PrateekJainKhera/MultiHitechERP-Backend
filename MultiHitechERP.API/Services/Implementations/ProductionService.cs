@@ -369,17 +369,16 @@ namespace MultiHitechERP.API.Services.Implementations
                         };
                     }).ToList();
 
-                // Assembly step (first one)
-                ProductionStepItem? assemblyItem = null;
-                if (assemblyJcs.Any())
-                {
-                    var asmJc = assemblyJcs.First();
-                    assemblyItem = MapToStepItem(asmJc, scheduleByJobCard, ospProcessIds);
-                }
+                var assemblySteps = assemblyJcs
+                    .OrderBy(jc => jc.StepNo ?? 999)
+                    .Select(jc => MapToStepItem(jc, scheduleByJobCard, ospProcessIds))
+                    .ToList();
 
-                var allChildSteps = childJcs.Count;
-                var completedChildSteps = childJcs.Count(jc => jc.ProductionStatus == "Completed");
-                var inProgressChildSteps = childJcs.Count(jc => jc.ProductionStatus == "InProgress" || jc.ProductionStatus == "Paused");
+                var allChildSteps = childJcs.Count + assemblyJcs.Count;
+                var completedChildSteps = childJcs.Count(jc => jc.ProductionStatus == "Completed")
+                                        + assemblyJcs.Count(jc => jc.ProductionStatus == "Completed");
+                var inProgressChildSteps = childJcs.Count(jc => jc.ProductionStatus == "InProgress" || jc.ProductionStatus == "Paused")
+                                         + assemblyJcs.Count(jc => jc.ProductionStatus == "InProgress" || jc.ProductionStatus == "Paused");
                 var canStartAssembly = childPartGroups.All(g => g.IsReadyForAssembly);
 
                 var detail = new ProductionOrderDetail
@@ -394,7 +393,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     CompletedSteps = completedChildSteps,
                     InProgressSteps = inProgressChildSteps,
                     ChildParts = childPartGroups,
-                    Assembly = assemblyItem,
+                    AssemblySteps = assemblySteps,
                     CanStartAssembly = canStartAssembly
                 };
 
@@ -479,17 +478,16 @@ namespace MultiHitechERP.API.Services.Implementations
                         };
                     }).ToList();
 
-                // Assembly step (first one)
-                ProductionStepItem? assemblyItem = null;
-                if (assemblyJcs.Any())
-                {
-                    var asmJc = assemblyJcs.First();
-                    assemblyItem = MapToStepItem(asmJc, scheduleByJobCard, ospProcessIds);
-                }
+                var assemblySteps = assemblyJcs
+                    .OrderBy(jc => jc.StepNo ?? 999)
+                    .Select(jc => MapToStepItem(jc, scheduleByJobCard, ospProcessIds))
+                    .ToList();
 
-                var allChildSteps = childJcs.Count;
-                var completedChildSteps = childJcs.Count(jc => jc.ProductionStatus == "Completed");
-                var inProgressChildSteps = childJcs.Count(jc => jc.ProductionStatus == "InProgress" || jc.ProductionStatus == "Paused");
+                var allChildSteps = childJcs.Count + assemblyJcs.Count;
+                var completedChildSteps = childJcs.Count(jc => jc.ProductionStatus == "Completed")
+                                        + assemblyJcs.Count(jc => jc.ProductionStatus == "Completed");
+                var inProgressChildSteps = childJcs.Count(jc => jc.ProductionStatus == "InProgress" || jc.ProductionStatus == "Paused")
+                                         + assemblyJcs.Count(jc => jc.ProductionStatus == "InProgress" || jc.ProductionStatus == "Paused");
                 var canStartAssembly = childPartGroups.All(g => g.IsReadyForAssembly);
 
                 var fullRef = !string.IsNullOrEmpty(orderItem.ItemSequence)
@@ -501,14 +499,14 @@ namespace MultiHitechERP.API.Services.Implementations
                     OrderId = order.Id,
                     OrderNo = fullRef,
                     CustomerName = order.CustomerName,
-                    ProductName = orderItem.ProductName,  // From OrderItem
+                    ProductName = orderItem.ProductName,
                     Priority = orderItem.Priority ?? "Medium",
                     DueDate = orderItem.DueDate,
                     TotalSteps = allChildSteps,
                     CompletedSteps = completedChildSteps,
                     InProgressSteps = inProgressChildSteps,
                     ChildParts = childPartGroups,
-                    Assembly = assemblyItem,
+                    AssemblySteps = assemblySteps,
                     CanStartAssembly = canStartAssembly
                 };
 
@@ -597,7 +595,7 @@ namespace MultiHitechERP.API.Services.Implementations
 
                     // Roll up QtyCompleted to Orders_OrderItems when production is fully done
                     // This enables the dispatch page to pick up the item (requires QtyCompleted > 0)
-                    await RollUpQtyCompletedIfDoneAsync(jobCard, request.CompletedQty);
+                    await RollUpQtyCompletedIfDoneAsync(jobCard);
                 }
 
                 return ApiResponse<bool>.SuccessResponse(true, $"Job card {action}ed successfully");
@@ -613,14 +611,38 @@ namespace MultiHitechERP.API.Services.Implementations
         // ─────────────────────────────────────────────────────────────────────
         private async Task CascadeOnCompleteAsync(Models.Planning.JobCard completedCard)
         {
-            // Only cascade for non-assembly child part steps
-            if (completedCard.ChildPartName != null && completedCard.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase)) return;
+            bool isAssemblyCard = completedCard.ChildPartName != null &&
+                                  completedCard.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase);
 
             // For multi-product orders: only cascade within the same order item
             // For legacy orders: OrderItemId will be null, so we use OrderId
             var allOrderCards = completedCard.OrderItemId.HasValue
                 ? (await _jobCardRepository.GetByOrderItemIdAsync(completedCard.OrderItemId.Value)).ToList()
                 : (await _jobCardRepository.GetByOrderIdAsync(completedCard.OrderId)).ToList();
+
+            // Assembly-to-assembly cascade: when one assembly step completes, unlock the next
+            if (isAssemblyCard)
+            {
+                var nextAssembly = allOrderCards
+                    .Where(jc =>
+                        jc.ChildPartName != null &&
+                        jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase) &&
+                        jc.Status == "Scheduled" &&
+                        jc.ProductionStatus == "Pending" &&
+                        jc.StepNo > completedCard.StepNo)
+                    .OrderBy(jc => jc.StepNo)
+                    .FirstOrDefault();
+
+                if (nextAssembly != null)
+                {
+                    await _jobCardRepository.UpdateProductionStatusAsync(
+                        nextAssembly.Id, "Ready",
+                        nextAssembly.ActualStartTime, nextAssembly.ActualEndTime,
+                        nextAssembly.CompletedQty, nextAssembly.RejectedQty
+                    );
+                }
+                return;
+            }
 
             var completedKey = ChildPartKey(completedCard);
 
@@ -684,10 +706,15 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 if (allChildPartsDone)
                 {
-                    // Unlock assembly step only if it has been scheduled (machine assigned)
-                    var assemblyCard = allOrderCards.FirstOrDefault(jc =>
-                        jc.ChildPartName != null && jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase) && jc.Status == "Scheduled");
-                    if (assemblyCard != null && assemblyCard.ProductionStatus == "Pending")
+                    // Unlock the FIRST pending assembly step (ordered by StepNo)
+                    var assemblyCard = allOrderCards
+                        .Where(jc => jc.ChildPartName != null &&
+                                     jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase) &&
+                                     jc.Status == "Scheduled" &&
+                                     jc.ProductionStatus == "Pending")
+                        .OrderBy(jc => jc.StepNo)
+                        .FirstOrDefault();
+                    if (assemblyCard != null)
                     {
                         await _jobCardRepository.UpdateProductionStatusAsync(
                             assemblyCard.Id, "Ready",
@@ -703,26 +730,39 @@ namespace MultiHitechERP.API.Services.Implementations
         // Roll up QtyCompleted to Orders_OrderItems when production finishes
         // so the dispatch page can see the item (requires QtyCompleted > 0)
         // ─────────────────────────────────────────────────────────────────────
-        private async Task RollUpQtyCompletedIfDoneAsync(Models.Planning.JobCard completedCard, int completedQty)
+        private async Task RollUpQtyCompletedIfDoneAsync(Models.Planning.JobCard completedCard)
         {
             bool isAssembly = completedCard.ChildPartName != null &&
                               completedCard.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase);
 
-            // Case 1: Assembly step just completed — this IS the final gate
+            // Case 1: Assembly step just completed — roll up only if this is the LAST assembly
             if (isAssembly)
             {
+                // Check if any other assembly cards are still incomplete
+                var allCardsForRollup = completedCard.OrderItemId.HasValue
+                    ? (await _jobCardRepository.GetByOrderItemIdAsync(completedCard.OrderItemId.Value)).ToList()
+                    : (await _jobCardRepository.GetByOrderIdAsync(completedCard.OrderId)).ToList();
+
+                bool moreAssembliesPending = allCardsForRollup.Any(jc =>
+                    jc.Id != completedCard.Id &&
+                    jc.ChildPartName != null &&
+                    jc.ChildPartName.Contains("Assembly", StringComparison.OrdinalIgnoreCase) &&
+                    jc.ProductionStatus != "Completed");
+
+                if (moreAssembliesPending) return; // Not the last assembly — don't roll up yet
+
                 int? orderItemId = completedCard.OrderItemId;
                 if (orderItemId.HasValue)
                 {
                     var orderItem = await _orderItemRepository.GetByIdAsync(orderItemId.Value);
                     if (orderItem != null)
                     {
-                        int qty = completedQty > 0 ? completedQty : completedCard.Quantity;
+                        // SET to order Quantity (not additive) — prevents double-count if rollup fires multiple times
                         await _orderItemRepository.UpdateQuantitiesAsync(
                             orderItem.Id,
-                            orderItem.QtyCompleted + qty,
+                            orderItem.Quantity,
                             orderItem.QtyRejected,
-                            0, // QtyInProgress reset
+                            0,
                             orderItem.QtyScrap);
                     }
                 }
@@ -762,12 +802,12 @@ namespace MultiHitechERP.API.Services.Implementations
                 var orderItem = await _orderItemRepository.GetByIdAsync(itemId.Value);
                 if (orderItem != null)
                 {
-                    int qty = completedQty > 0 ? completedQty : completedCard.Quantity;
+                    // SET to order Quantity (not additive) — prevents double-count
                     await _orderItemRepository.UpdateQuantitiesAsync(
                         orderItem.Id,
-                        orderItem.QtyCompleted + qty,
+                        orderItem.Quantity,
                         orderItem.QtyRejected,
-                        0, // QtyInProgress reset
+                        0,
                         orderItem.QtyScrap);
                 }
             }
@@ -952,6 +992,14 @@ namespace MultiHitechERP.API.Services.Implementations
             {
                 return ApiResponse<int>.ErrorResponse($"Error fixing stuck cards: {ex.Message}");
             }
+        }
+
+        public async Task TriggerCascadeAsync(int jobCardId)
+        {
+            var jobCard = await _jobCardRepository.GetByIdAsync(jobCardId);
+            if (jobCard == null) return;
+            await CascadeOnCompleteAsync(jobCard);
+            await RollUpQtyCompletedIfDoneAsync(jobCard);
         }
 
         // ─────────────────────────────────────────────────────────────────────

@@ -10,13 +10,16 @@ namespace MultiHitechERP.API.Services.Implementations
     {
         private readonly IOSPTrackingRepository _ospRepo;
         private readonly IJobCardRepository _jobCardRepo;
+        private readonly IProductionService _productionService;
 
         public OSPTrackingService(
             IOSPTrackingRepository ospRepo,
-            IJobCardRepository jobCardRepo)
+            IJobCardRepository jobCardRepo,
+            IProductionService productionService)
         {
             _ospRepo = ospRepo;
             _jobCardRepo = jobCardRepo;
+            _productionService = productionService;
         }
 
         public async Task<ApiResponse<IEnumerable<OSPTracking>>> GetAllAsync()
@@ -127,6 +130,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 request.UpdatedBy ?? "System");
 
             var isFullyReceived = totalAfter >= entry.Quantity;
+
+            if (isFullyReceived)
+                await _productionService.TriggerCascadeAsync(entry.JobCardId);
+
             var message = isFullyReceived
                 ? "Fully received — job card completed"
                 : $"Partial receive recorded ({totalAfter}/{entry.Quantity})";

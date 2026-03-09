@@ -95,7 +95,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public int InProgressSteps { get; set; }
 
         public List<ProductionChildPartGroup> ChildParts { get; set; } = new();
-        public ProductionStepItem? Assembly { get; set; }
+        public List<ProductionStepItem> AssemblySteps { get; set; } = new();
         public bool CanStartAssembly { get; set; }
     }
 

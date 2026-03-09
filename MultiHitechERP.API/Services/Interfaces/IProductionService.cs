@@ -27,5 +27,8 @@ namespace MultiHitechERP.API.Services.Interfaces
 
         /// <summary>Fix stuck cards: sets Step1/no-step Scheduled+Pending cards to Ready</summary>
         Task<ApiResponse<int>> FixStuckCardsAsync();
+
+        /// <summary>Run cascade + rollup for a job card that was completed externally (e.g. OSP receive)</summary>
+        Task TriggerCascadeAsync(int jobCardId);
     }
 }
