@@ -790,6 +790,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         AdjustedDueDate = null, // OrderItem doesn't track adjusted due date
                         Priority = item.Priority,
                         Status = item.Status,
+                        PlanningStatus = item.PlanningStatus,
                         PrimaryDrawingId = item.PrimaryDrawingId,
                         LinkedProductTemplateId = item.LinkedProductTemplateId,
                         MaterialGradeApproved = item.MaterialGradeApproved,

@@ -23,19 +23,22 @@ namespace MultiHitechERP.API.Controllers.Orders
         private readonly IOrderCustomerDrawingRepository _customerDrawingRepo;
         private readonly ILogger<OrdersController> _logger;
         private readonly IS3Service _s3Service;
+        private readonly IOrderItemRepository _orderItemRepo;
 
         public OrdersController(
             IOrderService orderService,
             IDrawingService drawingService,
             IOrderCustomerDrawingRepository customerDrawingRepo,
             ILogger<OrdersController> logger,
-            IS3Service s3Service)
+            IS3Service s3Service,
+            IOrderItemRepository orderItemRepo)
         {
             _orderService = orderService;
             _drawingService = drawingService;
             _customerDrawingRepo = customerDrawingRepo;
             _logger = logger;
             _s3Service = s3Service;
+            _orderItemRepo = orderItemRepo;
         }
 
         /// <summary>
@@ -518,6 +521,22 @@ namespace MultiHitechERP.API.Controllers.Orders
             return Ok(ApiResponse<bool>.SuccessResponse(true, "Drawing deleted"));
         }
 
+        /// <summary>PATCH /api/orders/items/{itemId}/planning-status — set per-item planning status</summary>
+        [HttpPatch("items/{itemId:int}/planning-status")]
+        public async Task<IActionResult> UpdateItemPlanningStatus(int itemId, [FromBody] UpdateItemPlanningStatusRequest request)
+        {
+            try
+            {
+                var ok = await _orderItemRepo.UpdatePlanningStatusAsync(itemId, request.PlanningStatus);
+                if (!ok) return NotFound(new { success = false, message = "Order item not found" });
+                return Ok(new { success = true, message = "Planning status updated" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
         private static OrderCustomerDrawingResponse MapDrawing(OrderCustomerDrawing d, HttpRequest request)
         {
             // FilePath stores the S3 key (e.g. "order-drawings/guid.pdf")
@@ -563,6 +582,12 @@ namespace MultiHitechERP.API.Controllers.Orders
         public int NewQuantity { get; set; }
         public int? OrderItemId { get; set; }
         public string UpdatedBy { get; set; } = "Admin";
+    }
+
+    public class UpdateItemPlanningStatusRequest
+    {
+        [Required]
+        public string PlanningStatus { get; set; } = string.Empty;
     }
 
 }

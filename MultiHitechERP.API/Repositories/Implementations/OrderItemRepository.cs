@@ -503,5 +503,15 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return items;
         }
 
+        public async Task<bool> UpdatePlanningStatusAsync(int itemId, string planningStatus)
+        {
+            const string query = @"UPDATE Orders_OrderItems SET PlanningStatus = @PlanningStatus, UpdatedAt = GETUTCDATE() WHERE Id = @Id";
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", itemId);
+            command.Parameters.AddWithValue("@PlanningStatus", planningStatus);
+            await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync() > 0;
+        }
     }
 }

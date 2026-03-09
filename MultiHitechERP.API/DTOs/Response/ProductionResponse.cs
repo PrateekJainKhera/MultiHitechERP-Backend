@@ -78,6 +78,10 @@ namespace MultiHitechERP.API.DTOs.Response
 
         // Derived status: Pending | InProgress | Completed
         public string ProductionStatus { get; set; } = "Pending";
+
+        // Dispatch info
+        public int Quantity { get; set; }
+        public int QtyDispatched { get; set; }
     }
 
     /// <summary>Full detail for one order — used on /production/orders/[orderId]</summary>

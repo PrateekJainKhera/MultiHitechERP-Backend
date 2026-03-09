@@ -67,5 +67,6 @@ namespace MultiHitechERP.API.Repositories.Interfaces
 
         Task<bool> UpdateQtyDispatchedAsync(int itemId, int qtyToAdd);
         Task<List<ReadyToDispatchItem>> GetReadyToDispatchAsync();
+        Task<bool> UpdatePlanningStatusAsync(int itemId, string planningStatus);
     }
 }

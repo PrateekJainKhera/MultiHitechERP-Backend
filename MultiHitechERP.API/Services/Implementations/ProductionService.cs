@@ -163,7 +163,9 @@ namespace MultiHitechERP.API.Services.Implementations
                         ReadySteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Ready"),
                         TotalChildParts = totalChildParts,
                         CompletedChildParts = completedChildParts,
-                        ProductionStatus = prodStatus
+                        ProductionStatus = prodStatus,
+                        Quantity = orderItem.Quantity,
+                        QtyDispatched = orderItem.QtyDispatched,
                     });
                 }
 
@@ -228,7 +230,9 @@ namespace MultiHitechERP.API.Services.Implementations
                                 ReadySteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Ready"),
                                 TotalChildParts = nonAssemblyJcs.Select(jc => ChildPartKey(jc)).Distinct().Count(),
                                 CompletedChildParts = nonAssemblyJcs.Where(jc => jc.ReadyForAssembly).Select(jc => ChildPartKey(jc)).Distinct().Count(),
-                                ProductionStatus = prodStatus2
+                                ProductionStatus = prodStatus2,
+                                Quantity = oi.Quantity,
+                                QtyDispatched = oi.QtyDispatched,
                             });
                         }
                         continue;
@@ -282,7 +286,9 @@ namespace MultiHitechERP.API.Services.Implementations
                             ReadySteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Ready"),
                             TotalChildParts = totalChildParts,
                             CompletedChildParts = completedChildParts,
-                            ProductionStatus = prodStatus
+                            ProductionStatus = prodStatus,
+                            Quantity = matchingOrderItem?.Quantity ?? 0,
+                            QtyDispatched = matchingOrderItem?.QtyDispatched ?? 0,
                         });
                     }
                 }
