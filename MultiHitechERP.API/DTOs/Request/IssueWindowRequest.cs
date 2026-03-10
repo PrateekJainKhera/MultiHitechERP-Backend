@@ -48,6 +48,14 @@ namespace MultiHitechERP.API.DTOs.Request
         public string ReceivedBy { get; set; } = "Operator";
     }
 
+    // Bulk issue multiple drafts at once
+    public class BulkIssueDraftRequest
+    {
+        public List<int> DraftIds { get; set; } = new();
+        public string IssuedBy { get; set; } = "Admin";
+        public string ReceivedBy { get; set; } = "Operator";
+    }
+
     // One cut to include in the suggest request
     public class SuggestCutItem
     {

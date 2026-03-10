@@ -112,6 +112,29 @@ namespace MultiHitechERP.API.Controllers.Stores
             }
         }
 
+        // POST /api/stores/issue-window/drafts/bulk-issue — Issue multiple finalized drafts at once
+        [HttpPost("drafts/bulk-issue")]
+        public async Task<IActionResult> BulkIssueDrafts([FromBody] BulkIssueDraftRequest request)
+        {
+            try
+            {
+                var allResults = new List<IssueWindowIssueResultResponse>();
+                var singleRequest = new IssueDraftRequest { IssuedBy = request.IssuedBy, ReceivedBy = request.ReceivedBy };
+                foreach (var draftId in request.DraftIds)
+                {
+                    var results = await _service.IssueDraftAsync(draftId, singleRequest);
+                    allResults.AddRange(results);
+                }
+                var response = ApiResponse<IEnumerable<IssueWindowIssueResultResponse>>.SuccessResponse(allResults);
+                response.Message = $"Issued {request.DraftIds.Count} draft(s), {allResults.Count(r => r.Success)} requisition(s) successful";
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+        }
+
         // POST /api/stores/issue-window/drafts/{id}/issue — Issue a finalized draft
         [HttpPost("drafts/{id:int}/issue")]
         public async Task<IActionResult> IssueDraft(int id, [FromBody] IssueDraftRequest request)
