@@ -50,21 +50,36 @@ namespace MultiHitechERP.API.Services.Implementations
                             jc.OrderNo,
                             jc.Priority,
                             CASE WHEN (
-                                EXISTS(SELECT 1 FROM Stores_MaterialRequisitions mr
-                                       WHERE mr.OrderItemId = jc.OrderItemId AND mr.Status = 'Issued'
-                                       AND jc.OrderItemId IS NOT NULL)
-                                OR EXISTS(SELECT 1 FROM Stores_MaterialRequisitions mr
-                                          WHERE mr.OrderId = jc.OrderId AND mr.Status = 'Issued'
-                                          AND jc.OrderItemId IS NULL)
-                                OR EXISTS(SELECT 1 FROM Planning_JobCardMaterialRequirements req
-                                          WHERE req.JobCardId = jc.Id AND req.IssuedViaCuttingList = 1)
+                                -- Normal job cards: existing logic unchanged
+                                (ISNULL(jc.IsRework, 0) = 0 AND (
+                                    EXISTS(SELECT 1 FROM Stores_MaterialRequisitions mr
+                                           WHERE mr.OrderItemId = jc.OrderItemId AND mr.Status = 'Issued'
+                                           AND jc.OrderItemId IS NOT NULL)
+                                    OR EXISTS(SELECT 1 FROM Stores_MaterialRequisitions mr
+                                              WHERE mr.OrderId = jc.OrderId AND mr.Status = 'Issued'
+                                              AND jc.OrderItemId IS NULL)
+                                    OR EXISTS(SELECT 1 FROM Planning_JobCardMaterialRequirements req
+                                              WHERE req.JobCardId = jc.Id AND req.IssuedViaCuttingList = 1)
+                                ))
+                                -- Rework job cards: need a job-card-specific issued MR
+                                OR (ISNULL(jc.IsRework, 0) = 1 AND EXISTS(
+                                    SELECT 1 FROM Stores_MaterialRequisitions mr
+                                    WHERE mr.JobCardId = jc.Id AND mr.Status = 'Issued'
+                                ))
+                                -- Rework job cards with NO material requirements (steps 2,3,4...): always ready
+                                OR (ISNULL(jc.IsRework, 0) = 1 AND NOT EXISTS(
+                                    SELECT 1 FROM Planning_JobCardMaterialRequirements req
+                                    WHERE req.JobCardId = jc.Id
+                                ))
                             ) THEN 1 ELSE 0 END AS MaterialIssued,
                             CASE WHEN EXISTS(
                                 SELECT 1 FROM Scheduling_MachineSchedules ms
                                 WHERE ms.JobCardId = jc.Id AND ms.Status IN ('Scheduled', 'InProgress')
-                            ) THEN 1 ELSE 0 END AS AlreadyScheduled
+                            ) THEN 1 ELSE 0 END AS AlreadyScheduled,
+                            CAST(ISNULL(jc.IsRework, 0) AS INT) AS IsRework
                         FROM Planning_JobCards jc
                         WHERE jc.Status NOT IN ('Completed', 'Cancelled')
+                          AND ISNULL(jc.ProductionStatus, 'Pending') NOT IN ('Completed')
                     )
                     SELECT
                         f.OrderId,
@@ -76,7 +91,8 @@ namespace MultiHitechERP.API.Services.Implementations
                         MAX(ISNULL(f.Priority, 'Medium')) AS Priority,
                         COUNT(f.JobCardId) AS TotalJobCards,
                         SUM(f.MaterialIssued) AS MaterialIssuedCount,
-                        SUM(f.AlreadyScheduled) AS AlreadyScheduledCount
+                        SUM(f.AlreadyScheduled) AS AlreadyScheduledCount,
+                        SUM(f.IsRework) AS ReworkCount
                     FROM JcFlags f
                     LEFT JOIN Orders o ON o.Id = f.OrderId
                     LEFT JOIN Masters_Customers c ON c.Id = o.CustomerId
@@ -102,7 +118,8 @@ namespace MultiHitechERP.API.Services.Implementations
                     TotalJobCards = (int)r.TotalJobCards,
                     MaterialIssuedCount = (int)r.MaterialIssuedCount,
                     AlreadyScheduledCount = (int)r.AlreadyScheduledCount,
-                    ReadyToScheduleCount = Math.Max(0, (int)r.MaterialIssuedCount - (int)r.AlreadyScheduledCount)
+                    ReadyToScheduleCount = Math.Max(0, (int)r.MaterialIssuedCount - (int)r.AlreadyScheduledCount),
+                    ReworkCount = (int)r.ReworkCount
                     };
                 }).ToList();
 
@@ -174,14 +191,27 @@ namespace MultiHitechERP.API.Services.Implementations
                         ISNULL(jc.IsRework, 0) AS IsRework,
                         ISNULL(jc.JobCardType, 'Normal') AS JobCardType,
                         CASE WHEN (
-                            EXISTS(SELECT 1 FROM Stores_MaterialRequisitions mr
-                                   WHERE mr.OrderItemId = jc.OrderItemId AND mr.Status = 'Issued'
-                                   AND jc.OrderItemId IS NOT NULL)
-                            OR EXISTS(SELECT 1 FROM Stores_MaterialRequisitions mr
-                                      WHERE mr.OrderId = jc.OrderId AND mr.Status = 'Issued'
-                                      AND jc.OrderItemId IS NULL)
-                            OR EXISTS(SELECT 1 FROM Planning_JobCardMaterialRequirements req
-                                      WHERE req.JobCardId = jc.Id AND req.IssuedViaCuttingList = 1)
+                            -- Normal job cards: existing logic unchanged
+                            (ISNULL(jc.IsRework, 0) = 0 AND (
+                                EXISTS(SELECT 1 FROM Stores_MaterialRequisitions mr
+                                       WHERE mr.OrderItemId = jc.OrderItemId AND mr.Status = 'Issued'
+                                       AND jc.OrderItemId IS NOT NULL)
+                                OR EXISTS(SELECT 1 FROM Stores_MaterialRequisitions mr
+                                          WHERE mr.OrderId = jc.OrderId AND mr.Status = 'Issued'
+                                          AND jc.OrderItemId IS NULL)
+                                OR EXISTS(SELECT 1 FROM Planning_JobCardMaterialRequirements req
+                                          WHERE req.JobCardId = jc.Id AND req.IssuedViaCuttingList = 1)
+                            ))
+                            -- Rework job cards: need a job-card-specific issued MR
+                            OR (ISNULL(jc.IsRework, 0) = 1 AND EXISTS(
+                                SELECT 1 FROM Stores_MaterialRequisitions mr
+                                WHERE mr.JobCardId = jc.Id AND mr.Status = 'Issued'
+                            ))
+                            -- Rework job cards with NO material requirements (steps 2,3,4...): always ready
+                            OR (ISNULL(jc.IsRework, 0) = 1 AND NOT EXISTS(
+                                SELECT 1 FROM Planning_JobCardMaterialRequirements req
+                                WHERE req.JobCardId = jc.Id
+                            ))
                         ) THEN 1 ELSE 0 END AS MaterialIssued,
                         CASE WHEN EXISTS(
                             SELECT 1 FROM Scheduling_MachineSchedules ms
@@ -194,6 +224,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     LEFT JOIN Masters_ProcessCategories pc ON pc.Id = p.ProcessCategoryId
                     WHERE {whereClause}
                     AND jc.Status NOT IN ('Completed', 'Cancelled')
+                    AND ISNULL(jc.ProductionStatus, 'Pending') NOT IN ('Completed')
                     ORDER BY
                         CASE WHEN jc.CreationType = 'Assembly' THEN 1 ELSE 0 END,
                         ISNULL(jc.ChildPartName, 'Unknown Part'),
@@ -645,6 +676,238 @@ namespace MultiHitechERP.API.Services.Implementations
 
         // ── Create Rework Job Card ───────────────────────────────────────────────
 
+        // ── Full Rework — all steps for a child part ────────────────────────────
+
+        public async Task<ApiResponse<IEnumerable<int>>> CreateFullReworkAsync(
+            int failedJobCardId, int rejectedQty, string reason, string? createdBy)
+        {
+            try
+            {
+                using var conn = _connectionFactory.CreateConnection();
+
+                // 1. Get the failed job card
+                var failed = await conn.QueryFirstOrDefaultAsync(
+                    "SELECT * FROM Planning_JobCards WHERE Id = @Id", new { Id = failedJobCardId });
+
+                if (failed == null)
+                    return ApiResponse<IEnumerable<int>>.ErrorResponse("Job card not found");
+
+                // 2. Mark rejected qty on the failed job card
+                await conn.ExecuteAsync(@"
+                    UPDATE Planning_JobCards
+                    SET RejectedQty = RejectedQty + @Qty, UpdatedAt = GETUTCDATE()
+                    WHERE Id = @Id",
+                    new { Qty = rejectedQty, Id = failedJobCardId });
+
+                // 3. Get ALL original (IsRework=0) job cards for same child part + order item
+                string whereClause = (int?)failed.OrderItemId != null
+                    ? "OrderItemId = @OrderItemId AND ChildPartName = @ChildPartName AND ISNULL(IsRework,0) = 0 AND Status != 'Cancelled'"
+                    : "OrderId = @OrderId AND OrderItemId IS NULL AND ChildPartName = @ChildPartName AND ISNULL(IsRework,0) = 0 AND Status != 'Cancelled'";
+
+                var originalSteps = (await conn.QueryAsync($@"
+                    SELECT * FROM Planning_JobCards
+                    WHERE {whereClause}
+                    ORDER BY ISNULL(StepNo, 999)",
+                    new
+                    {
+                        OrderItemId = (int?)failed.OrderItemId,
+                        ChildPartName = (string?)failed.ChildPartName,
+                        OrderId = (int)failed.OrderId
+                    })).ToList();
+
+                if (!originalSteps.Any())
+                    return ApiResponse<IEnumerable<int>>.ErrorResponse("No original job cards found for this child part");
+
+                // 4. Determine rework suffix (RW, RW2, RW3...)
+                var firstNo = (string)originalSteps[0].JobCardNo;
+                var existingCount = await conn.QuerySingleAsync<int>(
+                    "SELECT COUNT(*) FROM Planning_JobCards WHERE JobCardNo LIKE @Pattern",
+                    new { Pattern = firstNo + "-RW%" });
+                string rwSuffix = existingCount == 0 ? "-RW" : $"-RW{existingCount + 1}";
+
+                var newIds = new List<int>();
+
+                // 5. Create new job card for each step
+                foreach (var step in originalSteps)
+                {
+                    var baseNo = (string)step.JobCardNo;
+                    var newNo = baseNo + rwSuffix;
+
+                    var newId = await conn.QuerySingleAsync<int>(@"
+                        INSERT INTO Planning_JobCards
+                            (JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
+                             DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
+                             ChildPartId, ChildPartName, ChildPartTemplateId,
+                             ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
+                             WorkInstructions, QualityCheckpoints, SpecialNotes, ManufacturingDimensions,
+                             Quantity, Status, Priority,
+                             IsRework, ParentJobCardId, JobCardType,
+                             CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version)
+                        VALUES
+                            (@JobCardNo, @CreationType, @OrderId, @OrderNo, @OrderItemId, @ItemSequence,
+                             @DrawingId, @DrawingNumber, @DrawingRevision, @DrawingName, @DrawingSelectionType,
+                             @ChildPartId, @ChildPartName, @ChildPartTemplateId,
+                             @ProcessId, @ProcessName, @ProcessCode, @StepNo, @ProcessTemplateId,
+                             @WorkInstructions, @QualityCheckpoints, @SpecialNotes, @ManufacturingDimensions,
+                             @Quantity, 'Pending', @Priority,
+                             1, @ParentJobCardId, 'Rework',
+                             GETUTCDATE(), @CreatedBy, GETUTCDATE(), @CreatedBy, 1);
+                        SELECT CAST(SCOPE_IDENTITY() AS INT);",
+                        new
+                        {
+                            JobCardNo            = newNo,
+                            CreationType         = (string)step.CreationType,
+                            OrderId              = (int)step.OrderId,
+                            OrderNo              = (string?)step.OrderNo,
+                            OrderItemId          = (int?)step.OrderItemId,
+                            ItemSequence         = (string?)step.ItemSequence,
+                            DrawingId            = (int?)step.DrawingId,
+                            DrawingNumber        = (string?)step.DrawingNumber,
+                            DrawingRevision      = (string?)step.DrawingRevision,
+                            DrawingName          = (string?)step.DrawingName,
+                            DrawingSelectionType = (string)(step.DrawingSelectionType ?? "None"),
+                            ChildPartId          = (int?)step.ChildPartId,
+                            ChildPartName        = (string?)step.ChildPartName,
+                            ChildPartTemplateId  = (int?)step.ChildPartTemplateId,
+                            ProcessId            = (int)step.ProcessId,
+                            ProcessName          = (string?)step.ProcessName,
+                            ProcessCode          = (string?)step.ProcessCode,
+                            StepNo               = (int?)step.StepNo,
+                            ProcessTemplateId    = (int?)step.ProcessTemplateId,
+                            WorkInstructions     = (string?)step.WorkInstructions,
+                            QualityCheckpoints   = (string?)step.QualityCheckpoints,
+                            SpecialNotes         = (string?)step.SpecialNotes,
+                            ManufacturingDimensions = (string?)step.ManufacturingDimensions,
+                            Quantity             = (int)step.Quantity,
+                            Priority             = (string?)step.Priority ?? "Medium",
+                            ParentJobCardId      = failedJobCardId,
+                            CreatedBy            = createdBy ?? "System"
+                        });
+
+                    newIds.Add(newId);
+
+                    // 6. Copy material requirements from step 1 to new step 1
+                    var minStep = (int?)originalSteps.Min(s => (int?)s.StepNo ?? 999);
+                    if ((int?)step.StepNo == minStep || (minStep == 999 && step == originalSteps[0]))
+                    {
+                        var matReqs = await conn.QueryAsync(@"
+                            SELECT RawMaterialId, RawMaterialName, MaterialGrade,
+                                   RequiredQuantity, Unit, WastageMM, TotalQuantityWithWastage
+                            FROM Planning_JobCardMaterialRequirements
+                            WHERE JobCardId = @JobCardId",
+                            new { JobCardId = (int)step.Id });
+
+                        foreach (var req in matReqs)
+                        {
+                            await conn.ExecuteAsync(@"
+                                INSERT INTO Planning_JobCardMaterialRequirements
+                                    (JobCardId, JobCardNo, RawMaterialId, RawMaterialName, MaterialGrade,
+                                     RequiredQuantity, Unit, WastageMM, TotalQuantityWithWastage,
+                                     Source, ConfirmedBy, ConfirmedAt, CreatedAt, CreatedBy)
+                                VALUES
+                                    (@JobCardId, @JobCardNo, @RawMaterialId, @RawMaterialName, @MaterialGrade,
+                                     @RequiredQuantity, @Unit, @WastageMM, @TotalQuantityWithWastage,
+                                     'Rework', @CreatedBy, GETUTCDATE(), GETUTCDATE(), @CreatedBy)",
+                                new
+                                {
+                                    JobCardId              = newId,
+                                    JobCardNo              = newNo,
+                                    RawMaterialId          = (int?)req.RawMaterialId,
+                                    RawMaterialName        = (string)req.RawMaterialName,
+                                    MaterialGrade          = (string)req.MaterialGrade,
+                                    RequiredQuantity       = (decimal)req.RequiredQuantity,
+                                    Unit                   = (string)req.Unit,
+                                    WastageMM              = (decimal?)req.WastageMM ?? 0m,
+                                    TotalQuantityWithWastage = (decimal)req.TotalQuantityWithWastage,
+                                    CreatedBy              = createdBy ?? "System"
+                                });
+                        }
+                    }
+                }
+
+                // Auto-create an Approved Material Requisition for the Step 1 rework job card
+                // so it appears in Cutting Planning for stores to re-issue new material.
+                // This only applies to step 1 (which has material requirements).
+                var step1NewId = newIds.FirstOrDefault();
+                if (step1NewId > 0)
+                {
+                    var step1Reqs = await conn.QueryAsync(@"
+                        SELECT RawMaterialId, RawMaterialName, MaterialGrade,
+                               RequiredQuantity, Unit, TotalQuantityWithWastage
+                        FROM Planning_JobCardMaterialRequirements
+                        WHERE JobCardId = @JobCardId",
+                        new { JobCardId = step1NewId });
+
+                    if (step1Reqs.Any())
+                    {
+                        var step1No = (string)originalSteps[0].JobCardNo + rwSuffix;
+                        var reqNo = $"REQ-RW-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+
+                        var mrId = await conn.QuerySingleAsync<int>(@"
+                            INSERT INTO Stores_MaterialRequisitions
+                                (RequisitionNo, RequisitionDate, JobCardId, JobCardNo,
+                                 OrderId, OrderNo, OrderItemId, ItemSequence, CustomerName,
+                                 Priority, Status, CreatedAt, CreatedBy)
+                            VALUES
+                                (@RequisitionNo, GETUTCDATE(), @JobCardId, @JobCardNo,
+                                 @OrderId, @OrderNo, @OrderItemId, @ItemSequence, @CustomerName,
+                                 'High', 'Pending', GETUTCDATE(), @CreatedBy);
+                            SELECT CAST(SCOPE_IDENTITY() AS INT);",
+                            new
+                            {
+                                RequisitionNo = reqNo,
+                                JobCardId     = step1NewId,
+                                JobCardNo     = step1No,
+                                OrderId       = (int)failed.OrderId,
+                                OrderNo       = (string?)failed.OrderNo,
+                                OrderItemId   = (int?)failed.OrderItemId,
+                                ItemSequence  = (string?)failed.ItemSequence,
+                                CustomerName  = (string?)null,
+                                CreatedBy     = createdBy ?? "System"
+                            });
+
+                        int lineNo = 1;
+                        foreach (var req in step1Reqs)
+                        {
+                            await conn.ExecuteAsync(@"
+                                INSERT INTO Stores_MaterialRequisitionItems
+                                    (RequisitionId, MaterialId, MaterialName, MaterialGrade,
+                                     LengthRequiredMM, NumberOfPieces, UOM,
+                                     RequestedQuantity, QuantityRequired,
+                                     JobCardId, JobCardNo,
+                                     Status, [LineNo], CreatedAt)
+                                VALUES
+                                    (@RequisitionId, @MaterialId, @MaterialName, @MaterialGrade,
+                                     @LengthRequiredMM, 1, @UOM,
+                                     @QuantityRequired, @QuantityRequired,
+                                     @JobCardId, @JobCardNo,
+                                     'Pending', @LineNo, GETUTCDATE())",
+                                new
+                                {
+                                    RequisitionId   = mrId,
+                                    MaterialId      = (int?)req.RawMaterialId,
+                                    MaterialName    = (string)req.RawMaterialName,
+                                    MaterialGrade   = (string)req.MaterialGrade,
+                                    LengthRequiredMM = (decimal)req.TotalQuantityWithWastage,
+                                    UOM             = (string)req.Unit,
+                                    QuantityRequired = (decimal)req.RequiredQuantity,
+                                    JobCardId       = step1NewId,
+                                    JobCardNo       = step1No,
+                                    LineNo          = lineNo++
+                                });
+                        }
+                    }
+                }
+
+                return ApiResponse<IEnumerable<int>>.SuccessResponse(newIds,
+                    $"Full rework created: {newIds.Count} job cards for child part '{(string?)failed.ChildPartName}'");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<int>>.ErrorResponse($"Error creating full rework: {ex.Message}");
+            }
+        }
+
         public async Task<ApiResponse<int>> CreateReworkJobCardAsync(
             int parentJobCardId, int reworkQty, string? notes, string? createdBy)
         {
@@ -677,7 +940,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         (JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
                          ChildPartId, ChildPartName, ProcessId, ProcessName, ProcessCode, StepNo,
                          Quantity, Status, Priority, IsRework, ParentJobCardId, JobCardType,
-                         Notes, CreatedAt, CreatedBy)
+                         SpecialNotes, CreatedAt, CreatedBy)
                     VALUES
                         (@JobCardNo, @CreationType, @OrderId, @OrderNo, @OrderItemId, @ItemSequence,
                          @ChildPartId, @ChildPartName, @ProcessId, @ProcessName, @ProcessCode, @StepNo,
@@ -704,6 +967,97 @@ namespace MultiHitechERP.API.Services.Implementations
                         Notes = notes,
                         CreatedBy = createdBy ?? "System"
                     });
+
+                // Auto-create Approved MR for this rework job card so stores re-issues material
+                var parentMatReqs = await conn.QueryAsync(@"
+                    SELECT RawMaterialId, RawMaterialName, MaterialGrade,
+                           RequiredQuantity, Unit, TotalQuantityWithWastage
+                    FROM Planning_JobCardMaterialRequirements
+                    WHERE JobCardId = @JobCardId",
+                    new { JobCardId = parentJobCardId });
+
+                if (parentMatReqs.Any())
+                {
+                    // Copy requirements to new rework job card
+                    foreach (var req in parentMatReqs)
+                    {
+                        await conn.ExecuteAsync(@"
+                            INSERT INTO Planning_JobCardMaterialRequirements
+                                (JobCardId, JobCardNo, RawMaterialId, RawMaterialName, MaterialGrade,
+                                 RequiredQuantity, Unit, WastageMM, TotalQuantityWithWastage,
+                                 Source, ConfirmedBy, ConfirmedAt, CreatedAt, CreatedBy)
+                            VALUES
+                                (@JobCardId, @JobCardNo, @RawMaterialId, @RawMaterialName, @MaterialGrade,
+                                 @RequiredQuantity, @Unit, 0, @TotalQuantityWithWastage,
+                                 'Rework', @CreatedBy, GETUTCDATE(), GETUTCDATE(), @CreatedBy)",
+                            new
+                            {
+                                JobCardId = newId, JobCardNo = rwNo,
+                                RawMaterialId = (int?)req.RawMaterialId,
+                                RawMaterialName = (string)req.RawMaterialName,
+                                MaterialGrade = (string)req.MaterialGrade,
+                                RequiredQuantity = (decimal)req.RequiredQuantity,
+                                Unit = (string)req.Unit,
+                                TotalQuantityWithWastage = (decimal)req.TotalQuantityWithWastage,
+                                CreatedBy = createdBy ?? "System"
+                            });
+                    }
+
+                    // Create Approved MR so it appears in Cutting Planning
+                    var reqNo = $"REQ-RW-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+                    var mrId = await conn.QuerySingleAsync<int>(@"
+                        INSERT INTO Stores_MaterialRequisitions
+                            (RequisitionNo, RequisitionDate, JobCardId, JobCardNo,
+                             OrderId, OrderNo, OrderItemId, ItemSequence,
+                             Priority, Status, CreatedAt, CreatedBy)
+                        VALUES
+                            (@RequisitionNo, GETUTCDATE(), @JobCardId, @JobCardNo,
+                             @OrderId, @OrderNo, @OrderItemId, @ItemSequence,
+                             'High', 'Pending', GETUTCDATE(), @CreatedBy);
+                        SELECT CAST(SCOPE_IDENTITY() AS INT);",
+                        new
+                        {
+                            RequisitionNo = reqNo,
+                            JobCardId     = newId,
+                            JobCardNo     = rwNo,
+                            OrderId       = (int)parent.OrderId,
+                            OrderNo       = (string?)parent.OrderNo,
+                            OrderItemId   = (int?)parent.OrderItemId,
+                            ItemSequence  = (string?)parent.ItemSequence,
+                            CreatedBy     = createdBy ?? "System"
+                        });
+
+                    int lineNo = 1;
+                    foreach (var req in parentMatReqs)
+                    {
+                        await conn.ExecuteAsync(@"
+                            INSERT INTO Stores_MaterialRequisitionItems
+                                (RequisitionId, MaterialId, MaterialName, MaterialGrade,
+                                 LengthRequiredMM, NumberOfPieces, UOM,
+                                 RequestedQuantity, QuantityRequired,
+                                 JobCardId, JobCardNo,
+                                 Status, [LineNo], CreatedAt)
+                            VALUES
+                                (@RequisitionId, @MaterialId, @MaterialName, @MaterialGrade,
+                                 @LengthRequiredMM, 1, @UOM,
+                                 @QuantityRequired, @QuantityRequired,
+                                 @JobCardId, @JobCardNo,
+                                 'Pending', @LineNo, GETUTCDATE())",
+                            new
+                            {
+                                RequisitionId    = mrId,
+                                MaterialId       = (int?)req.RawMaterialId,
+                                MaterialName     = (string)req.RawMaterialName,
+                                MaterialGrade    = (string)req.MaterialGrade,
+                                LengthRequiredMM = (decimal)req.TotalQuantityWithWastage,
+                                UOM              = (string)req.Unit,
+                                QuantityRequired = (decimal)req.RequiredQuantity,
+                                JobCardId        = newId,
+                                JobCardNo        = rwNo,
+                                LineNo           = lineNo++
+                            });
+                    }
+                }
 
                 return ApiResponse<int>.SuccessResponse(newId, $"Rework job card {rwNo} created for {reworkQty} pieces");
             }

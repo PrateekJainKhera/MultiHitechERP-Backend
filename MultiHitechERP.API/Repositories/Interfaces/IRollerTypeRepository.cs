@@ -9,6 +9,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<RollerType>> GetAllAsync();
         Task<RollerType?> GetByIdAsync(int id);
         Task<int> CreateAsync(RollerType rollerType);
+        Task<bool> UpdateAsync(RollerType rollerType);
         Task<bool> DeleteAsync(int id);
     }
 }

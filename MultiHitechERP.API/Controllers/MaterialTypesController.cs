@@ -55,6 +55,32 @@ namespace MultiHitechERP.API.Controllers
             }
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateMaterialTypeRequest request)
+        {
+            try
+            {
+                var existing = await _repo.GetByIdAsync(id);
+                if (existing == null)
+                    return NotFound(new { success = false, message = "Material type not found" });
+
+                if (string.IsNullOrWhiteSpace(request.Name))
+                    return BadRequest(new { success = false, message = "Name is required" });
+
+                existing.Name = request.Name.Trim();
+                existing.IsActive = request.IsActive;
+
+                var success = await _repo.UpdateAsync(existing);
+                return success
+                    ? Ok(new { success = true, message = "Updated successfully" })
+                    : BadRequest(new { success = false, message = "Failed to update" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -77,5 +103,11 @@ namespace MultiHitechERP.API.Controllers
     public class CreateMaterialTypeRequest
     {
         public string Name { get; set; } = string.Empty;
+    }
+
+    public class UpdateMaterialTypeRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public bool IsActive { get; set; } = true;
     }
 }

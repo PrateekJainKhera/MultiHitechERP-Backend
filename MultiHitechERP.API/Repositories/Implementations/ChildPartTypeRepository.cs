@@ -79,6 +79,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return (int)await command.ExecuteScalarAsync();
         }
 
+        public async Task<bool> UpdateAsync(ChildPartType childPartType)
+        {
+            const string query = "UPDATE Masters_ChildPartTypes SET TypeName = @TypeName, IsActive = @IsActive WHERE Id = @Id";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@TypeName", childPartType.TypeName);
+            command.Parameters.AddWithValue("@IsActive", childPartType.IsActive);
+            command.Parameters.AddWithValue("@Id", childPartType.Id);
+            await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync() > 0;
+        }
+
         public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Masters_ChildPartTypes WHERE Id = @Id";

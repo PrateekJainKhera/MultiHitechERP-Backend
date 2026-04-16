@@ -234,6 +234,16 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
+        public async Task<int> CountProductsByTemplateIdAsync(int templateId)
+        {
+            const string query = "SELECT COUNT(*) FROM Masters_Products WHERE ProductTemplateId = @TemplateId";
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@TemplateId", templateId);
+            await connection.OpenAsync();
+            return (int)await command.ExecuteScalarAsync();
+        }
+
         public async Task<bool> DeleteAsync(int id)
         {
             // Child parts will be deleted automatically due to CASCADE DELETE

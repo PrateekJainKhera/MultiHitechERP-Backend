@@ -12,17 +12,23 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly ICustomerRepository _customerRepository;
         private readonly IProductRepository _productRepository;
         private readonly IOrderService _orderService;
+        private readonly IAppSettingsRepository _appSettings;
+        private readonly IProductService _productService;
 
         public EstimationService(
             IEstimationRepository estimationRepository,
             ICustomerRepository customerRepository,
             IProductRepository productRepository,
-            IOrderService orderService)
+            IOrderService orderService,
+            IAppSettingsRepository appSettings,
+            IProductService productService)
         {
             _estimationRepository = estimationRepository;
             _customerRepository = customerRepository;
             _productRepository = productRepository;
             _orderService = orderService;
+            _appSettings = appSettings;
+            _productService = productService;
         }
 
         public async Task<ApiResponse<IEnumerable<EstimationResponse>>> GetAllAsync()
@@ -81,6 +87,19 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<IEnumerable<EstimationResponse>>> GetRevisionHistoryAsync(string baseEstimateNo)
+        {
+            try
+            {
+                var history = await _estimationRepository.GetRevisionHistoryAsync(baseEstimateNo);
+                return ApiResponse<IEnumerable<EstimationResponse>>.SuccessResponse(history.Select(MapToResponse));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<EstimationResponse>>.ErrorResponse($"Error: {ex.Message}");
+            }
+        }
+
         public async Task<ApiResponse<EstimationResponse>> CreateAsync(CreateEstimationRequest request)
         {
             try
@@ -96,18 +115,20 @@ namespace MultiHitechERP.API.Services.Implementations
                 var now = DateTime.UtcNow;
                 var yearMonth = $"{now.Year:D4}{now.Month:D2}";
                 var baseNo = $"EST-{yearMonth}-{seq:D3}";
-                var estimateNo = baseNo; // R1 = no suffix
 
                 var items = await BuildItemsAsync(request.Items);
                 if (items == null)
                     return ApiResponse<EstimationResponse>.ErrorResponse("One or more products not found");
 
+                var gstRate = await GetGSTRateAsync();
                 var subTotal = items.Sum(i => i.TotalPrice);
-                var (discountAmount, total) = CalculateDiscount(subTotal, request.DiscountType, request.DiscountValue);
+                var (discountAmount, taxableAmount) = CalculateDiscount(subTotal, request.DiscountType, request.DiscountValue);
+                var gstAmount = Math.Round(taxableAmount * gstRate / 100, 2);
+                var grandTotal = taxableAmount + gstAmount;
 
                 var estimation = new Estimation
                 {
-                    EstimateNo = estimateNo,
+                    EstimateNo = baseNo,   // R1 = no suffix
                     BaseEstimateNo = baseNo,
                     RevisionNumber = 1,
                     CustomerId = request.CustomerId,
@@ -117,7 +138,10 @@ namespace MultiHitechERP.API.Services.Implementations
                     DiscountType = request.DiscountType,
                     DiscountValue = request.DiscountValue,
                     DiscountAmount = discountAmount,
-                    TotalAmount = total,
+                    TotalAmount = taxableAmount,
+                    GSTRate = gstRate,
+                    GSTAmount = gstAmount,
+                    GrandTotal = grandTotal,
                     ValidUntil = now.AddDays(21),
                     Notes = request.Notes,
                     TermsAndConditions = request.TermsAndConditions,
@@ -134,6 +158,62 @@ namespace MultiHitechERP.API.Services.Implementations
             catch (Exception ex)
             {
                 return ApiResponse<EstimationResponse>.ErrorResponse($"Error creating estimation: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<EstimationResponse>> UpdateAsync(int id, CreateEstimationRequest request)
+        {
+            try
+            {
+                var existing = await _estimationRepository.GetByIdAsync(id);
+                if (existing == null)
+                    return ApiResponse<EstimationResponse>.ErrorResponse("Estimation not found");
+
+                if (existing.Status == "Approved" || existing.Status == "Converted")
+                    return ApiResponse<EstimationResponse>.ErrorResponse($"Cannot edit estimation in '{existing.Status}' status. Use Revise instead.");
+
+                var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
+                if (customer == null)
+                    return ApiResponse<EstimationResponse>.ErrorResponse("Customer not found");
+
+                if (request.Items == null || request.Items.Count == 0)
+                    return ApiResponse<EstimationResponse>.ErrorResponse("At least one item is required");
+
+                var items = await BuildItemsAsync(request.Items);
+                if (items == null)
+                    return ApiResponse<EstimationResponse>.ErrorResponse("One or more products not found");
+
+                var subTotal = items.Sum(i => i.TotalPrice);
+                var (discountAmount, taxableAmount) = CalculateDiscount(subTotal, request.DiscountType, request.DiscountValue);
+                // Keep the GST rate that was on this estimation (locked at creation)
+                var gstRate = existing.GSTRate > 0 ? existing.GSTRate : await GetGSTRateAsync();
+                var gstAmount = Math.Round(taxableAmount * gstRate / 100, 2);
+                var grandTotal = taxableAmount + gstAmount;
+
+                existing.CustomerId = request.CustomerId;
+                existing.CustomerName = customer.CustomerName;
+                existing.SubTotal = subTotal;
+                existing.DiscountType = request.DiscountType;
+                existing.DiscountValue = request.DiscountValue;
+                existing.DiscountAmount = discountAmount;
+                existing.TotalAmount = taxableAmount;
+                existing.GSTRate = gstRate;
+                existing.GSTAmount = gstAmount;
+                existing.GrandTotal = grandTotal;
+                existing.Notes = request.Notes;
+                existing.TermsAndConditions = request.TermsAndConditions;
+                existing.Items = items;
+
+                // If it was Submitted, editing resets it to Draft (needs re-submit)
+                if (existing.Status == "Submitted")
+                    existing.Status = "Draft";
+
+                await _estimationRepository.UpdateAsync(existing);
+                return ApiResponse<EstimationResponse>.SuccessResponse(MapToResponse(existing));
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<EstimationResponse>.ErrorResponse($"Error updating estimation: {ex.Message}");
             }
         }
 
@@ -155,18 +235,22 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (request.Items == null || request.Items.Count == 0)
                     return ApiResponse<EstimationResponse>.ErrorResponse("At least one item is required");
 
-                // Cancel the old one
-                await _estimationRepository.UpdateStatusAsync(existing.Id, "Cancelled");
+                // Get the highest revision number in this group
+                var history = await _estimationRepository.GetRevisionHistoryAsync(existing.BaseEstimateNo);
+                var newRevision = history.Max(h => h.RevisionNumber) + 1;
 
-                var newRevision = existing.RevisionNumber + 1;
-                var estimateNo = $"{existing.BaseEstimateNo}-R{newRevision}";
+                // Dot notation: EST-202602-001.2
+                var estimateNo = $"{existing.BaseEstimateNo}.{newRevision}";
 
                 var items = await BuildItemsAsync(request.Items);
                 if (items == null)
                     return ApiResponse<EstimationResponse>.ErrorResponse("One or more products not found");
 
+                var gstRate = await GetGSTRateAsync();
                 var subTotal = items.Sum(i => i.TotalPrice);
-                var (discountAmount, total) = CalculateDiscount(subTotal, request.DiscountType, request.DiscountValue);
+                var (discountAmount, taxableAmount) = CalculateDiscount(subTotal, request.DiscountType, request.DiscountValue);
+                var gstAmount = Math.Round(taxableAmount * gstRate / 100, 2);
+                var grandTotal = taxableAmount + gstAmount;
                 var now = DateTime.UtcNow;
 
                 var revised = new Estimation
@@ -181,7 +265,10 @@ namespace MultiHitechERP.API.Services.Implementations
                     DiscountType = request.DiscountType,
                     DiscountValue = request.DiscountValue,
                     DiscountAmount = discountAmount,
-                    TotalAmount = total,
+                    TotalAmount = taxableAmount,
+                    GSTRate = gstRate,
+                    GSTAmount = gstAmount,
+                    GrandTotal = grandTotal,
                     ValidUntil = now.AddDays(21),
                     Notes = request.Notes,
                     TermsAndConditions = request.TermsAndConditions,
@@ -299,6 +386,14 @@ namespace MultiHitechERP.API.Services.Implementations
                 estimation.ConvertedOrderId = orderId;
                 estimation.ConvertedAt = DateTime.UtcNow;
 
+                // Trigger drawing review for each product that is still Pending
+                foreach (var item in estimation.Items)
+                {
+                    var product = await _productRepository.GetByIdAsync(item.ProductId);
+                    if (product != null && product.DrawingReviewStatus == "Pending")
+                        await _productService.RequestDrawingAsync(item.ProductId, "System");
+                }
+
                 return ApiResponse<EstimationResponse>.SuccessResponse(MapToResponse(estimation));
             }
             catch (Exception ex)
@@ -327,6 +422,12 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        private async Task<decimal> GetGSTRateAsync()
+        {
+            var val = await _appSettings.GetValueAsync("GSTRate");
+            return decimal.TryParse(val, out var rate) ? rate : 18m;
+        }
+
         private async Task<List<EstimationItem>?> BuildItemsAsync(List<CreateEstimationItemRequest> itemRequests)
         {
             var items = new List<EstimationItem>();
@@ -349,7 +450,7 @@ namespace MultiHitechERP.API.Services.Implementations
             return items;
         }
 
-        private static (decimal discountAmount, decimal total) CalculateDiscount(decimal subTotal, string? discountType, decimal discountValue)
+        private static (decimal discountAmount, decimal taxableAmount) CalculateDiscount(decimal subTotal, string? discountType, decimal discountValue)
         {
             decimal discountAmount = 0;
             if (discountType == "Percent" && discountValue > 0)
@@ -376,6 +477,9 @@ namespace MultiHitechERP.API.Services.Implementations
                 DiscountValue = e.DiscountValue,
                 DiscountAmount = e.DiscountAmount,
                 TotalAmount = e.TotalAmount,
+                GSTRate = e.GSTRate,
+                GSTAmount = e.GSTAmount,
+                GrandTotal = e.GrandTotal,
                 ValidUntil = e.ValidUntil.ToString("yyyy-MM-dd"),
                 ApprovedBy = e.ApprovedBy,
                 ApprovedAt = e.ApprovedAt?.ToString("yyyy-MM-dd HH:mm"),

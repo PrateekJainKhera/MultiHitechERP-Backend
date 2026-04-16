@@ -89,5 +89,20 @@ namespace MultiHitechERP.API.Controllers.Production
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+
+        /// <summary>POST /api/osp/{id}/resend — close current entry and send same part back to vendor</summary>
+        [HttpPost("{id:int}/resend")]
+        public async Task<IActionResult> ResendToVendor(int id, [FromBody] ResendOSPRequest request)
+        {
+            try
+            {
+                var result = await _ospService.ResendToVendorAsync(id, request);
+                return result.Success ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
     }
 }

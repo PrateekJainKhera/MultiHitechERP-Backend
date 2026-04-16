@@ -457,6 +457,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 LEFT JOIN Masters_Products p ON oi.ProductId = p.Id
                 WHERE oi.QtyCompleted > oi.QtyDispatched
                   AND oi.QtyCompleted > 0
+                  -- All job cards for this order item must be Completed
+                  AND NOT EXISTS (
+                      SELECT 1 FROM Planning_JobCards jc
+                      WHERE jc.OrderItemId = oi.Id
+                        AND ISNULL(jc.ProductionStatus, 'Pending') != 'Completed'
+                        AND jc.Status NOT IN ('Cancelled')
+                  )
                   -- QC gate: if this order item has a completed Assembly job card,
                   -- it must also have a Passed QC record before appearing here.
                   AND (

@@ -10,6 +10,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<ChildPartType>> GetActiveAsync();
         Task<ChildPartType?> GetByIdAsync(int id);
         Task<int> CreateAsync(ChildPartType childPartType);
+        Task<bool> UpdateAsync(ChildPartType childPartType);
         Task<bool> DeleteAsync(int id);
     }
 }

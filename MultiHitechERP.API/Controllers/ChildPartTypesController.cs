@@ -49,6 +49,25 @@ namespace MultiHitechERP.API.Controllers
             return Ok(new { success = true, data = id, message = $"Child part type '{childPartType.TypeName}' created successfully" });
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateChildPartTypeRequest request)
+        {
+            var existing = await _repository.GetByIdAsync(id);
+            if (existing == null)
+                return NotFound(new { success = false, message = "Child part type not found" });
+
+            if (string.IsNullOrWhiteSpace(request.TypeName))
+                return BadRequest(new { success = false, message = "Type name is required" });
+
+            existing.TypeName = request.TypeName.Trim().ToUpper();
+            existing.IsActive = request.IsActive;
+
+            var success = await _repository.UpdateAsync(existing);
+            return success
+                ? Ok(new { success = true, message = "Updated successfully" })
+                : BadRequest(new { success = false, message = "Failed to update" });
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -67,5 +86,11 @@ namespace MultiHitechERP.API.Controllers
     {
         public string TypeName { get; set; } = string.Empty;
         public string? CreatedBy { get; set; }
+    }
+
+    public class UpdateChildPartTypeRequest
+    {
+        public string TypeName { get; set; } = string.Empty;
+        public bool IsActive { get; set; } = true;
     }
 }

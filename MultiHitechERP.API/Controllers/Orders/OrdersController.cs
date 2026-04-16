@@ -537,6 +537,43 @@ namespace MultiHitechERP.API.Controllers.Orders
             }
         }
 
+        /// <summary>PATCH /api/orders/{id}/items/{itemId} — update order item fields</summary>
+        [HttpPatch("{id:int}/items/{itemId:int}")]
+        public async Task<IActionResult> UpdateOrderItem(int id, int itemId, [FromBody] UpdateOrderItemRequest request)
+        {
+            try
+            {
+                var item = await _orderItemRepo.GetByIdAsync(itemId);
+                if (item == null || item.OrderId != id)
+                    return NotFound(ApiResponse<object>.ErrorResponse("Order item not found"));
+
+                if (request.Quantity.HasValue)
+                {
+                    if (request.Quantity.Value < 1)
+                        return BadRequest(ApiResponse<object>.ErrorResponse("Quantity must be at least 1"));
+                    item.Quantity = request.Quantity.Value;
+                }
+                if (request.DueDate.HasValue)
+                    item.DueDate = request.DueDate.Value;
+                if (request.Priority != null)
+                    item.Priority = request.Priority;
+                if (request.Remarks != null)
+                    item.Remarks = request.Remarks;
+
+                item.UpdatedAt = DateTime.UtcNow;
+                item.UpdatedBy = request.UpdatedBy ?? "Admin";
+
+                var ok = await _orderItemRepo.UpdateAsync(item);
+                if (!ok) return BadRequest(ApiResponse<object>.ErrorResponse("Failed to update order item"));
+
+                return Ok(ApiResponse<bool>.SuccessResponse(true, "Order item updated successfully"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse($"Error updating order item: {ex.Message}"));
+            }
+        }
+
         private static OrderCustomerDrawingResponse MapDrawing(OrderCustomerDrawing d, HttpRequest request)
         {
             // FilePath stores the S3 key (e.g. "order-drawings/guid.pdf")
@@ -588,6 +625,15 @@ namespace MultiHitechERP.API.Controllers.Orders
     {
         [Required]
         public string PlanningStatus { get; set; } = string.Empty;
+    }
+
+    public class UpdateOrderItemRequest
+    {
+        public int? Quantity { get; set; }
+        public DateTime? DueDate { get; set; }
+        public string? Priority { get; set; }
+        public string? Remarks { get; set; }
+        public string? UpdatedBy { get; set; }
     }
 
 }

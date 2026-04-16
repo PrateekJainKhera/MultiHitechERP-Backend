@@ -107,6 +107,51 @@ namespace MultiHitechERP.API.Services.Implementations
                 $"{ids.Count()} OSP entries created successfully");
         }
 
+        public async Task<ApiResponse<int>> ResendToVendorAsync(int id, ResendOSPRequest request)
+        {
+            var entry = await _ospRepo.GetByIdAsync(id);
+            if (entry == null)
+                return ApiResponse<int>.ErrorResponse("OSP entry not found");
+
+            if (entry.Status == "Received")
+                return ApiResponse<int>.ErrorResponse("This entry is already fully received");
+
+            if (request.NewExpectedReturnDate <= request.NewSentDate)
+                return ApiResponse<int>.ErrorResponse("Expected return date must be after sent date");
+
+            // Close current entry — mark as fully received with all rejected (part came back failed)
+            await _ospRepo.MarkReceivedAsync(
+                id,
+                receivedQty: 0,
+                rejectedQty: entry.Quantity - entry.ReceivedQty - entry.RejectedQty,
+                actualReturnDate: request.NewSentDate.Date,
+                notes: $"Resent to vendor. {request.Notes}".Trim(),
+                updatedBy: request.UpdatedBy ?? "System");
+
+            // Create new OSP entry for same job card
+            var newEntry = new OSPTracking
+            {
+                JobCardId          = entry.JobCardId,
+                JobCardNo          = entry.JobCardNo,
+                OrderId            = entry.OrderId,
+                OrderNo            = entry.OrderNo,
+                OrderItemId        = entry.OrderItemId,
+                ItemSequence       = entry.ItemSequence,
+                ChildPartName      = entry.ChildPartName,
+                ProcessName        = entry.ProcessName,
+                VendorId           = request.VendorId,
+                Quantity           = entry.Quantity,
+                SentDate           = request.NewSentDate.Date,
+                ExpectedReturnDate = request.NewExpectedReturnDate.Date,
+                Status             = "Sent",
+                Notes              = request.Notes,
+                CreatedBy          = request.UpdatedBy ?? "System",
+            };
+
+            var newId = await _ospRepo.InsertAsync(newEntry);
+            return ApiResponse<int>.SuccessResponse(newId, "Part resent to vendor — new OSP entry created");
+        }
+
         public async Task<ApiResponse<bool>> MarkReceivedAsync(int id, ReceiveOSPRequest request)
         {
             var entry = await _ospRepo.GetByIdAsync(id);

@@ -11,5 +11,6 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<int>> CreateAsync(CreateOSPTrackingRequest request);
         Task<ApiResponse<IEnumerable<int>>> BatchCreateAsync(BatchCreateOSPRequest request);
         Task<ApiResponse<bool>> MarkReceivedAsync(int id, ReceiveOSPRequest request);
+        Task<ApiResponse<int>> ResendToVendorAsync(int id, ResendOSPRequest request);
     }
 }

@@ -119,10 +119,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 INSERT INTO Sales_Estimations
                     (EstimateNo, BaseEstimateNo, RevisionNumber, CustomerId, CustomerName, Status,
                      SubTotal, DiscountType, DiscountValue, DiscountAmount, TotalAmount,
+                     GSTRate, GSTAmount, GrandTotal,
                      ValidUntil, Notes, TermsAndConditions, CreatedAt, CreatedBy)
                 VALUES
                     (@EstimateNo, @BaseEstimateNo, @RevisionNumber, @CustomerId, @CustomerName, @Status,
                      @SubTotal, @DiscountType, @DiscountValue, @DiscountAmount, @TotalAmount,
+                     @GSTRate, @GSTAmount, @GrandTotal,
                      @ValidUntil, @Notes, @TermsAndConditions, @CreatedAt, @CreatedBy);
                 SELECT SCOPE_IDENTITY();";
 
@@ -150,6 +152,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 cmd.Parameters.AddWithValue("@DiscountValue", estimation.DiscountValue);
                 cmd.Parameters.AddWithValue("@DiscountAmount", estimation.DiscountAmount);
                 cmd.Parameters.AddWithValue("@TotalAmount", estimation.TotalAmount);
+                cmd.Parameters.AddWithValue("@GSTRate", estimation.GSTRate);
+                cmd.Parameters.AddWithValue("@GSTAmount", estimation.GSTAmount);
+                cmd.Parameters.AddWithValue("@GrandTotal", estimation.GrandTotal);
                 cmd.Parameters.AddWithValue("@ValidUntil", estimation.ValidUntil.Date);
                 cmd.Parameters.AddWithValue("@Notes", (object?)estimation.Notes ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@TermsAndConditions", (object?)estimation.TermsAndConditions ?? DBNull.Value);
@@ -228,6 +233,104 @@ namespace MultiHitechERP.API.Repositories.Implementations
             await command.ExecuteNonQueryAsync();
         }
 
+        public async Task UpdateAsync(Estimation estimation)
+        {
+            const string updateEst = @"
+                UPDATE Sales_Estimations SET
+                    CustomerId       = @CustomerId,
+                    CustomerName     = @CustomerName,
+                    SubTotal         = @SubTotal,
+                    DiscountType     = @DiscountType,
+                    DiscountValue    = @DiscountValue,
+                    DiscountAmount   = @DiscountAmount,
+                    TotalAmount      = @TotalAmount,
+                    GSTRate          = @GSTRate,
+                    GSTAmount        = @GSTAmount,
+                    GrandTotal       = @GrandTotal,
+                    Notes            = @Notes,
+                    TermsAndConditions = @TermsAndConditions,
+                    Status           = @Status
+                WHERE Id = @Id";
+
+            const string deleteItems = "DELETE FROM Sales_EstimationItems WHERE EstimationId = @EstimationId";
+
+            const string insertItem = @"
+                INSERT INTO Sales_EstimationItems
+                    (EstimationId, ProductId, ProductName, PartCode, Quantity, UnitPrice, TotalPrice, Notes)
+                VALUES
+                    (@EstimationId, @ProductId, @ProductName, @PartCode, @Quantity, @UnitPrice, @TotalPrice, @Notes)";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            await connection.OpenAsync();
+            using var transaction = connection.BeginTransaction();
+
+            try
+            {
+                using var cmd = new SqlCommand(updateEst, connection, transaction);
+                cmd.Parameters.AddWithValue("@Id", estimation.Id);
+                cmd.Parameters.AddWithValue("@CustomerId", estimation.CustomerId);
+                cmd.Parameters.AddWithValue("@CustomerName", (object?)estimation.CustomerName ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@SubTotal", estimation.SubTotal);
+                cmd.Parameters.AddWithValue("@DiscountType", (object?)estimation.DiscountType ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@DiscountValue", estimation.DiscountValue);
+                cmd.Parameters.AddWithValue("@DiscountAmount", estimation.DiscountAmount);
+                cmd.Parameters.AddWithValue("@TotalAmount", estimation.TotalAmount);
+                cmd.Parameters.AddWithValue("@GSTRate", estimation.GSTRate);
+                cmd.Parameters.AddWithValue("@GSTAmount", estimation.GSTAmount);
+                cmd.Parameters.AddWithValue("@GrandTotal", estimation.GrandTotal);
+                cmd.Parameters.AddWithValue("@Notes", (object?)estimation.Notes ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@TermsAndConditions", (object?)estimation.TermsAndConditions ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Status", estimation.Status);
+                await cmd.ExecuteNonQueryAsync();
+
+                using var delCmd = new SqlCommand(deleteItems, connection, transaction);
+                delCmd.Parameters.AddWithValue("@EstimationId", estimation.Id);
+                await delCmd.ExecuteNonQueryAsync();
+
+                foreach (var item in estimation.Items)
+                {
+                    using var itemCmd = new SqlCommand(insertItem, connection, transaction);
+                    itemCmd.Parameters.AddWithValue("@EstimationId", estimation.Id);
+                    itemCmd.Parameters.AddWithValue("@ProductId", item.ProductId);
+                    itemCmd.Parameters.AddWithValue("@ProductName", (object?)item.ProductName ?? DBNull.Value);
+                    itemCmd.Parameters.AddWithValue("@PartCode", (object?)item.PartCode ?? DBNull.Value);
+                    itemCmd.Parameters.AddWithValue("@Quantity", item.Quantity);
+                    itemCmd.Parameters.AddWithValue("@UnitPrice", item.UnitPrice);
+                    itemCmd.Parameters.AddWithValue("@TotalPrice", item.TotalPrice);
+                    itemCmd.Parameters.AddWithValue("@Notes", (object?)item.Notes ?? DBNull.Value);
+                    await itemCmd.ExecuteNonQueryAsync();
+                }
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<Estimation>> GetRevisionHistoryAsync(string baseEstimateNo)
+        {
+            const string query = @"
+                SELECT e.*, c.CustomerName AS CustomerNameJoin
+                FROM Sales_Estimations e
+                LEFT JOIN Masters_Customers c ON e.CustomerId = c.Id
+                WHERE e.BaseEstimateNo = @BaseEstimateNo
+                ORDER BY e.RevisionNumber ASC";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@BaseEstimateNo", baseEstimateNo);
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            var list = new List<Estimation>();
+            while (await reader.ReadAsync())
+                list.Add(MapToEstimation(reader));
+            return list;
+        }
+
         public async Task<int> GetNextSequenceNumberAsync()
         {
             var year = DateTime.UtcNow.Year;
@@ -295,6 +398,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 DiscountValue = reader.GetDecimal(reader.GetOrdinal("DiscountValue")),
                 DiscountAmount = reader.GetDecimal(reader.GetOrdinal("DiscountAmount")),
                 TotalAmount = reader.GetDecimal(reader.GetOrdinal("TotalAmount")),
+                GSTRate = reader.IsDBNull(reader.GetOrdinal("GSTRate")) ? 0 : reader.GetDecimal(reader.GetOrdinal("GSTRate")),
+                GSTAmount = reader.IsDBNull(reader.GetOrdinal("GSTAmount")) ? 0 : reader.GetDecimal(reader.GetOrdinal("GSTAmount")),
+                GrandTotal = reader.IsDBNull(reader.GetOrdinal("GrandTotal")) ? 0 : reader.GetDecimal(reader.GetOrdinal("GrandTotal")),
                 ValidUntil = reader.GetDateTime(reader.GetOrdinal("ValidUntil")),
                 ApprovedBy = reader.IsDBNull(reader.GetOrdinal("ApprovedBy")) ? null : reader.GetString(reader.GetOrdinal("ApprovedBy")),
                 ApprovedAt = reader.IsDBNull(reader.GetOrdinal("ApprovedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("ApprovedAt")),

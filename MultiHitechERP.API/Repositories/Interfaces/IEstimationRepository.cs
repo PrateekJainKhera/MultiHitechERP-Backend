@@ -10,7 +10,9 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<Estimation>> GetByStatusAsync(string status);
         Task<int> InsertAsync(Estimation estimation);
         Task UpdateStatusAsync(int id, string status, string? updatedBy = null, int? convertedOrderId = null, string? rejectionReason = null);
+        Task UpdateAsync(Estimation estimation);
         Task DeleteAsync(int id);
         Task<int> GetNextSequenceNumberAsync();
+        Task<IEnumerable<Estimation>> GetRevisionHistoryAsync(string baseEstimateNo);
     }
 }

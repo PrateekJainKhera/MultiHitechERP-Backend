@@ -10,7 +10,9 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<IEnumerable<EstimationResponse>>> GetByCustomerIdAsync(int customerId);
         Task<ApiResponse<IEnumerable<EstimationResponse>>> GetByStatusAsync(string status);
         Task<ApiResponse<EstimationResponse>> CreateAsync(CreateEstimationRequest request);
+        Task<ApiResponse<EstimationResponse>> UpdateAsync(int id, CreateEstimationRequest request);
         Task<ApiResponse<EstimationResponse>> ReviseAsync(int id, CreateEstimationRequest request);
+        Task<ApiResponse<IEnumerable<EstimationResponse>>> GetRevisionHistoryAsync(string baseEstimateNo);
         Task<ApiResponse<EstimationResponse>> SubmitAsync(int id);
         Task<ApiResponse<EstimationResponse>> ApproveAsync(int id, ApproveEstimationRequest request);
         Task<ApiResponse<EstimationResponse>> RejectAsync(int id, RejectEstimationRequest request);

@@ -18,6 +18,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public int MaterialIssuedCount { get; set; }   // JCs with material issued
         public int AlreadyScheduledCount { get; set; } // JCs already machine-assigned
         public int ReadyToScheduleCount { get; set; }  // MaterialIssued - AlreadyScheduled
+        public int ReworkCount { get; set; }            // Job cards with IsRework = 1
     }
 
     // ── Step 2: Job Cards Grouped by Child Part ─────────────────────────────────

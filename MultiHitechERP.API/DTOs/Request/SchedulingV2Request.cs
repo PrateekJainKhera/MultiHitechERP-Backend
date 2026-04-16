@@ -50,4 +50,11 @@ namespace MultiHitechERP.API.DTOs.Request
         public string? Notes { get; set; }
         public string? CreatedBy { get; set; }
     }
+
+    public class FullReworkRequest
+    {
+        public int RejectedQty { get; set; } = 1;
+        public string Reason { get; set; } = string.Empty;
+        public string? ReportedBy { get; set; }
+    }
 }

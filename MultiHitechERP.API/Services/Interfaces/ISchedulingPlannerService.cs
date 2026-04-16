@@ -28,5 +28,8 @@ namespace MultiHitechERP.API.Services.Interfaces
 
         /// <summary>Create a rework job card from an existing one</summary>
         Task<ApiResponse<int>> CreateReworkJobCardAsync(int parentJobCardId, int reworkQty, string? notes, string? createdBy);
+
+        /// <summary>Full rework — creates new job cards for ALL steps of the child part, copies material reqs</summary>
+        Task<ApiResponse<IEnumerable<int>>> CreateFullReworkAsync(int failedJobCardId, int rejectedQty, string reason, string? createdBy);
     }
 }

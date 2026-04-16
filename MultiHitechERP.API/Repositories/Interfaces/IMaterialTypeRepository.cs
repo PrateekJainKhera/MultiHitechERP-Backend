@@ -9,6 +9,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<MaterialTypeModel>> GetAllAsync();
         Task<MaterialTypeModel?> GetByIdAsync(int id);
         Task<int> CreateAsync(MaterialTypeModel materialType);
+        Task<bool> UpdateAsync(MaterialTypeModel materialType);
         Task<bool> DeleteAsync(int id);
     }
 }

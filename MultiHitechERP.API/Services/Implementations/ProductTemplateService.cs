@@ -242,6 +242,14 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse($"Product template with ID {id} not found");
                 }
 
+                // Check if any products are using this template
+                var productCount = await _productTemplateRepository.CountProductsByTemplateIdAsync(id);
+                if (productCount > 0)
+                {
+                    return ApiResponse<bool>.ErrorResponse(
+                        $"Cannot delete this template — {productCount} product(s) are linked to it. Remove or reassign those products first.");
+                }
+
                 // Delete template (child parts will cascade)
                 var success = await _productTemplateRepository.DeleteAsync(id);
                 if (!success)

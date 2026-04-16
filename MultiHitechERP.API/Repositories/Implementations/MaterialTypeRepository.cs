@@ -40,6 +40,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await conn.ExecuteScalarAsync<int>(sql, materialType);
         }
 
+        public async Task<bool> UpdateAsync(MaterialTypeModel materialType)
+        {
+            const string sql = "UPDATE Masters_MaterialTypes SET Name = @Name, IsActive = @IsActive WHERE Id = @Id";
+            using var conn = _connectionFactory.CreateConnection();
+            var rows = await conn.ExecuteAsync(sql, new { materialType.Name, materialType.IsActive, materialType.Id });
+            return rows > 0;
+        }
+
         public async Task<bool> DeleteAsync(int id)
         {
             const string sql = "UPDATE Masters_MaterialTypes SET IsActive = 0 WHERE Id = @Id";

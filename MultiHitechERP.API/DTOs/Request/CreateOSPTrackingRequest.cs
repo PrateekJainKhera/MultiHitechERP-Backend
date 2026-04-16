@@ -58,6 +58,21 @@ namespace MultiHitechERP.API.DTOs.Request
         public string? CreatedBy { get; set; }
     }
 
+    public class ResendOSPRequest
+    {
+        [Required]
+        public int VendorId { get; set; }
+
+        [Required]
+        public DateTime NewSentDate { get; set; }
+
+        [Required]
+        public DateTime NewExpectedReturnDate { get; set; }
+
+        public string? Notes { get; set; }
+        public string? UpdatedBy { get; set; }
+    }
+
     /// <summary>Available job card for OSP dropdown selection</summary>
     public class OSPJobCardOption
     {

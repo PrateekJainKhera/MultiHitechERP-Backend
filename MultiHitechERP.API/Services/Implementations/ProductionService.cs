@@ -885,22 +885,17 @@ namespace MultiHitechERP.API.Services.Implementations
                                     .ThenBy(jc => jc.StepNo)
                                     .Select(jc =>
                                     {
-                                        bool isLocked = jc.ProductionStatus == "Pending";
-                                        string? waitingFor = null;
-
-                                        if (isLocked)
-                                        {
-                                            // Find the step blocking this one (same order + child part, lower step, not completed)
-                                            var blockingStep = allScheduled
-                                                .Where(other =>
-                                                    other.OrderId == jc.OrderId &&
-                                                    ChildPartKey(other) == ChildPartKey(jc) &&
-                                                    other.StepNo < jc.StepNo &&
-                                                    other.ProductionStatus != "Completed")
-                                                .OrderByDescending(other => other.StepNo)
-                                                .FirstOrDefault();
-                                            waitingFor = blockingStep?.ProcessName;
-                                        }
+                                        // Locked if any PREVIOUS step for same child part is not yet Completed
+                                        var blockingStep = allScheduled
+                                            .Where(other =>
+                                                other.OrderId == jc.OrderId &&
+                                                ChildPartKey(other) == ChildPartKey(jc) &&
+                                                other.StepNo < jc.StepNo &&
+                                                other.ProductionStatus != "Completed")
+                                            .OrderByDescending(other => other.StepNo)
+                                            .FirstOrDefault();
+                                        bool isLocked = blockingStep != null;
+                                        string? waitingFor = blockingStep?.ProcessName;
 
                                         machineCache.TryGetValue(jc.Id, out var machineName);
                                         processCache.TryGetValue(jc.ProcessId, out var procInfo);

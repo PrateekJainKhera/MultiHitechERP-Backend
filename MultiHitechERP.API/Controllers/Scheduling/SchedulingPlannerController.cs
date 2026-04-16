@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MultiHitechERP.API.DTOs.Request;
@@ -65,6 +66,22 @@ namespace MultiHitechERP.API.Controllers.Scheduling
             var result = await _plannerService.CreateReworkJobCardAsync(
                 parentJobCardId, request.ReworkQty, request.Notes, request.CreatedBy);
             return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>Full rework — report rejection and create new job cards for ALL steps of the child part</summary>
+        [HttpPost("full-rework/{jobCardId}")]
+        public async Task<IActionResult> CreateFullRework(int jobCardId, [FromBody] FullReworkRequest request)
+        {
+            try
+            {
+                var result = await _plannerService.CreateFullReworkAsync(
+                    jobCardId, request.RejectedQty, request.Reason, request.ReportedBy);
+                return result.Success ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
     }
 }

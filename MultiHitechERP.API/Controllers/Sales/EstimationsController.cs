@@ -64,6 +64,25 @@ namespace MultiHitechERP.API.Controllers.Sales
             return CreatedAtAction(nameof(GetById), new { id = response.Data!.Id }, response);
         }
 
+        [HttpGet("{id}/revision-history")]
+        [ProducesResponseType(typeof(ApiResponse<IEnumerable<EstimationResponse>>), 200)]
+        public async Task<IActionResult> GetRevisionHistory(int id)
+        {
+            var est = await _estimationService.GetByIdAsync(id);
+            if (!est.Success || est.Data == null) return NotFound(est);
+            var response = await _estimationService.GetRevisionHistoryAsync(est.Data.BaseEstimateNo);
+            return response.Success ? Ok(response) : BadRequest(response);
+        }
+
+        [HttpPut("{id}")]
+        [ProducesResponseType(typeof(ApiResponse<EstimationResponse>), 200)]
+        public async Task<IActionResult> Update(int id, [FromBody] CreateEstimationRequest request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var response = await _estimationService.UpdateAsync(id, request);
+            return response.Success ? Ok(response) : BadRequest(response);
+        }
+
         [HttpPost("{id}/revise")]
         [ProducesResponseType(typeof(ApiResponse<EstimationResponse>), 201)]
         public async Task<IActionResult> Revise(int id, [FromBody] CreateEstimationRequest request)

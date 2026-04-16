@@ -13,7 +13,10 @@ namespace MultiHitechERP.API.Models.Sales
         public string? DiscountType { get; set; }
         public decimal DiscountValue { get; set; }
         public decimal DiscountAmount { get; set; }
-        public decimal TotalAmount { get; set; }
+        public decimal TotalAmount { get; set; }   // SubTotal - Discount (taxable amount)
+        public decimal GSTRate { get; set; } = 18;
+        public decimal GSTAmount { get; set; }
+        public decimal GrandTotal { get; set; }     // TotalAmount + GSTAmount
         public DateTime ValidUntil { get; set; }
         public string? ApprovedBy { get; set; }
         public DateTime? ApprovedAt { get; set; }

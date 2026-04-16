@@ -15,15 +15,18 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IProductRepository _productRepository;
         private readonly IMachineModelRepository _machineModelRepository;
         private readonly IDrawingRepository _drawingRepository;
+        private readonly IRollerTypeRepository _rollerTypeRepository;
 
         public ProductService(
             IProductRepository productRepository,
             IMachineModelRepository machineModelRepository,
-            IDrawingRepository drawingRepository)
+            IDrawingRepository drawingRepository,
+            IRollerTypeRepository rollerTypeRepository)
         {
             _productRepository = productRepository;
             _machineModelRepository = machineModelRepository;
             _drawingRepository = drawingRepository;
+            _rollerTypeRepository = rollerTypeRepository;
         }
 
         public async Task<ApiResponse<ProductResponse>> GetByIdAsync(int id)
@@ -76,10 +79,11 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                // Business validation: Only Printing Roller, Magnetic Roller, or Other allowed
-                var validRollerTypes = new[] { "Printing Roller", "Magnetic Roller", "Other" };
-                if (!validRollerTypes.Contains(request.RollerType))
-                    return ApiResponse<int>.ErrorResponse("Roller type must be either 'Printing Roller', 'Magnetic Roller', or 'Other'");
+                // Business validation: Validate against Masters_RollerTypes table (DB-driven)
+                var validRollerTypes = await _rollerTypeRepository.GetAllAsync();
+                var validTypeNames = validRollerTypes.Select(rt => rt.TypeName).ToList();
+                if (!validTypeNames.Contains(request.RollerType))
+                    return ApiResponse<int>.ErrorResponse($"Invalid roller type '{request.RollerType}'. Must be one of: {string.Join(", ", validTypeNames)}");
 
                 // Business validation: Validate dimensions (only if a value is provided)
                 if (request.Diameter.HasValue && request.Diameter <= 0)
@@ -93,8 +97,9 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (machineModel == null)
                     return ApiResponse<int>.ErrorResponse($"Machine model with ID {request.ModelId} not found");
 
-                // Auto-generate PartCode based on roller type
-                string partCodePrefix = request.RollerType == "Magnetic Roller" ? "MAG" : "PRT";
+                // Auto-generate PartCode prefix from first 3 letters of first word of roller type
+                string firstWord = request.RollerType.Split(' ')[0];
+                string partCodePrefix = firstWord[..Math.Min(3, firstWord.Length)].ToUpper();
                 int nextSequence = await _productRepository.GetNextSequenceNumberAsync(request.RollerType);
                 string generatedPartCode = $"{partCodePrefix}-{nextSequence:D4}";
 
@@ -118,7 +123,8 @@ namespace MultiHitechERP.API.Services.Implementations
                     ProductTemplateId = request.ProductTemplateId,
                     ProcessTemplateId = request.ProcessTemplateId,
                     CreatedBy = request.CreatedBy?.Trim() ?? "System",
-                    // Drawing request handling
+                    // If RequestDrawing = true (created from Masters), immediately send to drawing review.
+                    // If RequestDrawing = false (created during estimation), stays Pending until order conversion.
                     DrawingReviewStatus = request.RequestDrawing ? "UnderReview" : "Pending",
                     DrawingRequestedAt = request.RequestDrawing ? DateTime.UtcNow : (DateTime?)null,
                     DrawingRequestedBy = request.RequestDrawing ? (request.CreatedBy?.Trim() ?? "System") : null
@@ -147,10 +153,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (existingProduct == null)
                     return ApiResponse<bool>.ErrorResponse($"Product with ID {request.Id} not found");
 
-                // Business validation: Only Printing Roller, Magnetic Roller, or Other allowed
-                var validRollerTypes = new[] { "Printing Roller", "Magnetic Roller", "Other" };
-                if (!validRollerTypes.Contains(request.RollerType))
-                    return ApiResponse<bool>.ErrorResponse("Roller type must be either 'Printing Roller', 'Magnetic Roller', or 'Other'");
+                // Business validation: Validate against Masters_RollerTypes table (DB-driven)
+                var validRollerTypes = await _rollerTypeRepository.GetAllAsync();
+                if (!validRollerTypes.Select(rt => rt.TypeName).Contains(request.RollerType))
+                    return ApiResponse<bool>.ErrorResponse($"Invalid roller type '{request.RollerType}'");
 
                 // Business validation: Check if part code already exists (if changed)
                 if (existingProduct.PartCode != request.PartCode)
