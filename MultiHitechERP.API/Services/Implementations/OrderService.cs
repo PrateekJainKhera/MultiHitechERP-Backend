@@ -739,13 +739,21 @@ namespace MultiHitechERP.API.Services.Implementations
             var prefix = "ORD";
             var yearMonth = DateTime.UtcNow.ToString("yyyyMM");
 
-            // Get all orders for current month to find next number
+            // Get all orders for current month, use MAX number to avoid duplicates after deletions
             var allOrders = await _orderRepository.GetAllAsync();
             var currentMonthOrders = allOrders
-                .Where(o => o.OrderNo.StartsWith($"{prefix}-{yearMonth}"))
+                .Where(o => o.OrderNo != null && o.OrderNo.StartsWith($"{prefix}-{yearMonth}"))
                 .ToList();
 
-            var nextNumber = currentMonthOrders.Count + 1;
+            var maxNumber = 0;
+            foreach (var order in currentMonthOrders)
+            {
+                var parts = order.OrderNo.Split('-');
+                if (parts.Length >= 3 && int.TryParse(parts[2], out var num))
+                    maxNumber = Math.Max(maxNumber, num);
+            }
+
+            var nextNumber = maxNumber + 1;
             return $"{prefix}-{yearMonth}-{nextNumber:D4}";
         }
 
