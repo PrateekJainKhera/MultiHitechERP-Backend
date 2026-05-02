@@ -35,6 +35,9 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<Order>> GetInProgressOrdersAsync();
         Task<IEnumerable<Order>> GetDelayedOrdersAsync();
 
+        // Bulk sync drawing review status for all orders using a given product
+        Task<bool> SyncDrawingReviewStatusByProductAsync(int productId, string reviewedBy);
+
         // Optimistic Locking
         Task<bool> UpdateWithVersionCheckAsync(Order order);
         Task<int> GetVersionAsync(int id);

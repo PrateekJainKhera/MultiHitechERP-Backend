@@ -788,6 +788,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         ProductId = item.ProductId,
                         ProductName = itemProduct?.ModelName,
                         PartCode = itemProduct?.PartCode,
+                        NumberOfTeeth = itemProduct?.NumberOfTeeth > 0 ? itemProduct.NumberOfTeeth : (int?)null,
                         Quantity = item.Quantity,
                         OriginalQuantity = item.Quantity, // Use Quantity as OriginalQuantity
                         QtyCompleted = item.QtyCompleted,
@@ -830,6 +831,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 ProductId = order.ProductId,
                 ProductName = product?.ModelName,
                 ProductCode = product?.PartCode,
+                NumberOfTeeth = product?.NumberOfTeeth > 0 ? product.NumberOfTeeth : (int?)null,
 
                 Quantity = order.Quantity,
                 OriginalQuantity = order.OriginalQuantity,

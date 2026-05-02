@@ -548,6 +548,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 OrderItemId = jobCard.OrderItemId,
                 ItemSequence = jobCard.ItemSequence,
                 MachineModelName = jobCard.MachineModelName,
+                NumberOfTeeth = jobCard.NumberOfTeeth,
                 DrawingId = jobCard.DrawingId,
                 DrawingNumber = jobCard.DrawingNumber,
                 DrawingRevision = jobCard.DrawingRevision,

@@ -23,6 +23,7 @@ namespace MultiHitechERP.API.Models.Planning
 
         // Machine Model (from Masters_Products via Orders_OrderItems)
         public string? MachineModelName { get; set; }
+        public int? NumberOfTeeth { get; set; }
 
         // Drawing
         public int? DrawingId { get; set; }

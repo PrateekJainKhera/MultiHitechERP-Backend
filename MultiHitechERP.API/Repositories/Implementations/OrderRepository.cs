@@ -551,6 +551,62 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return result != null ? Convert.ToInt32(result) : 0;
         }
 
+        public async Task<bool> SyncDrawingReviewStatusByProductAsync(int productId, string reviewedBy)
+        {
+            // Update single-product orders (no order items) where ProductId matches
+            const string singleQuery = @"
+                UPDATE Orders SET
+                    DrawingReviewStatus = 'Approved',
+                    DrawingReviewedBy = @ReviewedBy,
+                    DrawingReviewedAt = @ReviewedAt,
+                    UpdatedAt = @UpdatedAt
+                WHERE ProductId = @ProductId
+                  AND DrawingReviewStatus != 'Approved'
+                  AND NOT EXISTS (SELECT 1 FROM Orders_OrderItems WHERE OrderId = Orders.Id)";
+
+            // Update multi-product orders where this product is an item AND all items' products are now approved
+            const string multiQuery = @"
+                UPDATE Orders SET
+                    DrawingReviewStatus = 'Approved',
+                    DrawingReviewedBy = @ReviewedBy,
+                    DrawingReviewedAt = @ReviewedAt,
+                    UpdatedAt = @UpdatedAt
+                WHERE DrawingReviewStatus != 'Approved'
+                  AND EXISTS (
+                      SELECT 1 FROM Orders_OrderItems oi
+                      WHERE oi.OrderId = Orders.Id AND oi.ProductId = @ProductId
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM Orders_OrderItems oi
+                      JOIN Masters_Products p ON p.Id = oi.ProductId
+                      WHERE oi.OrderId = Orders.Id
+                        AND p.DrawingReviewStatus != 'Approved'
+                  )";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            await connection.OpenAsync();
+
+            using (var cmd = new SqlCommand(singleQuery, connection))
+            {
+                cmd.Parameters.AddWithValue("@ProductId", productId);
+                cmd.Parameters.AddWithValue("@ReviewedBy", reviewedBy);
+                cmd.Parameters.AddWithValue("@ReviewedAt", DateTime.UtcNow);
+                cmd.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            using (var cmd = new SqlCommand(multiQuery, connection))
+            {
+                cmd.Parameters.AddWithValue("@ProductId", productId);
+                cmd.Parameters.AddWithValue("@ReviewedBy", reviewedBy);
+                cmd.Parameters.AddWithValue("@ReviewedAt", DateTime.UtcNow);
+                cmd.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            return true;
+        }
+
         // Helper Methods
 
         private static Order MapToOrder(SqlDataReader reader)

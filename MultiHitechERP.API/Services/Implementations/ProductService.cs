@@ -16,17 +16,20 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IMachineModelRepository _machineModelRepository;
         private readonly IDrawingRepository _drawingRepository;
         private readonly IRollerTypeRepository _rollerTypeRepository;
+        private readonly IOrderRepository _orderRepository;
 
         public ProductService(
             IProductRepository productRepository,
             IMachineModelRepository machineModelRepository,
             IDrawingRepository drawingRepository,
-            IRollerTypeRepository rollerTypeRepository)
+            IRollerTypeRepository rollerTypeRepository,
+            IOrderRepository orderRepository)
         {
             _productRepository = productRepository;
             _machineModelRepository = machineModelRepository;
             _drawingRepository = drawingRepository;
             _rollerTypeRepository = rollerTypeRepository;
+            _orderRepository = orderRepository;
         }
 
         public async Task<ApiResponse<ProductResponse>> GetByIdAsync(int id)
@@ -301,7 +304,11 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 // Sync master drawing status when drawing review changes
                 if (status == "Approved")
+                {
                     await _drawingRepository.UpdateStatusByProductIdAsync(productId, "approved", reviewedBy);
+                    // Propagate approval to all orders that use this product
+                    await _orderRepository.SyncDrawingReviewStatusByProductAsync(productId, reviewedBy ?? "System");
+                }
                 else if (status == "Rejected" || status == "RevisionRequired")
                     await _drawingRepository.UpdateStatusByProductIdAsync(productId, "draft", null);
 

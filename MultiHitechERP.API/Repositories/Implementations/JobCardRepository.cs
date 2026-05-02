@@ -32,7 +32,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                        jc.ProductionStatus, jc.ActualStartTime, jc.ActualEndTime,
                        jc.CompletedQty, jc.RejectedQty, jc.ReadyForAssembly,
                        jc.CreatedAt, jc.CreatedBy, jc.UpdatedAt, jc.UpdatedBy, jc.Version,
-                       p.ModelName AS MachineModelName
+                       p.ModelName AS MachineModelName,
+                       p.NumberOfTeeth AS NumberOfTeeth
                 FROM Planning_JobCards jc
                 LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
                 LEFT JOIN Masters_Products p ON oi.ProductId = p.Id
@@ -75,16 +76,22 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<JobCard>> GetAllAsync()
         {
             const string query = @"
-                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
-                       DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
-                       ChildPartId, ChildPartName, ChildPartTemplateId,
-                       ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
-                       WorkInstructions, QualityCheckpoints, SpecialNotes,
-                       Quantity, Status, Priority, ManufacturingDimensions,
-                       ProductionStatus, ActualStartTime, ActualEndTime,
-                       CompletedQty, RejectedQty, ReadyForAssembly,
-                       CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
-                FROM Planning_JobCards ORDER BY CreatedAt DESC";
+                SELECT jc.Id, jc.JobCardNo, jc.CreationType, jc.OrderId, jc.OrderNo, jc.OrderItemId, jc.ItemSequence,
+                       jc.DrawingId, jc.DrawingNumber, jc.DrawingRevision, jc.DrawingName, jc.DrawingSelectionType,
+                       jc.ChildPartId, jc.ChildPartName, jc.ChildPartTemplateId,
+                       jc.ProcessId, jc.ProcessName, jc.ProcessCode, jc.StepNo, jc.ProcessTemplateId,
+                       jc.WorkInstructions, jc.QualityCheckpoints, jc.SpecialNotes,
+                       jc.Quantity, jc.Status, jc.Priority, jc.ManufacturingDimensions,
+                       jc.ProductionStatus, jc.ActualStartTime, jc.ActualEndTime,
+                       jc.CompletedQty, jc.RejectedQty, jc.ReadyForAssembly,
+                       jc.CreatedAt, jc.CreatedBy, jc.UpdatedAt, jc.UpdatedBy, jc.Version,
+                       p.ModelName AS MachineModelName,
+                       p.NumberOfTeeth AS NumberOfTeeth
+                FROM Planning_JobCards jc
+                LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
+                LEFT JOIN Orders o ON jc.OrderId = o.Id
+                LEFT JOIN Masters_Products p ON COALESCE(oi.ProductId, o.ProductId) = p.Id
+                ORDER BY jc.CreatedAt DESC";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
@@ -600,11 +607,17 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? null : reader.GetString(reader.GetOrdinal("UpdatedBy")),
                 Version = reader.GetInt32(reader.GetOrdinal("Version"))
             };
-            // MachineModelName is only present in queries that JOIN Orders_OrderItems + Masters_Products
+            // MachineModelName and NumberOfTeeth are only present in queries that JOIN Orders_OrderItems + Masters_Products
             try
             {
                 var ord = reader.GetOrdinal("MachineModelName");
                 jc.MachineModelName = reader.IsDBNull(ord) ? null : reader.GetString(ord);
+            }
+            catch { }
+            try
+            {
+                var ord = reader.GetOrdinal("NumberOfTeeth");
+                jc.NumberOfTeeth = reader.IsDBNull(ord) ? null : reader.GetInt32(ord);
             }
             catch { }
             return jc;
