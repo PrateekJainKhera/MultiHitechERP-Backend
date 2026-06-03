@@ -71,6 +71,8 @@ namespace MultiHitechERP.API.DTOs.Response
         public int CompletedSteps { get; set; }
         public int InProgressSteps { get; set; }
         public int ReadySteps { get; set; }
+        /// <summary>Job cards with Status == "Scheduled" (machine-assigned) — matches the Scheduling page count</summary>
+        public int MachineScheduledSteps { get; set; }
 
         // Child part summary
         public int TotalChildParts { get; set; }

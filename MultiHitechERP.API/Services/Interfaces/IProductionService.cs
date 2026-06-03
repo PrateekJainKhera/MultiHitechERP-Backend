@@ -30,5 +30,8 @@ namespace MultiHitechERP.API.Services.Interfaces
 
         /// <summary>Run cascade + rollup for a job card that was completed externally (e.g. OSP receive)</summary>
         Task TriggerCascadeAsync(int jobCardId);
+
+        /// <summary>Force-complete all scheduled job cards for an order item in one shot (admin action)</summary>
+        Task<ApiResponse<bool>> CompleteAllForOrderItemAsync(int orderItemId);
     }
 }

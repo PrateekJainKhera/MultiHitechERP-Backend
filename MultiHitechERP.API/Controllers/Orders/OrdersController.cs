@@ -537,6 +537,34 @@ namespace MultiHitechERP.API.Controllers.Orders
             }
         }
 
+        /// <summary>DELETE /api/orders/{id}/items/{itemId} — remove a single item from an order</summary>
+        [HttpDelete("{id:int}/items/{itemId:int}")]
+        public async Task<IActionResult> DeleteOrderItem(int id, int itemId)
+        {
+            try
+            {
+                var item = await _orderItemRepo.GetByIdAsync(itemId);
+                if (item == null || item.OrderId != id)
+                    return NotFound(ApiResponse<object>.ErrorResponse("Order item not found"));
+
+                if (item.Status == "In Progress" || item.Status == "Completed")
+                    return BadRequest(ApiResponse<object>.ErrorResponse("Cannot delete an item that is In Progress or Completed"));
+
+                var allItems = await _orderItemRepo.GetByOrderIdAsync(id);
+                if (allItems.Count <= 1)
+                    return BadRequest(ApiResponse<object>.ErrorResponse("Cannot delete the last item of an order. Delete the whole order instead."));
+
+                var ok = await _orderItemRepo.DeleteAsync(itemId);
+                if (!ok) return BadRequest(ApiResponse<object>.ErrorResponse("Failed to delete order item"));
+
+                return Ok(ApiResponse<bool>.SuccessResponse(true, "Order item deleted"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse($"Error: {ex.Message}"));
+            }
+        }
+
         /// <summary>PATCH /api/orders/{id}/items/{itemId} — update order item fields</summary>
         [HttpPatch("{id:int}/items/{itemId:int}")]
         public async Task<IActionResult> UpdateOrderItem(int id, int itemId, [FromBody] UpdateOrderItemRequest request)
@@ -547,6 +575,11 @@ namespace MultiHitechERP.API.Controllers.Orders
                 if (item == null || item.OrderId != id)
                     return NotFound(ApiResponse<object>.ErrorResponse("Order item not found"));
 
+                if (request.ProductId.HasValue)
+                {
+                    item.ProductId = request.ProductId.Value;
+                    item.ProductName = request.ProductName;
+                }
                 if (request.Quantity.HasValue)
                 {
                     if (request.Quantity.Value < 1)
@@ -629,6 +662,8 @@ namespace MultiHitechERP.API.Controllers.Orders
 
     public class UpdateOrderItemRequest
     {
+        public int? ProductId { get; set; }
+        public string? ProductName { get; set; }
         public int? Quantity { get; set; }
         public DateTime? DueDate { get; set; }
         public string? Priority { get; set; }

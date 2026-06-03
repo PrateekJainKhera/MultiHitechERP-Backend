@@ -91,6 +91,24 @@ namespace MultiHitechERP.API.Controllers.Production
         }
 
         /// <summary>
+        /// POST /api/production/order-items/{orderItemId}/complete-all
+        /// Admin shortcut: force-complete all scheduled job cards for an order item
+        /// </summary>
+        [HttpPost("order-items/{orderItemId:int}/complete-all")]
+        public async Task<IActionResult> CompleteAll(int orderItemId)
+        {
+            try
+            {
+                var result = await _productionService.CompleteAllForOrderItemAsync(orderItemId);
+                return result.Success ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// POST /api/production/fix-stuck-cards
         /// One-time fix: sets Scheduled+Pending cards that are Step 1 or have no step number to Ready
         /// </summary>

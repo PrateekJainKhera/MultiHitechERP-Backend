@@ -93,6 +93,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         CompletedSteps = completedSteps,
                         InProgressSteps = inProgressSteps,
                         ReadySteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Ready"),
+                        MachineScheduledSteps = nonAssemblyJcs.Count(jc => jc.Status == "Scheduled"),
                         TotalChildParts = totalChildParts,
                         CompletedChildParts = completedChildParts,
                         ProductionStatus = prodStatus
@@ -161,6 +162,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         CompletedSteps = completedSteps,
                         InProgressSteps = inProgressSteps,
                         ReadySteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Ready"),
+                        MachineScheduledSteps = nonAssemblyJcs.Count(jc => jc.Status == "Scheduled"),
                         TotalChildParts = totalChildParts,
                         CompletedChildParts = completedChildParts,
                         ProductionStatus = prodStatus,
@@ -228,6 +230,7 @@ namespace MultiHitechERP.API.Services.Implementations
                                 CompletedSteps = completedSteps2,
                                 InProgressSteps = inProgressSteps2,
                                 ReadySteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Ready"),
+                                MachineScheduledSteps = nonAssemblyJcs.Count(jc => jc.Status == "Scheduled"),
                                 TotalChildParts = nonAssemblyJcs.Select(jc => ChildPartKey(jc)).Distinct().Count(),
                                 CompletedChildParts = nonAssemblyJcs.Where(jc => jc.ReadyForAssembly).Select(jc => ChildPartKey(jc)).Distinct().Count(),
                                 ProductionStatus = prodStatus2,
@@ -284,6 +287,7 @@ namespace MultiHitechERP.API.Services.Implementations
                             CompletedSteps = completedSteps,
                             InProgressSteps = inProgressSteps,
                             ReadySteps = nonAssemblyJcs.Count(jc => jc.ProductionStatus == "Ready"),
+                            MachineScheduledSteps = nonAssemblyJcs.Count(jc => jc.Status == "Scheduled"),
                             TotalChildParts = totalChildParts,
                             CompletedChildParts = completedChildParts,
                             ProductionStatus = prodStatus,
@@ -1001,6 +1005,64 @@ namespace MultiHitechERP.API.Services.Implementations
             if (jobCard == null) return;
             await CascadeOnCompleteAsync(jobCard);
             await RollUpQtyCompletedIfDoneAsync(jobCard);
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Force-complete all job cards for an order item (admin shortcut)
+        // ─────────────────────────────────────────────────────────────────────
+        public async Task<ApiResponse<bool>> CompleteAllForOrderItemAsync(int orderItemId)
+        {
+            try
+            {
+                var allCards = (await _jobCardRepository.GetByOrderItemIdAsync(orderItemId)).ToList();
+                if (!allCards.Any())
+                    return ApiResponse<bool>.ErrorResponse("No job cards found for this order item");
+
+                var toComplete = allCards
+                    .Where(jc => jc.Status == "Scheduled" && jc.ProductionStatus != "Completed")
+                    .OrderBy(jc => jc.StepNo ?? 999)
+                    .ToList();
+
+                if (!toComplete.Any())
+                    return ApiResponse<bool>.SuccessResponse(true, "All job cards already completed");
+
+                var now = DateTime.UtcNow;
+
+                foreach (var jc in toComplete)
+                {
+                    await _jobCardRepository.UpdateProductionStatusAsync(
+                        jc.Id, "Completed",
+                        jc.ActualStartTime ?? now,
+                        now,
+                        jc.Quantity,
+                        0
+                    );
+                    await _pieceRepository.ConsumePiecesByJobCardAsync(jc.Id);
+                }
+
+                // Mark all child-part cards ready for assembly
+                foreach (var jc in allCards.Where(jc => jc.Status == "Scheduled"))
+                    await _jobCardRepository.SetReadyForAssemblyAsync(jc.Id, true);
+
+                // Roll up QtyCompleted to the order item
+                var orderItem = await _orderItemRepository.GetByIdAsync(orderItemId);
+                if (orderItem != null)
+                {
+                    await _orderItemRepository.UpdateQuantitiesAsync(
+                        orderItem.Id,
+                        orderItem.Quantity,
+                        orderItem.QtyRejected,
+                        0,
+                        orderItem.QtyScrap
+                    );
+                }
+
+                return ApiResponse<bool>.SuccessResponse(true, $"All {toComplete.Count} processes completed. Order is ready for QC.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResponse($"Error completing all processes: {ex.Message}");
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────────

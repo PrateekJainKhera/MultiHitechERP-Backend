@@ -214,6 +214,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
             var command = new SqlCommand(@"
                 UPDATE Orders_OrderItems SET
+                    ProductId = @ProductId,
+                    ProductName = @ProductName,
                     Quantity = @Quantity,
                     QtyCompleted = @QtyCompleted,
                     QtyRejected = @QtyRejected,

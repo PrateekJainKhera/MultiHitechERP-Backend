@@ -186,7 +186,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             const string query = @"
                 INSERT INTO Orders (
                     OrderNo, OrderDate, DueDate, AdjustedDueDate,
-                    CustomerId, ProductId, Quantity, OriginalQuantity,
+                    CustomerId, CustomerName, ProductId, ProductName, Quantity, OriginalQuantity,
                     QtyCompleted, QtyRejected, QtyInProgress, QtyScrap,
                     Status, Priority, PlanningStatus,
                     OrderSource, AgentCustomerId, AgentCommission, SchedulingStrategy,
@@ -201,7 +201,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     CreatedAt, CreatedBy, Version
                 ) VALUES (
                     @OrderNo, @OrderDate, @DueDate, @AdjustedDueDate,
-                    @CustomerId, @ProductId, @Quantity, @OriginalQuantity,
+                    @CustomerId, @CustomerName, @ProductId, @ProductName, @Quantity, @OriginalQuantity,
                     @QtyCompleted, @QtyRejected, @QtyInProgress, @QtyScrap,
                     @Status, @Priority, @PlanningStatus,
                     @OrderSource, @AgentCustomerId, @AgentCommission, @SchedulingStrategy,
@@ -240,7 +240,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     DueDate = @DueDate,
                     AdjustedDueDate = @AdjustedDueDate,
                     CustomerId = @CustomerId,
+                    CustomerName = @CustomerName,
                     ProductId = @ProductId,
+                    ProductName = @ProductName,
                     Quantity = @Quantity,
                     OriginalQuantity = @OriginalQuantity,
                     QtyCompleted = @QtyCompleted,
@@ -712,7 +714,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@AdjustedDueDate", (object?)order.AdjustedDueDate ?? DBNull.Value);
 
             command.Parameters.AddWithValue("@CustomerId", order.CustomerId);
+            command.Parameters.AddWithValue("@CustomerName", (object?)order.CustomerName ?? DBNull.Value);
             command.Parameters.AddWithValue("@ProductId", order.ProductId);
+            command.Parameters.AddWithValue("@ProductName", (object?)order.ProductName ?? DBNull.Value);
 
             command.Parameters.AddWithValue("@Quantity", order.Quantity);
             command.Parameters.AddWithValue("@OriginalQuantity", order.OriginalQuantity);

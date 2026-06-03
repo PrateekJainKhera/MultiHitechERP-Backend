@@ -224,6 +224,7 @@ namespace MultiHitechERP.API.Services.Implementations
 
                         // Legacy fields kept for compatibility - will be aggregate of first item or defaults
                         ProductId = request.Items.First().ProductId,
+                        ProductName = products.First().PartCode,
                         DueDate = request.Items.First().DueDate,
                         Priority = request.Items.First().Priority,
                         Quantity = request.Items.Sum(i => i.Quantity),
