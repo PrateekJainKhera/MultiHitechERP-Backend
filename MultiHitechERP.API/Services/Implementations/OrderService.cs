@@ -802,6 +802,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         Priority = item.Priority,
                         Status = item.Status,
                         PlanningStatus = item.PlanningStatus,
+                        DrawingReviewStatus = itemProduct?.DrawingReviewStatus ?? "Pending",
                         PrimaryDrawingId = item.PrimaryDrawingId,
                         LinkedProductTemplateId = item.LinkedProductTemplateId,
                         MaterialGradeApproved = item.MaterialGradeApproved,

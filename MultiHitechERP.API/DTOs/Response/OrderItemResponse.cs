@@ -31,6 +31,7 @@ namespace MultiHitechERP.API.DTOs.Response
         // Status
         public string Status { get; set; } = "Pending";
         public string PlanningStatus { get; set; } = "Not Planned";
+        public string DrawingReviewStatus { get; set; } = "Pending";
 
         // Drawing & Template Linkage (item-specific) - DEPRECATED: Moving to Product level
         public int? PrimaryDrawingId { get; set; }
