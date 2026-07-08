@@ -12,6 +12,9 @@ namespace MultiHitechERP.API.DTOs.Response
         public DateTime? DueDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public int ItemCount { get; set; }
+        public string? ModelName { get; set; }
+        public int? NumberOfTeeth { get; set; }
+        public string? RollerType { get; set; }
     }
 
     // Material group - groups all cuts of same material across selected requisitions
@@ -120,6 +123,10 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? RequisitionNo { get; set; }
         public int? MaterialId { get; set; }
         public int SortOrder { get; set; }
+        public int? NumberOfTeeth { get; set; }
+        public string? JobCardType { get; set; }
+        public string? ModelName { get; set; }
+        public string? RollerType { get; set; }
     }
 
     // ── Cutting Plan Suggestion DTOs ──────────────────────────────────────────

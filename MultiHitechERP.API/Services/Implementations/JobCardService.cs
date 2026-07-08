@@ -158,7 +158,10 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 var existing = await _jobCardRepository.GetByJobCardNoAsync(request.JobCardNo);
                 if (existing != null)
-                    return ApiResponse<int>.ErrorResponse($"Job card {request.JobCardNo} already exists");
+                    // Idempotent: the job card (and its material requirements) were already created,
+                    // e.g. a retry after a partial generation. Return the existing id as success so
+                    // the caller's generate loop can continue instead of aborting on a duplicate.
+                    return ApiResponse<int>.SuccessResponse(existing.Id, $"Job card {request.JobCardNo} already exists");
 
                 // GATE: Validate PRODUCT-level drawing review status
                 // Get product from OrderItem (multi-product) or Order (legacy)

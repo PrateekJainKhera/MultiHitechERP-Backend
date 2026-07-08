@@ -31,14 +31,18 @@ namespace MultiHitechERP.API.Services.Implementations
 
         public async Task<IEnumerable<IssueWindowRequisitionResponse>> GetApprovedRequisitionsAsync()
         {
-            var reqs = await _reqRepo.GetByStatusAsync("Approved");
+            var reqs = (await _reqRepo.GetByStatusAsync("Approved")).ToList();
             var result = new List<IssueWindowRequisitionResponse>();
+
+            var productInfo = await _reqRepo.GetProductInfoByRequisitionIdsAsync(reqs.Select(r => r.Id));
 
             foreach (var r in reqs)
             {
                 var items = await _reqRepo.GetRequisitionItemsAsync(r.Id);
                 var materialItemCount = items.Count(i => i.MaterialId.HasValue && i.LengthRequiredMM.HasValue);
                 if (materialItemCount == 0) continue;
+
+                productInfo.TryGetValue(r.Id, out var pi);
 
                 result.Add(new IssueWindowRequisitionResponse
                 {
@@ -50,7 +54,10 @@ namespace MultiHitechERP.API.Services.Implementations
                     Priority = r.Priority,
                     DueDate = r.DueDate,
                     CreatedAt = r.CreatedAt,
-                    ItemCount = materialItemCount
+                    ItemCount = materialItemCount,
+                    ModelName = pi.ModelName,
+                    NumberOfTeeth = pi.NumberOfTeeth,
+                    RollerType = pi.RollerType
                 });
             }
 

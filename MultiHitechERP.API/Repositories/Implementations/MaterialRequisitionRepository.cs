@@ -567,6 +567,41 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return items;
         }
 
+        public async Task<Dictionary<int, (string? ModelName, int? NumberOfTeeth, string? RollerType)>> GetProductInfoByRequisitionIdsAsync(IEnumerable<int> requisitionIds)
+        {
+            var result = new Dictionary<int, (string?, int?, string?)>();
+            var idList = string.Join(",", requisitionIds);
+            if (string.IsNullOrEmpty(idList)) return result;
+
+            // Prefer order-item product; fall back to order-level product for single-product orders
+            var query = $@"
+                SELECT mr.Id AS ReqId,
+                       COALESCE(pItem.ModelName, pOrder.ModelName) AS ModelName,
+                       COALESCE(pItem.NumberOfTeeth, pOrder.NumberOfTeeth) AS NumberOfTeeth,
+                       COALESCE(pItem.RollerType, pOrder.RollerType) AS RollerType
+                FROM Stores_MaterialRequisitions mr
+                LEFT JOIN Orders_OrderItems oi ON oi.Id = mr.OrderItemId
+                LEFT JOIN Masters_Products pItem ON pItem.Id = oi.ProductId
+                LEFT JOIN Orders o ON o.Id = mr.OrderId
+                LEFT JOIN Masters_Products pOrder ON pOrder.Id = o.ProductId
+                WHERE mr.Id IN ({idList})";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            await connection.OpenAsync();
+            using var command = new SqlCommand(query, connection);
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                var reqId = reader.GetInt32(reader.GetOrdinal("ReqId"));
+                var model = reader.IsDBNull(reader.GetOrdinal("ModelName")) ? null : reader.GetString(reader.GetOrdinal("ModelName"));
+                var teeth = reader.IsDBNull(reader.GetOrdinal("NumberOfTeeth")) ? (int?)null : reader.GetInt32(reader.GetOrdinal("NumberOfTeeth"));
+                var rollerType = reader.IsDBNull(reader.GetOrdinal("RollerType")) ? null : reader.GetString(reader.GetOrdinal("RollerType"));
+                result[reqId] = (model, teeth, rollerType);
+            }
+            return result;
+        }
+
         private static MaterialRequisitionItem MapToRequisitionItem(SqlDataReader reader)
         {
             return new MaterialRequisitionItem

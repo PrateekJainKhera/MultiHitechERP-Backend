@@ -260,8 +260,16 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
         }
         barReader.Close();
 
-        // Load cuts per bar
-        var cutSql = "SELECT * FROM Stores_IssueWindowDraftCuts WHERE DraftId = @DraftId ORDER BY BarAssignmentId, SortOrder";
+        // Load cuts per bar (join job cards + products for teeth and job card type)
+        var cutSql = @"
+            SELECT c.*, p.NumberOfTeeth AS JC_NumberOfTeeth, jc.JobCardType AS JC_JobCardType,
+                   p.ModelName AS JC_ModelName, p.RollerType AS JC_RollerType
+            FROM Stores_IssueWindowDraftCuts c
+            LEFT JOIN Planning_JobCards jc ON jc.JobCardNo = c.JobCardNo
+            LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
+            LEFT JOIN Masters_Products p ON oi.ProductId = p.Id
+            WHERE c.DraftId = @DraftId
+            ORDER BY c.BarAssignmentId, c.SortOrder";
         using var cutCmd = new SqlCommand(cutSql, connection);
         cutCmd.Parameters.AddWithValue("@DraftId", id);
         using var cutReader = await cutCmd.ExecuteReaderAsync();
@@ -284,7 +292,11 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
                 JobCardNo = cutReader.IsDBNull(cutReader.GetOrdinal("JobCardNo")) ? null : cutReader.GetString(cutReader.GetOrdinal("JobCardNo")),
                 RequisitionNo = cutReader.IsDBNull(cutReader.GetOrdinal("RequisitionNo")) ? null : cutReader.GetString(cutReader.GetOrdinal("RequisitionNo")),
                 MaterialId = cutReader.IsDBNull(cutReader.GetOrdinal("MaterialId")) ? null : cutReader.GetInt32(cutReader.GetOrdinal("MaterialId")),
-                SortOrder = cutReader.GetInt32(cutReader.GetOrdinal("SortOrder"))
+                SortOrder = cutReader.GetInt32(cutReader.GetOrdinal("SortOrder")),
+                NumberOfTeeth = cutReader.IsDBNull(cutReader.GetOrdinal("JC_NumberOfTeeth")) ? null : cutReader.GetInt32(cutReader.GetOrdinal("JC_NumberOfTeeth")),
+                JobCardType = cutReader.IsDBNull(cutReader.GetOrdinal("JC_JobCardType")) ? null : cutReader.GetString(cutReader.GetOrdinal("JC_JobCardType")),
+                ModelName = cutReader.IsDBNull(cutReader.GetOrdinal("JC_ModelName")) ? null : cutReader.GetString(cutReader.GetOrdinal("JC_ModelName")),
+                RollerType = cutReader.IsDBNull(cutReader.GetOrdinal("JC_RollerType")) ? null : cutReader.GetString(cutReader.GetOrdinal("JC_RollerType"))
             });
         }
 
