@@ -30,5 +30,10 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? Remarks { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
+
+        // Product spec (from Masters_Products via order item / order)
+        public string? MachineModel { get; set; }
+        public string? RollerType { get; set; }
+        public int? NumberOfTeeth { get; set; }
     }
 }

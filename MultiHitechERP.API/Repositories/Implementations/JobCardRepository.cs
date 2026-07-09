@@ -33,6 +33,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                        jc.CompletedQty, jc.RejectedQty, jc.ReadyForAssembly,
                        jc.CreatedAt, jc.CreatedBy, jc.UpdatedAt, jc.UpdatedBy, jc.Version,
                        p.ModelName AS MachineModelName,
+                       p.RollerType AS RollerType,
                        p.NumberOfTeeth AS NumberOfTeeth
                 FROM Planning_JobCards jc
                 LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
@@ -86,6 +87,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                        jc.CompletedQty, jc.RejectedQty, jc.ReadyForAssembly,
                        jc.CreatedAt, jc.CreatedBy, jc.UpdatedAt, jc.UpdatedBy, jc.Version,
                        p.ModelName AS MachineModelName,
+                       p.RollerType AS RollerType,
                        p.NumberOfTeeth AS NumberOfTeeth
                 FROM Planning_JobCards jc
                 LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
@@ -108,21 +110,118 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return jobCards;
         }
 
+        public async Task<(IEnumerable<JobCard> Items, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search, string? status)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 25;
+
+            var conditions = new List<string>();
+            if (!string.IsNullOrWhiteSpace(status)) conditions.Add("jc.Status = @Status");
+            if (!string.IsNullOrWhiteSpace(search))
+                conditions.Add("(jc.JobCardNo LIKE @Search OR jc.OrderNo LIKE @Search OR jc.ProcessName LIKE @Search OR jc.ChildPartName LIKE @Search OR p.ModelName LIKE @Search)");
+            var whereClause = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
+
+            var listQuery = $@"
+                SELECT jc.Id, jc.JobCardNo, jc.CreationType, jc.OrderId, jc.OrderNo, jc.OrderItemId, jc.ItemSequence,
+                       jc.DrawingId, jc.DrawingNumber, jc.DrawingRevision, jc.DrawingName, jc.DrawingSelectionType,
+                       jc.ChildPartId, jc.ChildPartName, jc.ChildPartTemplateId,
+                       jc.ProcessId, jc.ProcessName, jc.ProcessCode, jc.StepNo, jc.ProcessTemplateId,
+                       jc.WorkInstructions, jc.QualityCheckpoints, jc.SpecialNotes,
+                       jc.Quantity, jc.Status, jc.Priority, jc.ManufacturingDimensions,
+                       jc.ProductionStatus, jc.ActualStartTime, jc.ActualEndTime,
+                       jc.CompletedQty, jc.RejectedQty, jc.ReadyForAssembly,
+                       jc.CreatedAt, jc.CreatedBy, jc.UpdatedAt, jc.UpdatedBy, jc.Version,
+                       p.ModelName AS MachineModelName,
+                       p.RollerType AS RollerType,
+                       p.NumberOfTeeth AS NumberOfTeeth
+                FROM Planning_JobCards jc
+                LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
+                LEFT JOIN Orders o ON jc.OrderId = o.Id
+                LEFT JOIN Masters_Products p ON COALESCE(oi.ProductId, o.ProductId) = p.Id
+                {whereClause}
+                ORDER BY jc.CreatedAt DESC
+                OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+
+            var countQuery = $@"
+                SELECT COUNT(*)
+                FROM Planning_JobCards jc
+                LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
+                LEFT JOIN Orders o ON jc.OrderId = o.Id
+                LEFT JOIN Masters_Products p ON COALESCE(oi.ProductId, o.ProductId) = p.Id
+                {whereClause}";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            await connection.OpenAsync();
+
+            int total;
+            using (var countCmd = new SqlCommand(countQuery, connection))
+            {
+                if (!string.IsNullOrWhiteSpace(status)) countCmd.Parameters.AddWithValue("@Status", status);
+                if (!string.IsNullOrWhiteSpace(search)) countCmd.Parameters.AddWithValue("@Search", $"%{search}%");
+                total = (int)await countCmd.ExecuteScalarAsync();
+            }
+
+            var jobCards = new List<JobCard>();
+            using (var command = new SqlCommand(listQuery, connection))
+            {
+                command.Parameters.AddWithValue("@Offset", (page - 1) * pageSize);
+                command.Parameters.AddWithValue("@PageSize", pageSize);
+                if (!string.IsNullOrWhiteSpace(status)) command.Parameters.AddWithValue("@Status", status);
+                if (!string.IsNullOrWhiteSpace(search)) command.Parameters.AddWithValue("@Search", $"%{search}%");
+                using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync()) jobCards.Add(MapToJobCard(reader));
+            }
+
+            return (jobCards, total);
+        }
+
+        public async Task<(int Total, int Pending, int Scheduled, int InProgress, int Completed)> GetSummaryAsync()
+        {
+            const string sql = @"
+                SELECT COUNT(*) AS Total,
+                    SUM(CASE WHEN Status = 'Pending' THEN 1 ELSE 0 END) AS Pending,
+                    SUM(CASE WHEN Status = 'Scheduled' THEN 1 ELSE 0 END) AS Scheduled,
+                    SUM(CASE WHEN ProductionStatus IN ('InProgress','Paused') THEN 1 ELSE 0 END) AS InProgress,
+                    SUM(CASE WHEN ProductionStatus = 'Completed' THEN 1 ELSE 0 END) AS Completed
+                FROM Planning_JobCards";
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(sql, connection);
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return (
+                    reader.GetInt32(0),
+                    reader.IsDBNull(1) ? 0 : reader.GetInt32(1),
+                    reader.IsDBNull(2) ? 0 : reader.GetInt32(2),
+                    reader.IsDBNull(3) ? 0 : reader.GetInt32(3),
+                    reader.IsDBNull(4) ? 0 : reader.GetInt32(4)
+                );
+            }
+            return (0, 0, 0, 0, 0);
+        }
+
         public async Task<IEnumerable<JobCard>> GetByOrderIdAsync(int orderId)
         {
             const string query = @"
-                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
-                       DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
-                       ChildPartId, ChildPartName, ChildPartTemplateId,
-                       ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
-                       WorkInstructions, QualityCheckpoints, SpecialNotes,
-                       Quantity, Status, Priority, ManufacturingDimensions,
-                       ProductionStatus, ActualStartTime, ActualEndTime,
-                       CompletedQty, RejectedQty, ReadyForAssembly,
-                       CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
-                FROM Planning_JobCards
-                WHERE OrderId = @OrderId
-                ORDER BY StepNo, CreatedAt";
+                SELECT jc.Id, jc.JobCardNo, jc.CreationType, jc.OrderId, jc.OrderNo, jc.OrderItemId, jc.ItemSequence,
+                       jc.DrawingId, jc.DrawingNumber, jc.DrawingRevision, jc.DrawingName, jc.DrawingSelectionType,
+                       jc.ChildPartId, jc.ChildPartName, jc.ChildPartTemplateId,
+                       jc.ProcessId, jc.ProcessName, jc.ProcessCode, jc.StepNo, jc.ProcessTemplateId,
+                       jc.WorkInstructions, jc.QualityCheckpoints, jc.SpecialNotes,
+                       jc.Quantity, jc.Status, jc.Priority, jc.ManufacturingDimensions,
+                       jc.ProductionStatus, jc.ActualStartTime, jc.ActualEndTime,
+                       jc.CompletedQty, jc.RejectedQty, jc.ReadyForAssembly,
+                       jc.CreatedAt, jc.CreatedBy, jc.UpdatedAt, jc.UpdatedBy, jc.Version,
+                       p.ModelName AS MachineModelName,
+                       p.RollerType AS RollerType,
+                       p.NumberOfTeeth AS NumberOfTeeth
+                FROM Planning_JobCards jc
+                LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
+                LEFT JOIN Orders o ON jc.OrderId = o.Id
+                LEFT JOIN Masters_Products p ON COALESCE(oi.ProductId, o.ProductId) = p.Id
+                WHERE jc.OrderId = @OrderId
+                ORDER BY jc.StepNo, jc.CreatedAt";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
@@ -618,6 +717,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
             {
                 var ord = reader.GetOrdinal("NumberOfTeeth");
                 jc.NumberOfTeeth = reader.IsDBNull(ord) ? null : reader.GetInt32(ord);
+            }
+            catch { }
+            try
+            {
+                var ord = reader.GetOrdinal("RollerType");
+                jc.RollerType = reader.IsDBNull(ord) ? null : reader.GetString(ord);
             }
             catch { }
             return jc;

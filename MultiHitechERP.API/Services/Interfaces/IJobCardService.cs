@@ -15,6 +15,8 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<JobCardResponse>> GetByIdAsync(int id);
         Task<ApiResponse<JobCardResponse>> GetByJobCardNoAsync(string jobCardNo);
         Task<ApiResponse<IEnumerable<JobCardResponse>>> GetAllAsync();
+        Task<ApiResponse<PagedJobCardsResponse>> GetPagedAsync(int page, int pageSize, string? search, string? status);
+        Task<ApiResponse<JobCardSummaryResponse>> GetSummaryAsync();
         Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByOrderIdAsync(int orderId);
         Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByProcessIdAsync(int processId);
         Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByStatusAsync(string status);

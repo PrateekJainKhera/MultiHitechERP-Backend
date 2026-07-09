@@ -49,6 +49,34 @@ namespace MultiHitechERP.API.Controllers.Inventory
             }
         }
 
+        [HttpGet("rejected")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<GRNResponse>>>> GetRejected()
+        {
+            try
+            {
+                var result = await _grnService.GetRejectedAsync();
+                return Ok(new ApiResponse<IEnumerable<GRNResponse>> { Success = true, Data = result });
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new ApiResponse<IEnumerable<GRNResponse>> { Success = false, Message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/resubmit")]
+        public async Task<ActionResult<ApiResponse<GRNResponse>>> Resubmit(int id, [FromBody] CreateGRNRequest request)
+        {
+            try
+            {
+                var result = await _grnService.ResubmitGRNAsync(id, request);
+                return Ok(new ApiResponse<GRNResponse> { Success = true, Message = "GRN re-submitted for approval", Data = result });
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new ApiResponse<GRNResponse> { Success = false, Message = ex.Message });
+            }
+        }
+
         [HttpPost("{id}/approve")]
         public async Task<ActionResult<ApiResponse<GRNResponse>>> Approve(int id, [FromBody] GRNApprovalRequest request)
         {

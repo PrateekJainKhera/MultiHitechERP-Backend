@@ -193,8 +193,103 @@ namespace MultiHitechERP.API.Services.Implementations
 
         public async Task<IEnumerable<GRNResponse>> GetPendingApprovalAsync()
         {
-            var grns = await _grnRepo.GetByStatusAsync("PendingApproval");
-            return grns.Select(MapToResponse);
+            return await GetByStatusWithLinesAsync("PendingApproval");
+        }
+
+        public async Task<IEnumerable<GRNResponse>> GetRejectedAsync()
+        {
+            return await GetByStatusWithLinesAsync("Rejected");
+        }
+
+        private async Task<IEnumerable<GRNResponse>> GetByStatusWithLinesAsync(string status)
+        {
+            var grns = await _grnRepo.GetByStatusAsync(status);
+            var result = new List<GRNResponse>();
+            foreach (var grn in grns)
+            {
+                var response = MapToResponse(grn);
+                var lines = await _grnRepo.GetLinesByGRNIdAsync(grn.Id);
+                response.Lines = lines.Select(MapLineToResponse).ToList();
+                result.Add(response);
+            }
+            return result;
+        }
+
+        public async Task<GRNResponse> ResubmitGRNAsync(int id, CreateGRNRequest request)
+        {
+            var grn = await _grnRepo.GetByIdAsync(id);
+            if (grn == null) throw new Exception("GRN not found");
+            if (grn.Status != "Rejected") throw new Exception("Only a rejected GRN can be re-submitted");
+
+            // Replace ALL lines with the corrected piece breakdown from the form
+            var existing = await _grnRepo.GetLinesByGRNIdAsync(id);
+            foreach (var l in existing) await _grnRepo.DeleteLineAsync(l.Id);
+
+            int totalPieces = 0;
+            decimal totalWeight = 0, totalBilledWeight = 0, totalValue = 0;
+
+            foreach (var lineReq in request.Lines)
+            {
+                var (calculatedLength, weightPerMeter) = CalculateLengthFromWeight(lineReq);
+
+                decimal? variancePct = null;
+                if (lineReq.BilledWeightKG.HasValue && lineReq.BilledWeightKG.Value > 0 && lineReq.TotalWeightKG > 0)
+                    variancePct = CalculateVariancePct(lineReq.BilledWeightKG.Value, lineReq.TotalWeightKG);
+
+                decimal? billedLengthPerPieceMM = null;
+                if (lineReq.BilledWeightKG.HasValue && lineReq.BilledWeightKG.Value > 0 &&
+                    weightPerMeter.HasValue && weightPerMeter.Value > 0 && lineReq.NumberOfPieces > 0)
+                    billedLengthPerPieceMM = (lineReq.BilledWeightKG.Value / (weightPerMeter.Value * lineReq.NumberOfPieces)) * 1000m;
+
+                var grnLine = new GRNLine
+                {
+                    GRNId = id,
+                    SequenceNo = lineReq.SequenceNo,
+                    MaterialId = lineReq.MaterialId,
+                    MaterialName = lineReq.MaterialName,
+                    Grade = lineReq.Grade,
+                    MaterialType = lineReq.MaterialType,
+                    Diameter = lineReq.Diameter,
+                    OuterDiameter = lineReq.OuterDiameter,
+                    InnerDiameter = lineReq.InnerDiameter,
+                    Width = lineReq.Width,
+                    Thickness = lineReq.Thickness,
+                    MaterialDensity = lineReq.MaterialDensity,
+                    TotalWeightKG = lineReq.TotalWeightKG,
+                    CalculatedLengthMM = calculatedLength,
+                    WeightPerMeterKG = weightPerMeter,
+                    NumberOfPieces = lineReq.NumberOfPieces,
+                    LengthPerPieceMM = lineReq.LengthPerPieceMM ?? (lineReq.NumberOfPieces > 0 ? calculatedLength / lineReq.NumberOfPieces : calculatedLength),
+                    BilledLengthPerPieceMM = billedLengthPerPieceMM,
+                    BilledWeightKG = lineReq.BilledWeightKG,
+                    LengthVariancePct = variancePct,
+                    UnitPrice = lineReq.UnitPrice,
+                    LineTotal = lineReq.UnitPrice.HasValue ? lineReq.UnitPrice.Value * lineReq.TotalWeightKG : null,
+                    Remarks = lineReq.Remarks
+                };
+                await _grnRepo.CreateLineAsync(grnLine);
+
+                totalPieces += lineReq.NumberOfPieces;
+                totalWeight += lineReq.TotalWeightKG;
+                totalBilledWeight += lineReq.BilledWeightKG ?? 0;
+                totalValue += grnLine.LineTotal ?? 0;
+            }
+
+            // Update header + reopen for approval, clearing the rejection stamp (no pieces created yet)
+            grn.TotalPieces = totalPieces;
+            grn.TotalWeight = totalWeight;
+            grn.TotalBilledWeight = totalBilledWeight > 0 ? totalBilledWeight : null;
+            grn.TotalValue = totalValue;
+            if (request.InvoiceNo != null) grn.InvoiceNo = request.InvoiceNo;
+            if (request.SupplierName != null) grn.SupplierName = request.SupplierName;
+            grn.Status = "PendingApproval";
+            grn.RejectedBy = null;
+            grn.RejectedAt = null;
+            grn.RejectionNotes = null;
+            grn.UpdatedBy = request.CreatedBy;
+            await _grnRepo.UpdateAsync(grn);
+
+            return (await GetGRNWithLinesAsync(id))!;
         }
 
         private async Task<int> CreatePiecesForLine(CreateGRNLineRequest lineReq, GRNLine grnLine, int grnId,

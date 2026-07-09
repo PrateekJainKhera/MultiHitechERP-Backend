@@ -25,6 +25,24 @@ namespace MultiHitechERP.API.Controllers.Planning
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetPaged(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 25,
+            [FromQuery] string? search = null,
+            [FromQuery] string? status = null)
+        {
+            var result = await _jobCardService.GetPagedAsync(page, pageSize, search, status);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetSummary()
+        {
+            var result = await _jobCardService.GetSummaryAsync();
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {

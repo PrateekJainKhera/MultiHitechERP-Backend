@@ -13,6 +13,9 @@ namespace MultiHitechERP.API.DTOs.Response
         public int OrderId { get; set; }
         public int? OrderItemId { get; set; }
         public string OrderNo { get; set; } = string.Empty;
+        public string? MachineModel { get; set; }
+        public string? RollerType { get; set; }
+        public int? NumberOfTeeth { get; set; }
         public string? ChildPartName { get; set; }
         public string? ProcessName { get; set; }
         public int? StepNo { get; set; }
@@ -63,6 +66,9 @@ namespace MultiHitechERP.API.DTOs.Response
         public string OrderNo { get; set; } = string.Empty;
         public string? CustomerName { get; set; }
         public string? ProductName { get; set; }
+        public string? MachineModel { get; set; }
+        public string? RollerType { get; set; }
+        public int? NumberOfTeeth { get; set; }
         public string Priority { get; set; } = "Medium";
         public DateTime? DueDate { get; set; }
 

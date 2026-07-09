@@ -19,6 +19,7 @@ namespace MultiHitechERP.API.DTOs.Response
 
         // Machine Model (denormalized from Masters_Products via Orders_OrderItems)
         public string? MachineModelName { get; set; }
+        public string? RollerType { get; set; }
         public int? NumberOfTeeth { get; set; }
 
         // Drawing

@@ -12,6 +12,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public int ProductId { get; set; }
         public string? ProductName { get; set; }
         public string? PartCode { get; set; }
+        public string? RollerType { get; set; }
         public int? NumberOfTeeth { get; set; }
 
         // Quantities

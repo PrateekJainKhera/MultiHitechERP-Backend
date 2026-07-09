@@ -277,6 +277,25 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return result > 0;
         }
 
+        public async Task<int> ReleaseOrphanedReservationsAsync()
+        {
+            // Frees any 'Reserved' piece that is NOT referenced by a live cutting draft
+            // (Draft or Finalized). Pieces belonging to an active draft are left untouched.
+            var sql = @"
+                UPDATE mp
+                SET mp.Status = 'Available', mp.UpdatedAt = GETUTCDATE()
+                FROM Stores_MaterialPieces mp
+                WHERE mp.Status = 'Reserved'
+                  AND mp.Id NOT IN (
+                      SELECT ba.PieceId
+                      FROM Stores_IssueWindowDraftBarAssignments ba
+                      JOIN Stores_IssueWindowDrafts d ON d.Id = ba.DraftId
+                      WHERE d.Status IN ('Draft', 'Finalized') AND ba.PieceId IS NOT NULL
+                  );";
+
+            return await GetConnection().ExecuteAsync(sql);
+        }
+
         public async Task<bool> IssuePieceAsync(int pieceId, int jobCardId, DateTime issuedDate, string issuedBy)
         {
             var sql = @"
@@ -356,9 +375,27 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 ? piece.OriginalWeightKG * (newLengthMM / piece.OriginalLengthMM)
                 : piece.CurrentWeightKG - (piece.CurrentWeightKG * (lengthToCutMM / piece.CurrentLengthMM));
 
-            // 4. Check if piece becomes wastage
-            var becomesWastage = newLengthMM < minimumUsableLengthMM;
-            var newStatus = becomesWastage ? "Scrap" : "Available";
+            // 4. Determine new status from the remaining length:
+            //    - fully consumed (nothing left)        → Consumed
+            //    - unusable offcut left (< min usable)   → Scrap (wastage)
+            //    - usable remnant left                   → Available (reusable — Model 1)
+            string newStatus;
+            bool becomesWastage;
+            if (newLengthMM <= 0)
+            {
+                newStatus = "Consumed";
+                becomesWastage = false;
+            }
+            else if (newLengthMM < minimumUsableLengthMM)
+            {
+                newStatus = "Scrap";
+                becomesWastage = true;
+            }
+            else
+            {
+                newStatus = "Available";
+                becomesWastage = false;
+            }
 
             // 5. Update the piece
             var updateSql = @"

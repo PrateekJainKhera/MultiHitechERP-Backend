@@ -90,6 +90,86 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<PagedOrdersResponse>> GetPagedAsync(int page, int pageSize, string? search, string? status)
+        {
+            try
+            {
+                var (orders, total) = await _orderRepository.GetPagedAsync(page, pageSize, search, status);
+                var items = new List<OrderResponse>();
+                foreach (var order in orders)
+                {
+                    items.Add(await MapToResponseAsync(order));
+                }
+
+                return ApiResponse<PagedOrdersResponse>.SuccessResponse(new PagedOrdersResponse
+                {
+                    Items = items,
+                    TotalCount = total,
+                    Page = page < 1 ? 1 : page,
+                    PageSize = pageSize < 1 ? 25 : pageSize
+                });
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PagedOrdersResponse>.ErrorResponse($"Error retrieving orders: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<PagedPlanningItemsResponse>> GetPlanningItemsAsync(string type, int page, int pageSize, string? search)
+        {
+            try
+            {
+                var (items, total) = await _orderRepository.GetPlanningItemsAsync(type, page, pageSize, search);
+                return ApiResponse<PagedPlanningItemsResponse>.SuccessResponse(new PagedPlanningItemsResponse
+                {
+                    Items = items.ToList(),
+                    TotalCount = total,
+                    Page = page < 1 ? 1 : page,
+                    PageSize = pageSize < 1 ? 25 : pageSize
+                });
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PagedPlanningItemsResponse>.ErrorResponse($"Error retrieving planning items: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<PlanningSummaryResponse>> GetPlanningSummaryAsync()
+        {
+            try
+            {
+                var (totalOrders, pending, planned, shortage) = await _orderRepository.GetPlanningSummaryAsync();
+                return ApiResponse<PlanningSummaryResponse>.SuccessResponse(new PlanningSummaryResponse
+                {
+                    TotalOrders = totalOrders, PendingPlanning = pending, Planned = planned, MaterialShortage = shortage
+                });
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PlanningSummaryResponse>.ErrorResponse($"Error retrieving planning summary: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<OrderSummaryResponse>> GetSummaryAsync()
+        {
+            try
+            {
+                var (total, pending, inProgress, ready, completed) = await _orderRepository.GetSummaryAsync();
+                return ApiResponse<OrderSummaryResponse>.SuccessResponse(new OrderSummaryResponse
+                {
+                    Total = total,
+                    Pending = pending,
+                    InProgress = inProgress,
+                    ReadyToDispatch = ready,
+                    Completed = completed
+                });
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<OrderSummaryResponse>.ErrorResponse($"Error retrieving order summary: {ex.Message}");
+            }
+        }
+
         public async Task<ApiResponse<IEnumerable<OrderResponse>>> GetByCustomerIdAsync(int customerId)
         {
             try
@@ -789,6 +869,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         ProductId = item.ProductId,
                         ProductName = itemProduct?.ModelName,
                         PartCode = itemProduct?.PartCode,
+                        RollerType = itemProduct?.RollerType,
                         NumberOfTeeth = itemProduct?.NumberOfTeeth > 0 ? itemProduct.NumberOfTeeth : (int?)null,
                         Quantity = item.Quantity,
                         OriginalQuantity = item.Quantity, // Use Quantity as OriginalQuantity
@@ -833,6 +914,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 ProductId = order.ProductId,
                 ProductName = product?.ModelName,
                 ProductCode = product?.PartCode,
+                RollerType = product?.RollerType,
                 NumberOfTeeth = product?.NumberOfTeeth > 0 ? product.NumberOfTeeth : (int?)null,
 
                 Quantity = order.Quantity,

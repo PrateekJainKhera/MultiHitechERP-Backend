@@ -81,12 +81,16 @@ namespace MultiHitechERP.API.Services.Implementations
                     else
                         prodStatus = "Pending";
 
+                    var specJc = jobCards.FirstOrDefault();
                     result.Add(new ProductionOrderSummary
                     {
                         OrderId = order.Id,
                         OrderNo = order.OrderNo,
                         CustomerName = order.CustomerName,
                         ProductName = order.ProductName,
+                        MachineModel = specJc?.MachineModelName,
+                        RollerType = specJc?.RollerType,
+                        NumberOfTeeth = specJc?.NumberOfTeeth,
                         Priority = order.Priority ?? "Medium",
                         DueDate = order.DueDate,
                         TotalSteps = nonAssemblyJcs.Count,
@@ -914,6 +918,9 @@ namespace MultiHitechERP.API.Services.Implementations
                                             OrderNo = !string.IsNullOrEmpty(jc.ItemSequence)
                                                 ? $"{jc.OrderNo}-{jc.ItemSequence}"
                                                 : (jc.OrderNo ?? jc.OrderId.ToString()),
+                                            MachineModel = jc.MachineModelName,
+                                            RollerType = jc.RollerType,
+                                            NumberOfTeeth = jc.NumberOfTeeth,
                                             ChildPartName = jc.ChildPartName,
                                             ProcessName = jc.ProcessName,
                                             StepNo = jc.StepNo,

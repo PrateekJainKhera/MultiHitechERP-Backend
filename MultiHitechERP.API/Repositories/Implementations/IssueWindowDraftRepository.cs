@@ -129,11 +129,14 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
             }
 
             // Reserve pieces — mark as Reserved so they don't appear in available pool for other drafts
-            if (pieceIdsToReserve.Count > 0)
+            var distinctPieceIds = pieceIdsToReserve.Distinct().ToList();
+            if (distinctPieceIds.Count > 0)
             {
-                var ids = string.Join(",", pieceIdsToReserve.Distinct());
-                var reserveSql = $"UPDATE Stores_MaterialPieces SET Status = 'Reserved', UpdatedAt = GETUTCDATE() WHERE Id IN ({ids})";
+                var paramNames = distinctPieceIds.Select((_, i) => $"@rp{i}").ToList();
+                var reserveSql = $"UPDATE Stores_MaterialPieces SET Status = 'Reserved', UpdatedAt = GETUTCDATE() WHERE Id IN ({string.Join(",", paramNames)})";
                 using var reserveCmd = new SqlCommand(reserveSql, connection, transaction);
+                for (int i = 0; i < distinctPieceIds.Count; i++)
+                    reserveCmd.Parameters.AddWithValue(paramNames[i], distinctPieceIds[i]);
                 await reserveCmd.ExecuteNonQueryAsync();
             }
 
@@ -360,6 +363,54 @@ public class IssueWindowDraftRepository : IIssueWindowDraftRepository
 
             // Only allow deleting drafts that are still in Draft status (not Finalized or Issued)
             var deleteSql = "DELETE FROM Stores_IssueWindowDrafts WHERE Id = @Id AND Status = 'Draft'";
+            using var deleteCmd = new SqlCommand(deleteSql, connection, transaction);
+            deleteCmd.Parameters.AddWithValue("@Id", id);
+            var rows = await deleteCmd.ExecuteNonQueryAsync();
+
+            transaction.Commit();
+            return rows > 0;
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<bool> CancelDraftAsync(int id)
+    {
+        using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+        using var transaction = connection.BeginTransaction();
+
+        try
+        {
+            // Guard: never cancel an already-issued draft (its pieces are already cut).
+            var statusSql = "SELECT Status FROM Stores_IssueWindowDrafts WHERE Id = @Id";
+            using var statusCmd = new SqlCommand(statusSql, connection, transaction);
+            statusCmd.Parameters.AddWithValue("@Id", id);
+            var status = (string?)await statusCmd.ExecuteScalarAsync();
+            if (status == null || status == "Issued")
+            {
+                transaction.Rollback();
+                return false;
+            }
+
+            // Release reserved pieces back to Available
+            var releaseSql = @"
+                UPDATE Stores_MaterialPieces
+                SET Status = 'Available', UpdatedAt = GETUTCDATE()
+                WHERE Status = 'Reserved'
+                  AND Id IN (
+                      SELECT PieceId FROM Stores_IssueWindowDraftBarAssignments
+                      WHERE DraftId = @Id AND PieceId IS NOT NULL
+                  )";
+            using var releaseCmd = new SqlCommand(releaseSql, connection, transaction);
+            releaseCmd.Parameters.AddWithValue("@Id", id);
+            await releaseCmd.ExecuteNonQueryAsync();
+
+            // Delete the draft (Draft or Finalized only — Issued was rejected above)
+            var deleteSql = "DELETE FROM Stores_IssueWindowDrafts WHERE Id = @Id AND Status IN ('Draft', 'Finalized')";
             using var deleteCmd = new SqlCommand(deleteSql, connection, transaction);
             deleteCmd.Parameters.AddWithValue("@Id", id);
             var rows = await deleteCmd.ExecuteNonQueryAsync();

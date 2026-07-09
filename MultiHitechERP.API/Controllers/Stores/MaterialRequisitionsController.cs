@@ -477,7 +477,10 @@ namespace MultiHitechERP.API.Controllers.Stores
                 ApprovalDate = requisition.ApprovalDate,
                 Remarks = requisition.Remarks,
                 CreatedAt = requisition.CreatedAt,
-                CreatedBy = requisition.CreatedBy
+                CreatedBy = requisition.CreatedBy,
+                MachineModel = requisition.MachineModel,
+                RollerType = requisition.RollerType,
+                NumberOfTeeth = requisition.NumberOfTeeth
             };
         }
 

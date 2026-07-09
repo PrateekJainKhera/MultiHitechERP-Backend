@@ -33,5 +33,10 @@ namespace MultiHitechERP.API.Models.Stores
         public string? Remarks { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
+
+        // Product spec (denormalized from Masters_Products via order item / order — populated in service)
+        public string? MachineModel { get; set; }
+        public string? RollerType { get; set; }
+        public int? NumberOfTeeth { get; set; }
     }
 }

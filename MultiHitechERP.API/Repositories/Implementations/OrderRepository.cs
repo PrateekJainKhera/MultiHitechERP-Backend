@@ -106,6 +106,193 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return orders;
         }
 
+        // Effective-status WHERE fragments (order-level approximation of the UI's effective status)
+        private static string EffectiveStatusFilter(string? status) => (status ?? "all").ToLowerInvariant() switch
+        {
+            "completed"  => "o.Status = 'Completed'",
+            "ready"      => "o.Status <> 'Completed' AND o.Quantity > 0 AND o.QtyCompleted >= o.Quantity",
+            "inprogress" => "o.Status <> 'Completed' AND NOT (o.Quantity > 0 AND o.QtyCompleted >= o.Quantity) AND (ISNULL(o.QtyInProgress,0) > 0 OR ISNULL(o.QtyCompleted,0) > 0)",
+            "pending"    => "o.Status <> 'Completed' AND ISNULL(o.QtyInProgress,0) = 0 AND ISNULL(o.QtyCompleted,0) = 0",
+            _            => ""
+        };
+
+        public async Task<(IEnumerable<Order> Items, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search, string? status)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 25;
+
+            var conditions = new List<string>();
+            var statusFilter = EffectiveStatusFilter(status);
+            if (!string.IsNullOrEmpty(statusFilter)) conditions.Add(statusFilter);
+            if (!string.IsNullOrWhiteSpace(search))
+                conditions.Add("(o.OrderNo LIKE @Search OR ISNULL(o.CustomerName, c.CustomerName) LIKE @Search OR ISNULL(o.ProductName, mp.ModelName) LIKE @Search)");
+            var whereClause = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
+
+            var listQuery = $@"{SelectOrderWithNames} {whereClause}
+                ORDER BY o.CreatedAt DESC
+                OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+            var countQuery = $@"
+                SELECT COUNT(*)
+                FROM Orders o
+                LEFT JOIN Masters_Customers c ON o.CustomerId = c.Id
+                LEFT JOIN Masters_Products mp ON o.ProductId = mp.Id
+                {whereClause}";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            await connection.OpenAsync();
+
+            int total;
+            using (var countCmd = new SqlCommand(countQuery, connection))
+            {
+                if (!string.IsNullOrWhiteSpace(search)) countCmd.Parameters.AddWithValue("@Search", $"%{search}%");
+                total = (int)await countCmd.ExecuteScalarAsync();
+            }
+
+            var orders = new List<Order>();
+            using (var command = new SqlCommand(listQuery, connection))
+            {
+                command.Parameters.AddWithValue("@Offset", (page - 1) * pageSize);
+                command.Parameters.AddWithValue("@PageSize", pageSize);
+                if (!string.IsNullOrWhiteSpace(search)) command.Parameters.AddWithValue("@Search", $"%{search}%");
+                using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync()) orders.Add(MapToOrder(reader));
+            }
+
+            return (orders, total);
+        }
+
+        public async Task<(int Total, int Pending, int InProgress, int Ready, int Completed)> GetSummaryAsync()
+        {
+            const string sql = @"
+                SELECT
+                    COUNT(*) AS Total,
+                    SUM(CASE WHEN o.Status <> 'Completed' AND ISNULL(o.QtyInProgress,0)=0 AND ISNULL(o.QtyCompleted,0)=0 THEN 1 ELSE 0 END) AS Pending,
+                    SUM(CASE WHEN o.Status <> 'Completed' AND NOT (o.Quantity>0 AND o.QtyCompleted>=o.Quantity) AND (ISNULL(o.QtyInProgress,0)>0 OR ISNULL(o.QtyCompleted,0)>0) THEN 1 ELSE 0 END) AS InProgress,
+                    SUM(CASE WHEN o.Status <> 'Completed' AND o.Quantity>0 AND o.QtyCompleted>=o.Quantity THEN 1 ELSE 0 END) AS Ready,
+                    SUM(CASE WHEN o.Status = 'Completed' THEN 1 ELSE 0 END) AS Completed
+                FROM Orders o";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(sql, connection);
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return (
+                    reader.GetInt32(0),
+                    reader.IsDBNull(1) ? 0 : reader.GetInt32(1),
+                    reader.IsDBNull(2) ? 0 : reader.GetInt32(2),
+                    reader.IsDBNull(3) ? 0 : reader.GetInt32(3),
+                    reader.IsDBNull(4) ? 0 : reader.GetInt32(4)
+                );
+            }
+            return (0, 0, 0, 0, 0);
+        }
+
+        public async Task<(IEnumerable<DTOs.Response.PlanningItemResponse> Items, int TotalCount)> GetPlanningItemsAsync(string type, int page, int pageSize, string? search)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 25;
+
+            // Match the dashboard's derivation. Exclude items already completed / ready-to-dispatch
+            // (QtyCompleted >= Quantity) — they no longer need planning or production.
+            var typeFilter = (type ?? "pending").ToLowerInvariant() == "planned"
+                ? "oi.PlanningStatus IN ('Planned','Released') AND oi.QtyCompleted < oi.Quantity"
+                : "COALESCE(p.DrawingReviewStatus, o.DrawingReviewStatus) = 'Approved' AND oi.PlanningStatus = 'Not Planned' AND oi.QtyCompleted < oi.Quantity";
+
+            var conditions = new List<string> { $"({typeFilter})" };
+            if (!string.IsNullOrWhiteSpace(search))
+                conditions.Add("(o.OrderNo LIKE @Search OR ISNULL(o.CustomerName, c.CustomerName) LIKE @Search OR p.ModelName LIKE @Search OR p.PartCode LIKE @Search)");
+            var whereClause = "WHERE " + string.Join(" AND ", conditions);
+
+            const string cols = @"
+                    oi.Id AS ItemId, oi.OrderId, o.OrderNo, oi.ItemSequence, oi.ProductId,
+                    p.ModelName AS ProductName, p.PartCode, p.RollerType, p.NumberOfTeeth,
+                    oi.Quantity, oi.DueDate, oi.Priority AS ItemPriority, oi.Status AS ItemStatus,
+                    oi.PlanningStatus, COALESCE(p.DrawingReviewStatus, o.DrawingReviewStatus) AS DrawingReviewStatus,
+                    ISNULL(o.CustomerName, c.CustomerName) AS CustomerName, o.Status AS OrderStatus, o.Priority AS OrderPriority,
+                    (SELECT COUNT(*) FROM Planning_JobCards jc WHERE jc.OrderItemId = oi.Id) AS JobCardCount,
+                    (SELECT COUNT(*) FROM Planning_JobCards jc WHERE jc.OrderItemId = oi.Id AND jc.Status = 'Completed') AS CompletedJobCardCount";
+            const string fromJoins = @"
+                FROM Orders_OrderItems oi
+                JOIN Orders o ON oi.OrderId = o.Id
+                LEFT JOIN Masters_Products p ON oi.ProductId = p.Id
+                LEFT JOIN Masters_Customers c ON o.CustomerId = c.Id";
+
+            var listQuery = $@"SELECT {cols} {fromJoins} {whereClause}
+                ORDER BY oi.DueDate ASC, oi.Id DESC
+                OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+            var countQuery = $@"SELECT COUNT(*) {fromJoins} {whereClause}";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            await connection.OpenAsync();
+
+            int total;
+            using (var countCmd = new SqlCommand(countQuery, connection))
+            {
+                if (!string.IsNullOrWhiteSpace(search)) countCmd.Parameters.AddWithValue("@Search", $"%{search}%");
+                total = (int)await countCmd.ExecuteScalarAsync();
+            }
+
+            var items = new List<DTOs.Response.PlanningItemResponse>();
+            using (var command = new SqlCommand(listQuery, connection))
+            {
+                command.Parameters.AddWithValue("@Offset", (page - 1) * pageSize);
+                command.Parameters.AddWithValue("@PageSize", pageSize);
+                if (!string.IsNullOrWhiteSpace(search)) command.Parameters.AddWithValue("@Search", $"%{search}%");
+                using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    items.Add(new DTOs.Response.PlanningItemResponse
+                    {
+                        ItemId = reader.GetInt32(reader.GetOrdinal("ItemId")),
+                        OrderId = reader.GetInt32(reader.GetOrdinal("OrderId")),
+                        OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo")) ? "" : reader.GetString(reader.GetOrdinal("OrderNo")),
+                        ItemSequence = reader.IsDBNull(reader.GetOrdinal("ItemSequence")) ? null : reader.GetString(reader.GetOrdinal("ItemSequence")),
+                        ProductId = reader.IsDBNull(reader.GetOrdinal("ProductId")) ? 0 : reader.GetInt32(reader.GetOrdinal("ProductId")),
+                        ProductName = reader.IsDBNull(reader.GetOrdinal("ProductName")) ? null : reader.GetString(reader.GetOrdinal("ProductName")),
+                        PartCode = reader.IsDBNull(reader.GetOrdinal("PartCode")) ? null : reader.GetString(reader.GetOrdinal("PartCode")),
+                        RollerType = reader.IsDBNull(reader.GetOrdinal("RollerType")) ? null : reader.GetString(reader.GetOrdinal("RollerType")),
+                        NumberOfTeeth = reader.IsDBNull(reader.GetOrdinal("NumberOfTeeth")) ? (int?)null : reader.GetInt32(reader.GetOrdinal("NumberOfTeeth")),
+                        Quantity = reader.IsDBNull(reader.GetOrdinal("Quantity")) ? 0 : reader.GetInt32(reader.GetOrdinal("Quantity")),
+                        DueDate = reader.IsDBNull(reader.GetOrdinal("DueDate")) ? (DateTime?)null : reader.GetDateTime(reader.GetOrdinal("DueDate")),
+                        ItemPriority = reader.IsDBNull(reader.GetOrdinal("ItemPriority")) ? null : reader.GetString(reader.GetOrdinal("ItemPriority")),
+                        ItemStatus = reader.IsDBNull(reader.GetOrdinal("ItemStatus")) ? null : reader.GetString(reader.GetOrdinal("ItemStatus")),
+                        PlanningStatus = reader.IsDBNull(reader.GetOrdinal("PlanningStatus")) ? null : reader.GetString(reader.GetOrdinal("PlanningStatus")),
+                        DrawingReviewStatus = reader.IsDBNull(reader.GetOrdinal("DrawingReviewStatus")) ? null : reader.GetString(reader.GetOrdinal("DrawingReviewStatus")),
+                        CustomerName = reader.IsDBNull(reader.GetOrdinal("CustomerName")) ? null : reader.GetString(reader.GetOrdinal("CustomerName")),
+                        OrderStatus = reader.IsDBNull(reader.GetOrdinal("OrderStatus")) ? null : reader.GetString(reader.GetOrdinal("OrderStatus")),
+                        OrderPriority = reader.IsDBNull(reader.GetOrdinal("OrderPriority")) ? null : reader.GetString(reader.GetOrdinal("OrderPriority")),
+                        JobCardCount = reader.GetInt32(reader.GetOrdinal("JobCardCount")),
+                        CompletedJobCardCount = reader.GetInt32(reader.GetOrdinal("CompletedJobCardCount")),
+                    });
+                }
+            }
+            return (items, total);
+        }
+
+        public async Task<(int TotalOrders, int PendingPlanning, int Planned, int MaterialShortage)> GetPlanningSummaryAsync()
+        {
+            const string sql = @"
+                SELECT
+                    (SELECT COUNT(*) FROM Orders) AS TotalOrders,
+                    (SELECT COUNT(*) FROM Orders_OrderItems oi
+                        JOIN Orders o ON oi.OrderId = o.Id
+                        LEFT JOIN Masters_Products p ON oi.ProductId = p.Id
+                        WHERE COALESCE(p.DrawingReviewStatus, o.DrawingReviewStatus) = 'Approved' AND oi.PlanningStatus = 'Not Planned' AND oi.QtyCompleted < oi.Quantity) AS PendingPlanning,
+                    (SELECT COUNT(*) FROM Orders_OrderItems WHERE PlanningStatus IN ('Planned','Released') AND QtyCompleted < Quantity) AS Planned,
+                    (SELECT COUNT(*) FROM Planning_JobCards WHERE Status = 'Pending Material') AS MaterialShortage";
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(sql, connection);
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return (reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3));
+            }
+            return (0, 0, 0, 0);
+        }
+
         public async Task<IEnumerable<Order>> GetByCustomerIdAsync(int customerId)
         {
             const string query = @"

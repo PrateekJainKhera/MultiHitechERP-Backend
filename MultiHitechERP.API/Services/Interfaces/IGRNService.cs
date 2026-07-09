@@ -18,5 +18,7 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<GRNResponse> ApproveGRNAsync(int id, string approvedBy, string? notes);
         Task<GRNResponse> RejectGRNAsync(int id, string rejectedBy, string notes);
         Task<IEnumerable<GRNResponse>> GetPendingApprovalAsync();
+        Task<IEnumerable<GRNResponse>> GetRejectedAsync();
+        Task<GRNResponse> ResubmitGRNAsync(int id, CreateGRNRequest request);
     }
 }

@@ -13,4 +13,5 @@ public interface IIssueWindowDraftRepository
     Task<bool> FinalizeDraftAsync(int id);
     Task<bool> MarkIssuedAsync(int draftId, string issuedBy, string receivedBy);
     Task<bool> DeleteDraftAsync(int id);
+    Task<bool> CancelDraftAsync(int id);
 }

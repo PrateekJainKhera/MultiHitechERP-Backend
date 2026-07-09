@@ -61,6 +61,60 @@ namespace MultiHitechERP.API.Controllers.Orders
         }
 
         /// <summary>
+        /// Get orders with server-side pagination, search, and status filter
+        /// </summary>
+        [HttpGet("paged")]
+        [ProducesResponseType(typeof(ApiResponse<PagedOrdersResponse>), 200)]
+        public async Task<IActionResult> GetPaged(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 25,
+            [FromQuery] string? search = null,
+            [FromQuery] string? status = null)
+        {
+            var response = await _orderService.GetPagedAsync(page, pageSize, search, status);
+            if (!response.Success) return BadRequest(response);
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Get order counts by effective status (for dashboard cards)
+        /// </summary>
+        /// <summary>
+        /// Paged planning items (type=pending|planned) for the Planning dashboard
+        /// </summary>
+        [HttpGet("planning-items")]
+        public async Task<IActionResult> GetPlanningItems(
+            [FromQuery] string type = "pending",
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 25,
+            [FromQuery] string? search = null)
+        {
+            var response = await _orderService.GetPlanningItemsAsync(type, page, pageSize, search);
+            if (!response.Success) return BadRequest(response);
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Planning dashboard summary counts
+        /// </summary>
+        [HttpGet("planning-summary")]
+        public async Task<IActionResult> GetPlanningSummary()
+        {
+            var response = await _orderService.GetPlanningSummaryAsync();
+            if (!response.Success) return BadRequest(response);
+            return Ok(response);
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<OrderSummaryResponse>), 200)]
+        public async Task<IActionResult> GetSummary()
+        {
+            var response = await _orderService.GetSummaryAsync();
+            if (!response.Success) return BadRequest(response);
+            return Ok(response);
+        }
+
+        /// <summary>
         /// Get order by ID
         /// </summary>
         [HttpGet("{id}")]

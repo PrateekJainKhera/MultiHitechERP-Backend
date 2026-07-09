@@ -96,6 +96,11 @@ namespace MultiHitechERP.API.Services.Implementations
             return await _pieceRepo.MarkAsWastageAsync(pieceId, reason, scrapValue);
         }
 
+        public async Task<int> ReleaseOrphanedReservationsAsync()
+        {
+            return await _pieceRepo.ReleaseOrphanedReservationsAsync();
+        }
+
         public async Task<decimal> GetTotalStockByMaterialIdAsync(int materialId)
         {
             return await _pieceRepo.GetTotalStockByMaterialIdAsync(materialId);

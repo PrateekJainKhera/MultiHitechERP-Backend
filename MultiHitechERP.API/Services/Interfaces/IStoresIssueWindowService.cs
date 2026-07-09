@@ -37,5 +37,8 @@ namespace MultiHitechERP.API.Services.Interfaces
 
         // Delete a draft (only if status = Draft — releases reserved pieces)
         Task<bool> DeleteDraftAsync(int id);
+
+        // Cancel a Draft or Finalized draft — releases its reserved pieces (never an Issued draft)
+        Task<bool> CancelDraftAsync(int id);
     }
 }

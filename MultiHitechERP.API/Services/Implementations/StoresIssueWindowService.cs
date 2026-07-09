@@ -446,5 +446,10 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             return await _draftRepo.DeleteDraftAsync(id);
         }
+
+        public async Task<bool> CancelDraftAsync(int id)
+        {
+            return await _draftRepo.CancelDraftAsync(id);
+        }
     }
 }

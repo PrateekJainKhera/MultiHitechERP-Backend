@@ -37,6 +37,9 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         // Production completion: mark all pieces issued to a job card as Consumed
         Task<int> ConsumePiecesByJobCardAsync(int jobCardId);
 
+        // Self-heal: release 'Reserved' pieces not tied to any live (Draft/Finalized) cutting draft
+        Task<int> ReleaseOrphanedReservationsAsync();
+
         // Warehouse queries
         Task<IEnumerable<MaterialPiece>> GetByWarehouseIdAsync(int warehouseId);
         Task<int> RelocatePiecesAsync(IEnumerable<int> pieceIds, int newWarehouseId, string warehouseName, string relocatedBy);

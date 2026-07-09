@@ -7,6 +7,9 @@ namespace MultiHitechERP.API.Models.Dispatch
         public int ProductId { get; set; }
         public string? ProductName { get; set; }
         public string? PartCode { get; set; }
+        public string? MachineModel { get; set; }
+        public string? RollerType { get; set; }
+        public int? NumberOfTeeth { get; set; }
         public int Quantity { get; set; }
         public int QtyCompleted { get; set; }
         public int QtyDispatched { get; set; }

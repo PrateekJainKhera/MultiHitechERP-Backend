@@ -183,5 +183,22 @@ namespace MultiHitechERP.API.Controllers.Stores
                 return BadRequest(ApiResponse<object>.ErrorResponse($"Delete failed: {ex.Message}"));
             }
         }
+
+        // POST /api/stores/issue-window/drafts/{id}/cancel — Cancel a Draft/Finalized draft (releases reserved pieces)
+        [HttpPost("drafts/{id:int}/cancel")]
+        public async Task<IActionResult> CancelDraft(int id)
+        {
+            try
+            {
+                var cancelled = await _service.CancelDraftAsync(id);
+                if (!cancelled)
+                    return BadRequest(ApiResponse<object>.ErrorResponse($"Draft {id} not found or already Issued (cannot cancel)"));
+                return Ok(ApiResponse<object>.SuccessResponse(null!, $"Draft {id} cancelled — reserved materials released"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse($"Cancel failed: {ex.Message}"));
+            }
+        }
     }
 }

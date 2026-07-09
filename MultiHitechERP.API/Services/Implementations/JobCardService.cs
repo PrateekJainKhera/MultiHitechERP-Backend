@@ -104,6 +104,41 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<PagedJobCardsResponse>> GetPagedAsync(int page, int pageSize, string? search, string? status)
+        {
+            try
+            {
+                var (jobCards, total) = await _jobCardRepository.GetPagedAsync(page, pageSize, search, status);
+                return ApiResponse<PagedJobCardsResponse>.SuccessResponse(new PagedJobCardsResponse
+                {
+                    Items = jobCards.Select(MapToResponse).ToList(),
+                    TotalCount = total,
+                    Page = page < 1 ? 1 : page,
+                    PageSize = pageSize < 1 ? 25 : pageSize
+                });
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PagedJobCardsResponse>.ErrorResponse($"Error retrieving job cards: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<JobCardSummaryResponse>> GetSummaryAsync()
+        {
+            try
+            {
+                var (total, pending, scheduled, inProgress, completed) = await _jobCardRepository.GetSummaryAsync();
+                return ApiResponse<JobCardSummaryResponse>.SuccessResponse(new JobCardSummaryResponse
+                {
+                    Total = total, Pending = pending, Scheduled = scheduled, InProgress = inProgress, Completed = completed
+                });
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<JobCardSummaryResponse>.ErrorResponse($"Error retrieving job card summary: {ex.Message}");
+            }
+        }
+
         public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByOrderIdAsync(int orderId)
         {
             try
@@ -551,6 +586,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 OrderItemId = jobCard.OrderItemId,
                 ItemSequence = jobCard.ItemSequence,
                 MachineModelName = jobCard.MachineModelName,
+                RollerType = jobCard.RollerType,
                 NumberOfTeeth = jobCard.NumberOfTeeth,
                 DrawingId = jobCard.DrawingId,
                 DrawingNumber = jobCard.DrawingNumber,

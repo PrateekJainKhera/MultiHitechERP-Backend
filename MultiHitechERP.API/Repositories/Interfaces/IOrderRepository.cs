@@ -14,6 +14,10 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<Order?> GetByIdAsync(int id);
         Task<Order?> GetByOrderNoAsync(string orderNo);
         Task<IEnumerable<Order>> GetAllAsync();
+        Task<(IEnumerable<Order> Items, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search, string? status);
+        Task<(int Total, int Pending, int InProgress, int Ready, int Completed)> GetSummaryAsync();
+        Task<(IEnumerable<DTOs.Response.PlanningItemResponse> Items, int TotalCount)> GetPlanningItemsAsync(string type, int page, int pageSize, string? search);
+        Task<(int TotalOrders, int PendingPlanning, int Planned, int MaterialShortage)> GetPlanningSummaryAsync();
         Task<IEnumerable<Order>> GetByCustomerIdAsync(int customerId);
         Task<IEnumerable<Order>> GetByProductIdAsync(int productId);
         Task<IEnumerable<Order>> GetByStatusAsync(string status);

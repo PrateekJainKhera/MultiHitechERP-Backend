@@ -221,6 +221,25 @@ namespace MultiHitechERP.API.Controllers.Inventory
             }
         }
 
+        [HttpPost("release-orphaned-reservations")]
+        public async Task<ActionResult<ApiResponse<object>>> ReleaseOrphanedReservations()
+        {
+            try
+            {
+                var released = await _materialPieceService.ReleaseOrphanedReservationsAsync();
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = $"Released {released} orphaned reserved piece(s) back to Available",
+                    Data = new { released }
+                });
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = ex.Message });
+            }
+        }
+
         [HttpPatch("{id}/adjust-length")]
         public async Task<ActionResult<ApiResponse<object>>> AdjustLength(int id, [FromBody] AdjustLengthRequest request)
         {

@@ -45,6 +45,7 @@ namespace MultiHitechERP.API.Services.Implementations
             if (requisition == null)
                 return ApiResponse<MaterialRequisition>.ErrorResponse("Material requisition not found");
 
+            requisition = (await EnrichWithProductInfoAsync(new[] { requisition })).First();
             return ApiResponse<MaterialRequisition>.SuccessResponse(requisition);
         }
 
@@ -60,22 +61,40 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<MaterialRequisition>.SuccessResponse(requisition);
         }
 
+        // Populate MachineModel / RollerType / NumberOfTeeth (from Masters_Products via order item / order)
+        private async Task<IEnumerable<MaterialRequisition>> EnrichWithProductInfoAsync(IEnumerable<MaterialRequisition> reqs)
+        {
+            var list = reqs.ToList();
+            if (list.Count == 0) return list;
+            var info = await _requisitionRepository.GetProductInfoByRequisitionIdsAsync(list.Select(r => r.Id));
+            foreach (var r in list)
+            {
+                if (info.TryGetValue(r.Id, out var pi))
+                {
+                    r.MachineModel = pi.ModelName;
+                    r.NumberOfTeeth = pi.NumberOfTeeth;
+                    r.RollerType = pi.RollerType;
+                }
+            }
+            return list;
+        }
+
         public async Task<ApiResponse<IEnumerable<MaterialRequisition>>> GetAllAsync()
         {
             var requisitions = await _requisitionRepository.GetAllAsync();
-            return ApiResponse<IEnumerable<MaterialRequisition>>.SuccessResponse(requisitions);
+            return ApiResponse<IEnumerable<MaterialRequisition>>.SuccessResponse(await EnrichWithProductInfoAsync(requisitions));
         }
 
         public async Task<ApiResponse<IEnumerable<MaterialRequisition>>> GetByJobCardIdAsync(int jobCardId)
         {
             var requisitions = await _requisitionRepository.GetByJobCardIdAsync(jobCardId);
-            return ApiResponse<IEnumerable<MaterialRequisition>>.SuccessResponse(requisitions);
+            return ApiResponse<IEnumerable<MaterialRequisition>>.SuccessResponse(await EnrichWithProductInfoAsync(requisitions));
         }
 
         public async Task<ApiResponse<IEnumerable<MaterialRequisition>>> GetByOrderIdAsync(int orderId)
         {
             var requisitions = await _requisitionRepository.GetByOrderIdAsync(orderId);
-            return ApiResponse<IEnumerable<MaterialRequisition>>.SuccessResponse(requisitions);
+            return ApiResponse<IEnumerable<MaterialRequisition>>.SuccessResponse(await EnrichWithProductInfoAsync(requisitions));
         }
 
         public async Task<ApiResponse<IEnumerable<MaterialRequisition>>> GetByStatusAsync(string status)
@@ -84,7 +103,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 return ApiResponse<IEnumerable<MaterialRequisition>>.ErrorResponse("Status is required");
 
             var requisitions = await _requisitionRepository.GetByStatusAsync(status);
-            return ApiResponse<IEnumerable<MaterialRequisition>>.SuccessResponse(requisitions);
+            return ApiResponse<IEnumerable<MaterialRequisition>>.SuccessResponse(await EnrichWithProductInfoAsync(requisitions));
         }
 
         public async Task<ApiResponse<int>> CreateRequisitionAsync(MaterialRequisition requisition)

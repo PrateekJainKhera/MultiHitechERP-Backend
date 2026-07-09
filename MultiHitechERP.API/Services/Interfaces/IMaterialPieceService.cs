@@ -17,7 +17,10 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<bool> UpdateLengthAsync(int pieceId, decimal newLengthMM, string updatedBy);
         Task<bool> AdjustLengthAsync(int pieceId, decimal newLengthMM, string remark, string adjustedBy);
         Task<bool> MarkAsWastageAsync(int pieceId, string reason, decimal? scrapValue, string updatedBy);
-        
+
+        // Self-heal: release orphaned 'Reserved' pieces (no live draft). Returns count freed.
+        Task<int> ReleaseOrphanedReservationsAsync();
+
         // Stock availability for planning
         Task<decimal> GetTotalStockByMaterialIdAsync(int materialId);
         Task<decimal> GetAvailableStockByMaterialIdAsync(int materialId);
