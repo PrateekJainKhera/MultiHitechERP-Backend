@@ -99,6 +99,9 @@ namespace MultiHitechERP.API.DTOs.Response
         public string OrderNo { get; set; } = string.Empty;
         public string? CustomerName { get; set; }
         public string? ProductName { get; set; }
+        public string? MachineModel { get; set; }
+        public string? RollerType { get; set; }
+        public int? NumberOfTeeth { get; set; }
         public string Priority { get; set; } = "Medium";
         public DateTime? DueDate { get; set; }
 

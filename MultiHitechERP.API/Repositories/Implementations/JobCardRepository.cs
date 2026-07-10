@@ -242,18 +242,24 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<JobCard>> GetByOrderItemIdAsync(int orderItemId)
         {
             const string query = @"
-                SELECT Id, JobCardNo, CreationType, OrderId, OrderNo, OrderItemId, ItemSequence,
-                       DrawingId, DrawingNumber, DrawingRevision, DrawingName, DrawingSelectionType,
-                       ChildPartId, ChildPartName, ChildPartTemplateId,
-                       ProcessId, ProcessName, ProcessCode, StepNo, ProcessTemplateId,
-                       WorkInstructions, QualityCheckpoints, SpecialNotes,
-                       Quantity, Status, Priority, ManufacturingDimensions,
-                       ProductionStatus, ActualStartTime, ActualEndTime,
-                       CompletedQty, RejectedQty, ReadyForAssembly,
-                       CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, Version
-                FROM Planning_JobCards
-                WHERE OrderItemId = @OrderItemId
-                ORDER BY StepNo, CreatedAt";
+                SELECT jc.Id, jc.JobCardNo, jc.CreationType, jc.OrderId, jc.OrderNo, jc.OrderItemId, jc.ItemSequence,
+                       jc.DrawingId, jc.DrawingNumber, jc.DrawingRevision, jc.DrawingName, jc.DrawingSelectionType,
+                       jc.ChildPartId, jc.ChildPartName, jc.ChildPartTemplateId,
+                       jc.ProcessId, jc.ProcessName, jc.ProcessCode, jc.StepNo, jc.ProcessTemplateId,
+                       jc.WorkInstructions, jc.QualityCheckpoints, jc.SpecialNotes,
+                       jc.Quantity, jc.Status, jc.Priority, jc.ManufacturingDimensions,
+                       jc.ProductionStatus, jc.ActualStartTime, jc.ActualEndTime,
+                       jc.CompletedQty, jc.RejectedQty, jc.ReadyForAssembly,
+                       jc.CreatedAt, jc.CreatedBy, jc.UpdatedAt, jc.UpdatedBy, jc.Version,
+                       p.ModelName AS MachineModelName,
+                       p.RollerType AS RollerType,
+                       p.NumberOfTeeth AS NumberOfTeeth
+                FROM Planning_JobCards jc
+                LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
+                LEFT JOIN Orders o ON jc.OrderId = o.Id
+                LEFT JOIN Masters_Products p ON COALESCE(oi.ProductId, o.ProductId) = p.Id
+                WHERE jc.OrderItemId = @OrderItemId
+                ORDER BY jc.StepNo, jc.CreatedAt";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);

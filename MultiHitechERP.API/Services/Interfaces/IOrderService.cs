@@ -15,7 +15,9 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<OrderResponse>> GetByIdAsync(int id);
         Task<ApiResponse<OrderResponse>> GetByOrderNoAsync(string orderNo);
         Task<ApiResponse<IEnumerable<OrderResponse>>> GetAllAsync();
-        Task<ApiResponse<PagedOrdersResponse>> GetPagedAsync(int page, int pageSize, string? search, string? status);
+        Task<ApiResponse<PagedOrdersResponse>> GetPagedAsync(int page, int pageSize, string? search, string? status, OrderListFilter? filter = null);
+        Task<ApiResponse<IEnumerable<OrderLiteResponse>>> GetLiteListAsync();
+        Task<ApiResponse<bool>> ChangeCustomerAsync(int orderId, ChangeCustomerRequest request);
         Task<ApiResponse<OrderSummaryResponse>> GetSummaryAsync();
         Task<ApiResponse<PagedPlanningItemsResponse>> GetPlanningItemsAsync(string type, int page, int pageSize, string? search);
         Task<ApiResponse<PlanningSummaryResponse>> GetPlanningSummaryAsync();

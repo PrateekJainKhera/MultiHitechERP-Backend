@@ -15,15 +15,18 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IComponentIssueRepository _repo;
         private readonly IComponentRepository _componentRepo;
         private readonly IInventoryRepository _inventoryRepo;
+        private readonly IShopFloorComponentStockRepository _floorRepo;
 
         public ComponentIssueService(
             IComponentIssueRepository repo,
             IComponentRepository componentRepo,
-            IInventoryRepository inventoryRepo)
+            IInventoryRepository inventoryRepo,
+            IShopFloorComponentStockRepository floorRepo)
         {
             _repo = repo;
             _componentRepo = componentRepo;
             _inventoryRepo = inventoryRepo;
+            _floorRepo = floorRepo;
         }
 
         public async Task<ApiResponse<ComponentIssueResponse>> CreateAsync(CreateComponentIssueRequest request)
@@ -76,9 +79,14 @@ namespace MultiHitechERP.API.Services.Implementations
                 var id = await _repo.CreateAsync(issue);
                 issue.Id = id;
 
+                // Move the issued quantity onto the shop floor (Main → Floor transfer)
+                await _floorRepo.AddToFloorAsync(
+                    request.ComponentId, component.ComponentName, component.PartNumber,
+                    component.Unit ?? "Pcs", request.IssuedQty, request.IssuedBy);
+
                 return ApiResponse<ComponentIssueResponse>.SuccessResponse(
                     MapToResponse(issue),
-                    $"Component issued successfully. Issue No: {issueNo}");
+                    $"Issued {request.IssuedQty} {component.Unit ?? "Pcs"} of {component.ComponentName} to the shop floor. Issue No: {issueNo}");
             }
             catch (Exception ex)
             {
@@ -111,6 +119,29 @@ namespace MultiHitechERP.API.Services.Implementations
             catch (Exception ex)
             {
                 return ApiResponse<IEnumerable<ComponentIssueResponse>>.ErrorResponse($"Error: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<ShopFloorComponentStockResponse>>> GetShopFloorStockAsync()
+        {
+            try
+            {
+                var rows = await _floorRepo.GetAllAsync();
+                var result = rows.Select(s => new ShopFloorComponentStockResponse
+                {
+                    ComponentId = s.ComponentId,
+                    ComponentName = s.ComponentName,
+                    PartNumber = s.PartNumber,
+                    UOM = s.UOM,
+                    Quantity = s.Quantity,
+                    ReservedQty = s.ReservedQty,
+                    AvailableQty = s.Quantity - s.ReservedQty,
+                });
+                return ApiResponse<IEnumerable<ShopFloorComponentStockResponse>>.SuccessResponse(result);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<ShopFloorComponentStockResponse>>.ErrorResponse($"Error: {ex.Message}");
             }
         }
 

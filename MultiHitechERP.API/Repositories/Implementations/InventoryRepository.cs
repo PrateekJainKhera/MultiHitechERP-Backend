@@ -226,11 +226,11 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<IEnumerable<Inventory>> GetLowStockAsync()
         {
+            // Low stock = available at or below the reorder level (only items that have a threshold set)
             const string query = @"
                 SELECT * FROM Inventory_Stock
-                WHERE 1=1
-                  AND IsLowStock = 1
-                ORDER BY AvailableQuantity ASC";
+                WHERE MinStockLevel > 0 AND AvailableStock <= MinStockLevel
+                ORDER BY AvailableStock ASC";
 
             var inventories = new List<Inventory>();
 
@@ -252,9 +252,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 SELECT * FROM Inventory_Stock
-                WHERE 1=1
-                  AND IsOutOfStock = 1
-                ORDER BY MaterialCode";
+                WHERE AvailableStock <= 0
+                ORDER BY ItemCode";
 
             var inventories = new List<Inventory>();
 
@@ -598,49 +597,46 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<bool> ReconcileStockAsync(int materialId, decimal actualQuantity, string performedBy, string remarks)
         {
-            // Get current stock
+            // Current (system) stock — model.TotalQuantity is mapped from Inventory_Stock.CurrentStock
             var inventory = await GetByMaterialIdAsync(materialId);
-            if (inventory == null)
-                return false;
+            var oldQty = inventory?.TotalQuantity ?? 0;
+            var uom = string.IsNullOrWhiteSpace(inventory?.UOM) ? "KG" : inventory!.UOM;
+            var difference = actualQuantity - oldQty;
 
-            var difference = actualQuantity - inventory.TotalQuantity;
-
-            // Create adjustment transaction
-            var transaction = new InventoryTransaction
+            // Audit: record the variance as an adjustment transaction
+            await InsertTransactionAsync(new InventoryTransaction
             {
                 MaterialId = materialId,
                 TransactionType = "Adjustment",
                 TransactionNo = $"ADJ-{DateTime.UtcNow:yyyyMMddHHmmss}",
                 TransactionDate = DateTime.UtcNow,
                 Quantity = difference,
-                UOM = inventory.UOM,
+                UOM = uom,
                 ReferenceType = "StockCount",
                 BalanceQuantity = actualQuantity,
                 Remarks = $"Stock reconciliation: {remarks}",
                 PerformedBy = performedBy,
                 CreatedBy = performedBy
-            };
+            });
 
-            await InsertTransactionAsync(transaction);
-
-            // Update inventory
+            // Set the system stock to the physical count (upsert; AvailableStock is a computed column so it updates itself)
             const string query = @"
-                UPDATE Inventory_Stock
-                SET TotalQuantity = @TotalQuantity,
-                    AvailableQuantity = AvailableQuantity + @Difference,
-                    LastCountDate = @LastCountDate,
-                    UpdatedAt = @UpdatedAt,
-                    UpdatedBy = @UpdatedBy
-                WHERE MaterialId = @MaterialId";
+                IF EXISTS (SELECT 1 FROM Inventory_Stock WHERE ItemType='RawMaterial' AND ItemId=@MaterialId)
+                    UPDATE Inventory_Stock
+                       SET CurrentStock=@Actual, LastUpdated=@Now, UpdatedBy=@By
+                     WHERE ItemType='RawMaterial' AND ItemId=@MaterialId;
+                ELSE
+                    INSERT INTO Inventory_Stock (ItemType, ItemId, ItemCode, ItemName, CurrentStock, ReservedStock, UOM, LastUpdated, UpdatedBy)
+                    SELECT 'RawMaterial', @MaterialId, m.MaterialCode, m.MaterialName, @Actual, 0, @UOM, @Now, @By
+                    FROM Masters_Materials m WHERE m.Id=@MaterialId;";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@MaterialId", materialId);
-            command.Parameters.AddWithValue("@TotalQuantity", actualQuantity);
-            command.Parameters.AddWithValue("@Difference", difference);
-            command.Parameters.AddWithValue("@LastCountDate", DateTime.UtcNow);
-            command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
-            command.Parameters.AddWithValue("@UpdatedBy", performedBy);
+            command.Parameters.AddWithValue("@Actual", actualQuantity);
+            command.Parameters.AddWithValue("@UOM", uom);
+            command.Parameters.AddWithValue("@Now", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@By", performedBy);
 
             await connection.OpenAsync();
             var rowsAffected = await command.ExecuteNonQueryAsync();

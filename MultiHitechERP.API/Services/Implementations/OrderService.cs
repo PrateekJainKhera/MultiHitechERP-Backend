@@ -90,11 +90,51 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<PagedOrdersResponse>> GetPagedAsync(int page, int pageSize, string? search, string? status)
+        public async Task<ApiResponse<bool>> ChangeCustomerAsync(int orderId, ChangeCustomerRequest request)
         {
             try
             {
-                var (orders, total) = await _orderRepository.GetPagedAsync(page, pageSize, search, status);
+                var order = await _orderRepository.GetByIdAsync(orderId);
+                if (order == null) return ApiResponse<bool>.ErrorResponse("Order not found");
+
+                var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
+                if (customer == null || !customer.IsActive)
+                    return ApiResponse<bool>.ErrorResponse("Invalid or inactive customer");
+
+                if (order.CustomerId == request.CustomerId)
+                    return ApiResponse<bool>.SuccessResponse(true, "Customer is unchanged");
+
+                var (req, challan) = await _orderRepository.ChangeCustomerAsync(
+                    orderId, order.OrderNo, order.CustomerId, order.CustomerName,
+                    request.CustomerId, customer.CustomerName, request.ChangedBy, request.Notes);
+
+                return ApiResponse<bool>.SuccessResponse(true,
+                    $"Customer changed to '{customer.CustomerName}'. Cascaded to {req} requisition(s) and {challan} challan(s).");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.ErrorResponse($"Failed to change customer: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<OrderLiteResponse>>> GetLiteListAsync()
+        {
+            try
+            {
+                var list = await _orderRepository.GetLiteListAsync();
+                return ApiResponse<IEnumerable<OrderLiteResponse>>.SuccessResponse(list);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<OrderLiteResponse>>.ErrorResponse($"Error retrieving orders: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<PagedOrdersResponse>> GetPagedAsync(int page, int pageSize, string? search, string? status, OrderListFilter? filter = null)
+        {
+            try
+            {
+                var (orders, total) = await _orderRepository.GetPagedAsync(page, pageSize, search, status, filter);
                 var items = new List<OrderResponse>();
                 foreach (var order in orders)
                 {

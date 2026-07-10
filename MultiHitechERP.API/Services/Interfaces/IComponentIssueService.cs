@@ -11,5 +11,6 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<IEnumerable<ComponentIssueResponse>>> GetAllAsync();
         Task<ApiResponse<IEnumerable<ComponentIssueResponse>>> GetByComponentIdAsync(int componentId);
         Task<ApiResponse<IEnumerable<ComponentWithStockResponse>>> GetComponentsWithStockAsync();
+        Task<ApiResponse<IEnumerable<ShopFloorComponentStockResponse>>> GetShopFloorStockAsync();
     }
 }

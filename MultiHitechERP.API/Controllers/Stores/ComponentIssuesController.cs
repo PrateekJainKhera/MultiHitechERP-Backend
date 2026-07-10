@@ -23,6 +23,14 @@ namespace MultiHitechERP.API.Controllers.Stores
             return Ok(result);
         }
 
+        // Shop-floor component stock (Qty / Reserved / Available per component)
+        [HttpGet("shop-floor-stock")]
+        public async Task<IActionResult> GetShopFloorStock()
+        {
+            var result = await _service.GetShopFloorStockAsync();
+            return Ok(result);
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {

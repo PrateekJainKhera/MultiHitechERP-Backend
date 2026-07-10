@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.DTOs.Response;
+using MultiHitechERP.API.Models.Orders;
+using MultiHitechERP.API.Models.Planning;
 using MultiHitechERP.API.Repositories.Interfaces;
 using MultiHitechERP.API.Services.Interfaces;
 
@@ -121,12 +123,22 @@ namespace MultiHitechERP.API.Services.Implementations
             {
                 var result = new List<ProductionOrderSummary>();
 
-                // ── Part 1: Multi-product orders — job cards linked to a specific OrderItemId ──
-                var orderItems = await _orderItemRepository.GetAllAsync();
+                // Batch-load everything up front — a few queries instead of the previous
+                // per-order / per-item N+1 (which issued ~600 round-trips and took ~60s).
+                var allJobCards = (await _jobCardRepository.GetAllAsync()).ToList();
+                var allOrderItems = await _orderItemRepository.GetAllAsync();
+                var allOrders = (await _orderRepository.GetAllAsync()).ToList();
+                var ordersById = allOrders.GroupBy(o => o.Id).ToDictionary(g => g.Key, g => g.First());
+                var orderItemsByOrder = allOrderItems.GroupBy(oi => oi.OrderId).ToDictionary(g => g.Key, g => g.ToList());
+                var jcByOrderItem = allJobCards.Where(jc => jc.OrderItemId.HasValue)
+                    .GroupBy(jc => jc.OrderItemId!.Value).ToDictionary(g => g.Key, g => g.ToList());
+                var unlinkedJcsByOrder = allJobCards.Where(jc => !jc.OrderItemId.HasValue)
+                    .GroupBy(jc => jc.OrderId).ToDictionary(g => g.Key, g => g.ToList());
 
-                foreach (var orderItem in orderItems)
+                // ── Part 1: Multi-product orders — job cards linked to a specific OrderItemId ──
+                foreach (var orderItem in allOrderItems)
                 {
-                    var jobCards = (await _jobCardRepository.GetByOrderItemIdAsync(orderItem.Id)).ToList();
+                    var jobCards = jcByOrderItem.TryGetValue(orderItem.Id, out var _jcList) ? _jcList : new List<JobCard>();
                     var scheduledJcs = jobCards.Where(jc => jc.Status == "Scheduled").ToList();
                     if (!scheduledJcs.Any()) continue;
 
@@ -147,7 +159,7 @@ namespace MultiHitechERP.API.Services.Implementations
                     else
                         prodStatus = "Pending";
 
-                    var order = await _orderRepository.GetByIdAsync(orderItem.OrderId);
+                    var order = ordersById.TryGetValue(orderItem.OrderId, out var _o) ? _o : null;
                     var baseOrderNo = order?.OrderNo ?? orderItem.OrderId.ToString();
                     var fullOrderRef = !string.IsNullOrEmpty(orderItem.ItemSequence)
                         ? $"{baseOrderNo}-{orderItem.ItemSequence}"
@@ -160,6 +172,9 @@ namespace MultiHitechERP.API.Services.Implementations
                         OrderNo = fullOrderRef,
                         CustomerName = order?.CustomerName,
                         ProductName = orderItem.ProductName,
+                        MachineModel = jobCards.FirstOrDefault()?.MachineModelName,
+                        RollerType = jobCards.FirstOrDefault()?.RollerType,
+                        NumberOfTeeth = jobCards.FirstOrDefault()?.NumberOfTeeth,
                         Priority = orderItem.Priority ?? "Medium",
                         DueDate = orderItem.DueDate,
                         TotalSteps = nonAssemblyJcs.Count,
@@ -176,17 +191,14 @@ namespace MultiHitechERP.API.Services.Implementations
                 }
 
                 // ── Part 2: Job cards with no OrderItemId — group by ItemSequence ──
-                var allOrders = await _orderRepository.GetAllAsync();
                 foreach (var order in allOrders)
                 {
                     // Only consider job cards not linked to any OrderItem
-                    var allUnlinkedJcs = (await _jobCardRepository.GetByOrderIdAsync(order.Id))
-                        .Where(jc => !jc.OrderItemId.HasValue)
-                        .ToList();
+                    var allUnlinkedJcs = unlinkedJcsByOrder.TryGetValue(order.Id, out var _ul) ? _ul : new List<JobCard>();
                     if (!allUnlinkedJcs.Any(jc => jc.Status == "Scheduled")) continue;
 
-                    // Load OrderItems for this order (to get product names and sequences)
-                    var orderItemsForOrder = await _orderItemRepository.GetByOrderIdAsync(order.Id);
+                    // OrderItems for this order (to get product names and sequences)
+                    var orderItemsForOrder = orderItemsByOrder.TryGetValue(order.Id, out var _ol) ? _ol : new List<OrderItem>();
 
                     // Group by ItemSequence: multi-product orders have A/B/C..., single-product have null
                     var groups = allUnlinkedJcs
@@ -228,6 +240,9 @@ namespace MultiHitechERP.API.Services.Implementations
                                 OrderNo = orderRef2,
                                 CustomerName = order.CustomerName,
                                 ProductName = oi.ProductName ?? order.ProductName,
+                                MachineModel = allJcs.FirstOrDefault()?.MachineModelName,
+                                RollerType = allJcs.FirstOrDefault()?.RollerType,
+                                NumberOfTeeth = allJcs.FirstOrDefault()?.NumberOfTeeth,
                                 Priority = oi.Priority ?? order.Priority ?? "Medium",
                                 DueDate = oi.DueDate,
                                 TotalSteps = nonAssemblyJcs.Count,
@@ -285,6 +300,9 @@ namespace MultiHitechERP.API.Services.Implementations
                             OrderNo = orderRef,
                             CustomerName = order.CustomerName,
                             ProductName = matchingOrderItem?.ProductName ?? order.ProductName,
+                            MachineModel = jobCards.FirstOrDefault()?.MachineModelName,
+                            RollerType = jobCards.FirstOrDefault()?.RollerType,
+                            NumberOfTeeth = jobCards.FirstOrDefault()?.NumberOfTeeth,
                             Priority = matchingOrderItem?.Priority ?? order.Priority ?? "Medium",
                             DueDate = matchingOrderItem?.DueDate ?? order.DueDate,
                             TotalSteps = nonAssemblyJcs.Count,
@@ -401,6 +419,9 @@ namespace MultiHitechERP.API.Services.Implementations
                     OrderNo = order.OrderNo,
                     CustomerName = order.CustomerName,
                     ProductName = order.ProductName,
+                    MachineModel = jobCards.FirstOrDefault()?.MachineModelName,
+                    RollerType = jobCards.FirstOrDefault()?.RollerType,
+                    NumberOfTeeth = jobCards.FirstOrDefault()?.NumberOfTeeth,
                     Priority = order.Priority ?? "Medium",
                     DueDate = order.DueDate,
                     TotalSteps = allChildSteps,
@@ -514,6 +535,9 @@ namespace MultiHitechERP.API.Services.Implementations
                     OrderNo = fullRef,
                     CustomerName = order.CustomerName,
                     ProductName = orderItem.ProductName,
+                    MachineModel = jobCards.FirstOrDefault()?.MachineModelName,
+                    RollerType = jobCards.FirstOrDefault()?.RollerType,
+                    NumberOfTeeth = jobCards.FirstOrDefault()?.NumberOfTeeth,
                     Priority = orderItem.Priority ?? "Medium",
                     DueDate = orderItem.DueDate,
                     TotalSteps = allChildSteps,
@@ -893,10 +917,15 @@ namespace MultiHitechERP.API.Services.Implementations
                                     .ThenBy(jc => jc.StepNo)
                                     .Select(jc =>
                                     {
-                                        // Locked if any PREVIOUS step for same child part is not yet Completed
+                                        // Locked if any PREVIOUS step for the SAME child part of the SAME
+                                        // order item is not yet Completed. Must match OrderItemId too —
+                                        // sibling sub-orders (A/B/C/D) share one OrderId and the same child
+                                        // part key, so matching by OrderId alone wrongly cross-locks them.
                                         var blockingStep = allScheduled
                                             .Where(other =>
                                                 other.OrderId == jc.OrderId &&
+                                                (other.OrderItemId ?? 0) == (jc.OrderItemId ?? 0) &&
+                                                other.ItemSequence == jc.ItemSequence &&
                                                 ChildPartKey(other) == ChildPartKey(jc) &&
                                                 other.StepNo < jc.StepNo &&
                                                 other.ProductionStatus != "Completed")

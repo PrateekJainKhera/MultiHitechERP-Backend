@@ -59,8 +59,10 @@ namespace MultiHitechERP.API.Controllers.Inventory
         public async Task<ActionResult<ApiResponse<InventoryResponse>>> GetByMaterialId(int materialId)
         {
             var response = await _service.GetByMaterialIdAsync(materialId);
-            if (!response.Success)
-                return NotFound(response);
+            // No inventory row = zero stock, not an error. Return 200 with null data so callers
+            // (e.g. the planning screen) don't log a 404 for every material without stock.
+            if (!response.Success || response.Data == null)
+                return Ok(new ApiResponse<InventoryResponse> { Success = true, Data = null });
 
             var dto = MapToResponse(response.Data);
             return Ok(ApiResponse<InventoryResponse>.SuccessResponse(dto));

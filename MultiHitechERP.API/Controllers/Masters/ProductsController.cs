@@ -17,19 +17,22 @@ namespace MultiHitechERP.API.Controllers.Masters
         private readonly IDrawingRepository _drawingRepository;
         private readonly IChildPartTemplateRepository _childPartTemplateRepository;
         private readonly IProductDefaultMaterialRepository _defaultMaterialRepository;
+        private readonly IProductDefaultComponentRepository _defaultComponentRepository;
 
         public ProductsController(
             IProductService productService,
             IProductChildPartDrawingRepository childPartDrawingRepository,
             IDrawingRepository drawingRepository,
             IChildPartTemplateRepository childPartTemplateRepository,
-            IProductDefaultMaterialRepository defaultMaterialRepository)
+            IProductDefaultMaterialRepository defaultMaterialRepository,
+            IProductDefaultComponentRepository defaultComponentRepository)
         {
             _productService = productService;
             _childPartDrawingRepository = childPartDrawingRepository;
             _drawingRepository = drawingRepository;
             _childPartTemplateRepository = childPartTemplateRepository;
             _defaultMaterialRepository = defaultMaterialRepository;
+            _defaultComponentRepository = defaultComponentRepository;
         }
 
         [HttpGet]
@@ -317,6 +320,72 @@ namespace MultiHitechERP.API.Controllers.Masters
             catch (Exception ex)
             {
                 return StatusCode(500, ApiResponse<bool>.ErrorResponse($"Error saving default materials: {ex.Message}"));
+            }
+        }
+
+        /// <summary>
+        /// Get the remembered component requirements for a product (pre-fills the Components section in planning).
+        /// </summary>
+        [HttpGet("{id}/default-components")]
+        public async Task<IActionResult> GetDefaultComponents(int id)
+        {
+            try
+            {
+                var defaults = await _defaultComponentRepository.GetByProductIdAsync(id);
+                var responses = new System.Collections.Generic.List<ProductDefaultComponentResponse>();
+                foreach (var d in defaults)
+                {
+                    responses.Add(new ProductDefaultComponentResponse
+                    {
+                        Id = d.Id,
+                        ProductId = d.ProductId,
+                        ComponentId = d.ComponentId,
+                        ComponentName = d.ComponentName,
+                        PartNumber = d.PartNumber,
+                        NoOfPieces = d.NoOfPieces,
+                        UOM = d.UOM,
+                        Notes = d.Notes,
+                    });
+                }
+                return Ok(ApiResponse<System.Collections.Generic.List<ProductDefaultComponentResponse>>.SuccessResponse(responses));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<System.Collections.Generic.List<ProductDefaultComponentResponse>>.ErrorResponse($"Error fetching default components: {ex.Message}"));
+            }
+        }
+
+        /// <summary>
+        /// Save the default components for a product (replaces all existing). Remembered for next time the product is planned.
+        /// </summary>
+        [HttpPost("{id}/default-components")]
+        public async Task<IActionResult> SaveDefaultComponents(int id, [FromBody] SaveProductDefaultComponentsRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid) return BadRequest(ModelState);
+
+                var defaults = new System.Collections.Generic.List<Models.Masters.ProductDefaultComponent>();
+                foreach (var item in request.Components)
+                {
+                    defaults.Add(new Models.Masters.ProductDefaultComponent
+                    {
+                        ProductId = id,
+                        ComponentId = item.ComponentId,
+                        ComponentName = item.ComponentName,
+                        PartNumber = item.PartNumber,
+                        NoOfPieces = item.NoOfPieces,
+                        UOM = item.UOM,
+                        Notes = item.Notes,
+                    });
+                }
+
+                await _defaultComponentRepository.SaveDefaultsAsync(id, defaults, request.UpdatedBy);
+                return Ok(ApiResponse<bool>.SuccessResponse(true, "Default components saved successfully"));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<bool>.ErrorResponse($"Error saving default components: {ex.Message}"));
             }
         }
     }

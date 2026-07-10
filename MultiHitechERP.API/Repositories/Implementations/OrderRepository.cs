@@ -116,16 +116,35 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _            => ""
         };
 
-        public async Task<(IEnumerable<Order> Items, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search, string? status)
+        public async Task<(IEnumerable<Order> Items, int TotalCount)> GetPagedAsync(
+            int page, int pageSize, string? search, string? status, DTOs.Request.OrderListFilter? filter = null)
         {
             if (page < 1) page = 1;
             if (pageSize < 1) pageSize = 25;
+            filter ??= new DTOs.Request.OrderListFilter();
+
+            // Concatenated product text (order-level, for legacy single-product orders).
+            const string orderProductText =
+                "(ISNULL(o.ProductName,'')+' '+ISNULL(mp.ModelName,'')+' '+ISNULL(mp.RollerType,'')+' '+ISNULL(CONVERT(varchar(10),mp.NumberOfTeeth),'')+'T')";
+            // Product text across the order's items (multi-product orders). Teeth rendered as "110T".
+            const string itemProductMatch = @"EXISTS (
+                SELECT 1 FROM Orders_OrderItems oi
+                JOIN Masters_Products p ON oi.ProductId = p.Id
+                WHERE oi.OrderId = o.Id AND
+                (ISNULL(p.PartCode,'')+' '+ISNULL(p.ModelName,'')+' '+ISNULL(p.RollerType,'')+' '+ISNULL(CONVERT(varchar(10),p.NumberOfTeeth),'')+'T') LIKE @Product)";
 
             var conditions = new List<string>();
             var statusFilter = EffectiveStatusFilter(status);
             if (!string.IsNullOrEmpty(statusFilter)) conditions.Add(statusFilter);
             if (!string.IsNullOrWhiteSpace(search))
                 conditions.Add("(o.OrderNo LIKE @Search OR ISNULL(o.CustomerName, c.CustomerName) LIKE @Search OR ISNULL(o.ProductName, mp.ModelName) LIKE @Search)");
+            // Per-column filters (AND-combined)
+            if (!string.IsNullOrWhiteSpace(filter.OrderNo))  conditions.Add("o.OrderNo LIKE @OrderNo");
+            if (!string.IsNullOrWhiteSpace(filter.Customer)) conditions.Add("ISNULL(o.CustomerName, c.CustomerName) LIKE @Customer");
+            if (!string.IsNullOrWhiteSpace(filter.Product))  conditions.Add($"({itemProductMatch} OR {orderProductText} LIKE @Product)");
+            if (!string.IsNullOrWhiteSpace(filter.Source))   conditions.Add("o.OrderSource = @Source");
+            if (filter.OrderDateFrom.HasValue)               conditions.Add("o.OrderDate >= @OrderDateFrom");
+            if (filter.OrderDateTo.HasValue)                 conditions.Add("o.OrderDate < DATEADD(day, 1, @OrderDateTo)"); // inclusive of the To day
             var whereClause = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
 
             var listQuery = $@"{SelectOrderWithNames} {whereClause}
@@ -138,13 +157,25 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 LEFT JOIN Masters_Products mp ON o.ProductId = mp.Id
                 {whereClause}";
 
+            // Adds every filter parameter that applies, shared by both the count and list commands.
+            void AddFilterParams(SqlCommand cmd)
+            {
+                if (!string.IsNullOrWhiteSpace(search))          cmd.Parameters.AddWithValue("@Search", $"%{search}%");
+                if (!string.IsNullOrWhiteSpace(filter.OrderNo))  cmd.Parameters.AddWithValue("@OrderNo", $"%{filter.OrderNo}%");
+                if (!string.IsNullOrWhiteSpace(filter.Customer)) cmd.Parameters.AddWithValue("@Customer", $"%{filter.Customer}%");
+                if (!string.IsNullOrWhiteSpace(filter.Product))  cmd.Parameters.AddWithValue("@Product", $"%{filter.Product}%");
+                if (!string.IsNullOrWhiteSpace(filter.Source))   cmd.Parameters.AddWithValue("@Source", filter.Source);
+                if (filter.OrderDateFrom.HasValue)               cmd.Parameters.AddWithValue("@OrderDateFrom", filter.OrderDateFrom.Value.Date);
+                if (filter.OrderDateTo.HasValue)                 cmd.Parameters.AddWithValue("@OrderDateTo", filter.OrderDateTo.Value.Date);
+            }
+
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             await connection.OpenAsync();
 
             int total;
             using (var countCmd = new SqlCommand(countQuery, connection))
             {
-                if (!string.IsNullOrWhiteSpace(search)) countCmd.Parameters.AddWithValue("@Search", $"%{search}%");
+                AddFilterParams(countCmd);
                 total = (int)await countCmd.ExecuteScalarAsync();
             }
 
@@ -153,12 +184,116 @@ namespace MultiHitechERP.API.Repositories.Implementations
             {
                 command.Parameters.AddWithValue("@Offset", (page - 1) * pageSize);
                 command.Parameters.AddWithValue("@PageSize", pageSize);
-                if (!string.IsNullOrWhiteSpace(search)) command.Parameters.AddWithValue("@Search", $"%{search}%");
+                AddFilterParams(command);
                 using var reader = await command.ExecuteReaderAsync();
                 while (await reader.ReadAsync()) orders.Add(MapToOrder(reader));
             }
 
             return (orders, total);
+        }
+
+        public async Task<IEnumerable<DTOs.Response.OrderLiteResponse>> GetLiteListAsync()
+        {
+            // One row per order item (sub-order) with product spec — single fast query.
+            const string sql = @"
+                SELECT o.Id AS OrderId, oi.Id AS OrderItemId, oi.ItemSequence, o.OrderNo,
+                       ISNULL(o.CustomerName, c.CustomerName) AS CustomerName,
+                       p.ModelName AS MachineModel, p.RollerType, p.NumberOfTeeth,
+                       o.OrderDate
+                FROM Orders o
+                JOIN Orders_OrderItems oi ON oi.OrderId = o.Id
+                LEFT JOIN Masters_Customers c ON o.CustomerId = c.Id
+                LEFT JOIN Masters_Products p ON oi.ProductId = p.Id
+                ORDER BY o.OrderDate DESC, o.OrderNo DESC, oi.ItemSequence";
+
+            var list = new List<DTOs.Response.OrderLiteResponse>();
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(sql, connection);
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                list.Add(new DTOs.Response.OrderLiteResponse
+                {
+                    OrderId = reader.GetInt32(reader.GetOrdinal("OrderId")),
+                    OrderItemId = reader.GetInt32(reader.GetOrdinal("OrderItemId")),
+                    ItemSequence = reader.IsDBNull(reader.GetOrdinal("ItemSequence")) ? null : reader.GetString(reader.GetOrdinal("ItemSequence")),
+                    OrderNo = reader.IsDBNull(reader.GetOrdinal("OrderNo")) ? "" : reader.GetString(reader.GetOrdinal("OrderNo")),
+                    CustomerName = reader.IsDBNull(reader.GetOrdinal("CustomerName")) ? null : reader.GetString(reader.GetOrdinal("CustomerName")),
+                    MachineModel = reader.IsDBNull(reader.GetOrdinal("MachineModel")) ? null : reader.GetString(reader.GetOrdinal("MachineModel")),
+                    RollerType = reader.IsDBNull(reader.GetOrdinal("RollerType")) ? null : reader.GetString(reader.GetOrdinal("RollerType")),
+                    NumberOfTeeth = reader.IsDBNull(reader.GetOrdinal("NumberOfTeeth")) ? (int?)null : reader.GetInt32(reader.GetOrdinal("NumberOfTeeth")),
+                    OrderDate = reader.GetDateTime(reader.GetOrdinal("OrderDate")),
+                });
+            }
+            return list;
+        }
+
+        public async Task<(int RequisitionsUpdated, int ChallansUpdated)> ChangeCustomerAsync(
+            int orderId, string? orderNo, int oldCustomerId, string? oldCustomerName,
+            int newCustomerId, string newCustomerName, string? changedBy, string? notes)
+        {
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            await connection.OpenAsync();
+            using var tx = connection.BeginTransaction();
+            try
+            {
+                // 1) The order itself
+                using (var cmd = new SqlCommand(
+                    "UPDATE Orders SET CustomerId=@New, CustomerName=@NewName, UpdatedAt=GETUTCDATE(), UpdatedBy=@By WHERE Id=@OrderId", connection, tx))
+                {
+                    cmd.Parameters.AddWithValue("@New", newCustomerId);
+                    cmd.Parameters.AddWithValue("@NewName", (object?)newCustomerName ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@By", (object?)changedBy ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@OrderId", orderId);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                // 2) Cascade denormalized CustomerName to child records (linked by OrderId)
+                int reqUpdated, challanUpdated;
+                using (var cmd = new SqlCommand(
+                    "UPDATE Stores_MaterialRequisitions SET CustomerName=@NewName WHERE OrderId=@OrderId", connection, tx))
+                {
+                    cmd.Parameters.AddWithValue("@NewName", (object?)newCustomerName ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@OrderId", orderId);
+                    reqUpdated = await cmd.ExecuteNonQueryAsync();
+                }
+                using (var cmd = new SqlCommand(
+                    "UPDATE Dispatch_DeliveryChallans SET CustomerId=@New, CustomerName=@NewName WHERE OrderId=@OrderId", connection, tx))
+                {
+                    cmd.Parameters.AddWithValue("@New", newCustomerId);
+                    cmd.Parameters.AddWithValue("@NewName", (object?)newCustomerName ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@OrderId", orderId);
+                    challanUpdated = await cmd.ExecuteNonQueryAsync();
+                }
+
+                // 3) Audit
+                using (var cmd = new SqlCommand(@"
+                    INSERT INTO Orders_CustomerChangeLog
+                        (OrderId, OrderNo, OldCustomerId, OldCustomerName, NewCustomerId, NewCustomerName, RequisitionsUpdated, ChallansUpdated, ChangedBy, ChangedAt, Notes)
+                    VALUES (@OrderId, @OrderNo, @OldId, @OldName, @NewId, @NewName, @Req, @Challan, @By, GETUTCDATE(), @Notes)", connection, tx))
+                {
+                    cmd.Parameters.AddWithValue("@OrderId", orderId);
+                    cmd.Parameters.AddWithValue("@OrderNo", (object?)orderNo ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@OldId", oldCustomerId);
+                    cmd.Parameters.AddWithValue("@OldName", (object?)oldCustomerName ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@NewId", newCustomerId);
+                    cmd.Parameters.AddWithValue("@NewName", (object?)newCustomerName ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Req", reqUpdated);
+                    cmd.Parameters.AddWithValue("@Challan", challanUpdated);
+                    cmd.Parameters.AddWithValue("@By", (object?)changedBy ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Notes", (object?)notes ?? DBNull.Value);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                tx.Commit();
+                return (reqUpdated, challanUpdated);
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
+            }
         }
 
         public async Task<(int Total, int Pending, int InProgress, int Ready, int Completed)> GetSummaryAsync()

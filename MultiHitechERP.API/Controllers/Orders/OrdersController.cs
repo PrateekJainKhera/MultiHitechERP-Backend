@@ -63,15 +63,46 @@ namespace MultiHitechERP.API.Controllers.Orders
         /// <summary>
         /// Get orders with server-side pagination, search, and status filter
         /// </summary>
+        // Change an order's customer (e.g. wrong client selected) + cascade denormalized name + audit.
+        [HttpPost("{id:int}/change-customer")]
+        public async Task<IActionResult> ChangeCustomer(int id, [FromBody] ChangeCustomerRequest request)
+        {
+            var result = await _orderService.ChangeCustomerAsync(id, request);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        // Lightweight order list for pickers (single fast query, no per-order N+1).
+        [HttpGet("lite")]
+        public async Task<IActionResult> GetLite()
+        {
+            var response = await _orderService.GetLiteListAsync();
+            return response.Success ? Ok(response) : BadRequest(response);
+        }
+
         [HttpGet("paged")]
         [ProducesResponseType(typeof(ApiResponse<PagedOrdersResponse>), 200)]
         public async Task<IActionResult> GetPaged(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 25,
             [FromQuery] string? search = null,
-            [FromQuery] string? status = null)
+            [FromQuery] string? status = null,
+            [FromQuery] string? orderNo = null,
+            [FromQuery] string? customer = null,
+            [FromQuery] string? product = null,
+            [FromQuery] string? source = null,
+            [FromQuery] DateTime? orderDateFrom = null,
+            [FromQuery] DateTime? orderDateTo = null)
         {
-            var response = await _orderService.GetPagedAsync(page, pageSize, search, status);
+            var filter = new OrderListFilter
+            {
+                OrderNo = orderNo,
+                Customer = customer,
+                Product = product,
+                Source = source,
+                OrderDateFrom = orderDateFrom,
+                OrderDateTo = orderDateTo
+            };
+            var response = await _orderService.GetPagedAsync(page, pageSize, search, status, filter);
             if (!response.Success) return BadRequest(response);
             return Ok(response);
         }

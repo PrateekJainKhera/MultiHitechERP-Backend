@@ -14,7 +14,10 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<Order?> GetByIdAsync(int id);
         Task<Order?> GetByOrderNoAsync(string orderNo);
         Task<IEnumerable<Order>> GetAllAsync();
-        Task<(IEnumerable<Order> Items, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search, string? status);
+        Task<(IEnumerable<Order> Items, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search, string? status, DTOs.Request.OrderListFilter? filter = null);
+        Task<IEnumerable<DTOs.Response.OrderLiteResponse>> GetLiteListAsync();
+        // Changes an order's customer + cascades the denormalized CustomerName to requisitions/challans, and writes an audit row. Returns rows cascaded.
+        Task<(int RequisitionsUpdated, int ChallansUpdated)> ChangeCustomerAsync(int orderId, string? orderNo, int oldCustomerId, string? oldCustomerName, int newCustomerId, string newCustomerName, string? changedBy, string? notes);
         Task<(int Total, int Pending, int InProgress, int Ready, int Completed)> GetSummaryAsync();
         Task<(IEnumerable<DTOs.Response.PlanningItemResponse> Items, int TotalCount)> GetPlanningItemsAsync(string type, int page, int pageSize, string? search);
         Task<(int TotalOrders, int PendingPlanning, int Planned, int MaterialShortage)> GetPlanningSummaryAsync();
