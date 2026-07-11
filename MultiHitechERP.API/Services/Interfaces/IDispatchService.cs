@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Dispatch;
 
@@ -39,6 +40,7 @@ namespace MultiHitechERP.API.Services.Interfaces
 
         // Simple Dispatch Flow
         Task<ApiResponse<List<ReadyToDispatchItem>>> GetReadyToDispatchAsync();
-        Task<ApiResponse<int>> SimpleDispatchAsync(int orderItemId, int qtyToDispatch, DateTime dispatchDate, string? invoiceNo, DateTime? invoiceDate, string? invoiceDocument, string? remarks);
+        Task<ApiResponse<int>> ConsolidatedDispatchAsync(ConsolidatedDispatchRequest request, string? invoiceDocument);
+        Task<ApiResponse<IEnumerable<DeliveryChallanItem>>> GetChallanItemsAsync(int challanId);
     }
 }

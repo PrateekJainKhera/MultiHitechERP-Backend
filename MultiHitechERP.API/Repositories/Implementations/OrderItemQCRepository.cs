@@ -36,6 +36,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     oi.ProductName,
                     ISNULL(c.CustomerName, '') AS CustomerName,
                     oi.Quantity,
+                    p.ModelName     AS MachineModel,
+                    p.RollerType    AS RollerType,
+                    p.NumberOfTeeth AS NumberOfTeeth,
                     qc.Id           AS QCRecordId,
                     qc.QCStatus,
                     qc.CertificatePath,
@@ -45,6 +48,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 FROM Orders_OrderItems oi
                 JOIN Orders o ON oi.OrderId = o.Id
                 LEFT JOIN Masters_Customers c ON o.CustomerId = c.Id
+                LEFT JOIN Masters_Products p ON oi.ProductId = p.Id
                 -- Must have at least one completed Assembly job card
                 INNER JOIN (
                     SELECT DISTINCT OrderItemId
@@ -80,6 +84,9 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     ProductName    = reader.IsDBNull(reader.GetOrdinal("ProductName")) ? "" : reader.GetString(reader.GetOrdinal("ProductName")),
                     CustomerName   = reader.GetString(reader.GetOrdinal("CustomerName")),
                     Quantity       = reader.GetInt32(reader.GetOrdinal("Quantity")),
+                    MachineModel   = reader.IsDBNull(reader.GetOrdinal("MachineModel")) ? null : reader.GetString(reader.GetOrdinal("MachineModel")),
+                    RollerType     = reader.IsDBNull(reader.GetOrdinal("RollerType")) ? null : reader.GetString(reader.GetOrdinal("RollerType")),
+                    NumberOfTeeth  = reader.IsDBNull(reader.GetOrdinal("NumberOfTeeth")) ? null : reader.GetInt32(reader.GetOrdinal("NumberOfTeeth")),
                     QCRecordId     = reader.IsDBNull(reader.GetOrdinal("QCRecordId")) ? null : reader.GetInt32(reader.GetOrdinal("QCRecordId")),
                     QCStatus       = reader.IsDBNull(reader.GetOrdinal("QCStatus")) ? null : reader.GetString(reader.GetOrdinal("QCStatus")),
                     CertificatePath = reader.IsDBNull(reader.GetOrdinal("CertificatePath")) ? null : reader.GetString(reader.GetOrdinal("CertificatePath")),

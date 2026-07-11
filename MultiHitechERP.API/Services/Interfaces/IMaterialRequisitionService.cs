@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Stores;
 
@@ -27,6 +28,7 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<bool>> UpdateRequisitionAsync(MaterialRequisition requisition);
         Task<ApiResponse<bool>> DeleteRequisitionAsync(int id);
         Task<ApiResponse<bool>> UpdateItemSelectedPiecesAsync(int requisitionId, int itemId, List<int> pieceIds);
+        Task<ApiResponse<bool>> ChangeItemMaterialAsync(int requisitionId, int itemId, ChangeRequisitionItemMaterialRequest request);
 
         // Approval Workflow
         Task<ApiResponse<bool>> ApproveRequisitionAsync(int id, string approvedBy);

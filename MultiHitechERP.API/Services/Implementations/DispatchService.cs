@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Dispatch;
@@ -250,47 +251,96 @@ namespace MultiHitechERP.API.Services.Implementations
             return ApiResponse<List<ReadyToDispatchItem>>.SuccessResponse(items);
         }
 
-        public async Task<ApiResponse<int>> SimpleDispatchAsync(
-            int orderItemId, int qtyToDispatch, DateTime dispatchDate,
-            string? invoiceNo, DateTime? invoiceDate, string? invoiceDocument, string? remarks)
+        // Dispatch several ready items for ONE customer on a single consolidated challan / bill.
+        public async Task<ApiResponse<int>> ConsolidatedDispatchAsync(ConsolidatedDispatchRequest request, string? invoiceDocument)
         {
-            var orderItem = await _orderItemRepository.GetByIdAsync(orderItemId);
-            if (orderItem == null)
-                return ApiResponse<int>.ErrorResponse("Order item not found");
+            if (request == null || request.Items == null || request.Items.Count == 0)
+                return ApiResponse<int>.ErrorResponse("Select at least one item to dispatch");
 
-            var qtyPending = orderItem.QtyCompleted - orderItem.QtyDispatched;
-            if (qtyToDispatch <= 0)
-                return ApiResponse<int>.ErrorResponse("Quantity to dispatch must be greater than 0");
-            if (qtyToDispatch > qtyPending)
-                return ApiResponse<int>.ErrorResponse($"Cannot dispatch {qtyToDispatch}. Only {qtyPending} pending dispatch.");
+            if (request.CustomerId <= 0)
+                return ApiResponse<int>.ErrorResponse("A customer must be selected");
 
-            var order = await _orderRepository.GetByIdAsync(orderItem.OrderId);
+            // Load the ready-to-dispatch list once → validate & enrich each line from it.
+            var ready = (await _orderItemRepository.GetReadyToDispatchAsync())
+                .ToDictionary(r => r.OrderItemId, r => r);
+
+            var lines = new List<(ConsolidatedDispatchLine req, ReadyToDispatchItem ready)>();
+            foreach (var line in request.Items)
+            {
+                if (line.QtyToDispatch <= 0)
+                    return ApiResponse<int>.ErrorResponse("Quantity to dispatch must be greater than 0");
+                if (!ready.TryGetValue(line.OrderItemId, out var r))
+                    return ApiResponse<int>.ErrorResponse($"Order item {line.OrderItemId} is not ready to dispatch");
+                if (r.CustomerId != request.CustomerId)
+                    return ApiResponse<int>.ErrorResponse($"{r.OrderNo}-{r.ItemSequence} belongs to a different customer — one bill must be for one customer");
+                if (line.QtyToDispatch > r.QtyPendingDispatch)
+                    return ApiResponse<int>.ErrorResponse($"{r.OrderNo}-{r.ItemSequence}: cannot dispatch {line.QtyToDispatch}, only {r.QtyPendingDispatch} pending");
+                lines.Add((line, r));
+            }
+
+            var first = lines[0].ready;
+            var distinctOrders = lines.Select(l => l.ready.OrderId).Distinct().Count();
+            var totalQty = lines.Sum(l => l.req.QtyToDispatch);
             var challanNo = $"DC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
 
             var challan = new DeliveryChallan
             {
                 ChallanNo = challanNo,
-                ChallanDate = dispatchDate,
-                OrderId = orderItem.OrderId,
-                OrderNo = order?.OrderNo ?? string.Empty,
-                CustomerId = order?.CustomerId ?? 0,
-                CustomerName = order?.CustomerName,
-                ProductId = orderItem.ProductId,
-                ProductName = orderItem.ProductName,
-                QuantityDispatched = qtyToDispatch,
-                InvoiceNo = invoiceNo,
-                InvoiceDate = invoiceDate,
+                ChallanDate = request.DispatchDate,
+                OrderId = first.OrderId,                        // representative (header requires a value)
+                OrderNo = distinctOrders == 1 ? first.OrderNo : $"{distinctOrders} orders",
+                CustomerId = request.CustomerId,
+                CustomerName = first.CustomerName,
+                ProductId = 0,                                  // 0 = multiple products (see line items)
+                ProductName = $"{lines.Count} item(s)",
+                QuantityDispatched = totalQty,
+                DeliveryAddress = request.DeliveryAddress,
+                TransportMode = request.TransportMode,
+                VehicleNumber = request.VehicleNumber,
+                DriverName = request.DriverName,
+                DriverContact = request.DriverContact,
+                InvoiceNo = request.InvoiceNo,
+                InvoiceDate = request.InvoiceDate,
+                InvoiceDocument = invoiceDocument,
                 Status = "Dispatched",
                 DispatchedAt = DateTime.UtcNow,
-                Remarks = remarks,
+                Remarks = request.Remarks,
+                IsConsolidated = true,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = "Admin",
+                CreatedBy = string.IsNullOrWhiteSpace(request.CreatedBy) ? "Admin" : request.CreatedBy,
             };
 
             var challanId = await _challanRepository.InsertAsync(challan);
-            await _orderItemRepository.UpdateQtyDispatchedAsync(orderItemId, qtyToDispatch);
 
-            return ApiResponse<int>.SuccessResponse(challanId, $"Dispatched {qtyToDispatch} units. Challan: {challanNo}");
+            foreach (var (req, r) in lines)
+            {
+                await _challanRepository.InsertChallanItemAsync(new DeliveryChallanItem
+                {
+                    ChallanId = challanId,
+                    OrderId = r.OrderId,
+                    OrderItemId = r.OrderItemId,
+                    OrderNo = r.OrderNo,
+                    ItemSequence = r.ItemSequence,
+                    ProductId = r.ProductId,
+                    ProductCode = r.PartCode,
+                    ProductName = r.ProductName,
+                    Quantity = req.QtyToDispatch,
+                    UOM = "pcs",
+                    MachineModel = r.MachineModel,
+                    RollerType = r.RollerType,
+                    NumberOfTeeth = r.NumberOfTeeth,
+                });
+                await _orderItemRepository.UpdateQtyDispatchedAsync(r.OrderItemId, req.QtyToDispatch);
+            }
+
+            return ApiResponse<int>.SuccessResponse(challanId,
+                $"Dispatched {lines.Count} item(s) across {distinctOrders} order(s) on challan {challanNo}");
+        }
+
+        public async Task<ApiResponse<IEnumerable<DeliveryChallanItem>>> GetChallanItemsAsync(int challanId)
+        {
+            var items = await _challanRepository.GetChallanItemsAsync(challanId);
+            return ApiResponse<IEnumerable<DeliveryChallanItem>>.SuccessResponse(items);
         }
 
     }

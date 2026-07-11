@@ -27,6 +27,13 @@ namespace MultiHitechERP.API.Services.Implementations
 
         public async Task<GRNResponse> CreateGRNAsync(CreateGRNRequest request)
         {
+            // Validate ALL lines before inserting anything (avoids orphan GRN headers).
+            foreach (var l in request.Lines)
+            {
+                var (calcLen, _) = CalculateLengthFromWeight(l);
+                ValidatePieceLength(l.MaterialName, l.LengthPerPieceMM, calcLen, l.NumberOfPieces);
+            }
+
             // Check if any line exceeds weight variance threshold (billed KG vs actual KG)
             bool requiresApproval = request.Lines.Any(l =>
                 l.BilledWeightKG.HasValue &&
@@ -221,6 +228,13 @@ namespace MultiHitechERP.API.Services.Implementations
             if (grn == null) throw new Exception("GRN not found");
             if (grn.Status != "Rejected") throw new Exception("Only a rejected GRN can be re-submitted");
 
+            // Validate ALL lines before deleting/replacing anything.
+            foreach (var l in request.Lines)
+            {
+                var (calcLen, _) = CalculateLengthFromWeight(l);
+                ValidatePieceLength(l.MaterialName, l.LengthPerPieceMM, calcLen, l.NumberOfPieces);
+            }
+
             // Replace ALL lines with the corrected piece breakdown from the form
             var existing = await _grnRepo.GetLinesByGRNIdAsync(id);
             foreach (var l in existing) await _grnRepo.DeleteLineAsync(l.Id);
@@ -358,6 +372,18 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             if (actual <= 0) return 0;
             return Math.Abs((billed - actual) / actual) * 100;
+        }
+
+        // Industry max bar length is 3.657 m; anything over 4 m is a data-entry error.
+        // Mirrors the frontend guard so the API can't be bypassed.
+        private const decimal MaxPieceLengthMM = 4000m;
+        private static void ValidatePieceLength(string? materialName, decimal? lengthPerPieceMM, decimal calculatedLength, int numberOfPieces)
+        {
+            var effLen = lengthPerPieceMM
+                ?? (numberOfPieces > 0 && calculatedLength > 0 ? calculatedLength / numberOfPieces : 0);
+            if (effLen > MaxPieceLengthMM)
+                throw new InvalidOperationException(
+                    $"{materialName ?? "Material"}: piece length {effLen / 1000m:0.###} m exceeds the 4 m maximum — a bar cannot be longer than 4 m. Please correct the entry.");
         }
 
         private CreateGRNLineRequest MapLineToCreateRequest(GRNLine line, GRN grn)

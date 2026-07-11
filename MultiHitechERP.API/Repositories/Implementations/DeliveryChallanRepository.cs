@@ -146,7 +146,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     Status, DispatchedAt, DeliveredAt,
                     InvoiceNo, InvoiceDate, InvoiceDocument,
                     ReceivedBy, AcknowledgedAt, DeliveryRemarks,
-                    Remarks, CreatedAt, CreatedBy
+                    Remarks, CreatedAt, CreatedBy, IsConsolidated
                 ) VALUES (
                     @ChallanNo, @ChallanDate, @OrderId, @OrderNo,
                     @CustomerId, @CustomerName, @ProductId, @ProductName,
@@ -156,7 +156,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     @Status, @DispatchedAt, @DeliveredAt,
                     @InvoiceNo, @InvoiceDate, @InvoiceDocument,
                     @ReceivedBy, @AcknowledgedAt, @DeliveryRemarks,
-                    @Remarks, @CreatedAt, @CreatedBy
+                    @Remarks, @CreatedAt, @CreatedBy, @IsConsolidated
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
@@ -193,10 +193,82 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Remarks", (object?)challan.Remarks ?? DBNull.Value);
             command.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
             command.Parameters.AddWithValue("@CreatedBy", (object?)challan.CreatedBy ?? DBNull.Value);
+            command.Parameters.AddWithValue("@IsConsolidated", challan.IsConsolidated);
 
             await connection.OpenAsync();
             var result = await command.ExecuteScalarAsync();
             return result != null ? (int)result : 0;
+        }
+
+        // ── Consolidated challan line items ──────────────────────────────────────
+        public async Task<int> InsertChallanItemAsync(DeliveryChallanItem item)
+        {
+            const string query = @"
+                INSERT INTO Dispatch_DeliveryChallanItems
+                    (ChallanId, OrderId, OrderItemId, OrderNo, ItemSequence,
+                     ProductId, ProductCode, ProductName, Quantity, UOM,
+                     MachineModel, RollerType, NumberOfTeeth, Remarks)
+                VALUES
+                    (@ChallanId, @OrderId, @OrderItemId, @OrderNo, @ItemSequence,
+                     @ProductId, @ProductCode, @ProductName, @Quantity, @UOM,
+                     @MachineModel, @RollerType, @NumberOfTeeth, @Remarks);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@ChallanId", item.ChallanId);
+            command.Parameters.AddWithValue("@OrderId", (object?)item.OrderId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@OrderItemId", (object?)item.OrderItemId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@OrderNo", (object?)item.OrderNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ItemSequence", (object?)item.ItemSequence ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProductId", (object?)item.ProductId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProductCode", (object?)item.ProductCode ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ProductName", (object?)item.ProductName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Quantity", item.Quantity);
+            command.Parameters.AddWithValue("@UOM", (object?)item.UOM ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MachineModel", (object?)item.MachineModel ?? DBNull.Value);
+            command.Parameters.AddWithValue("@RollerType", (object?)item.RollerType ?? DBNull.Value);
+            command.Parameters.AddWithValue("@NumberOfTeeth", (object?)item.NumberOfTeeth ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Remarks", (object?)item.Remarks ?? DBNull.Value);
+
+            await connection.OpenAsync();
+            var result = await command.ExecuteScalarAsync();
+            return result != null ? (int)result : 0;
+        }
+
+        public async Task<IEnumerable<DeliveryChallanItem>> GetChallanItemsAsync(int challanId)
+        {
+            const string query = "SELECT * FROM Dispatch_DeliveryChallanItems WHERE ChallanId = @ChallanId ORDER BY Id";
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@ChallanId", challanId);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+            var items = new List<DeliveryChallanItem>();
+            int O(string c) => reader.GetOrdinal(c);
+            while (await reader.ReadAsync())
+            {
+                items.Add(new DeliveryChallanItem
+                {
+                    Id = reader.GetInt32(O("Id")),
+                    ChallanId = reader.GetInt32(O("ChallanId")),
+                    OrderId = reader.IsDBNull(O("OrderId")) ? null : reader.GetInt32(O("OrderId")),
+                    OrderItemId = reader.IsDBNull(O("OrderItemId")) ? null : reader.GetInt32(O("OrderItemId")),
+                    OrderNo = reader.IsDBNull(O("OrderNo")) ? null : reader.GetString(O("OrderNo")),
+                    ItemSequence = reader.IsDBNull(O("ItemSequence")) ? null : reader.GetString(O("ItemSequence")),
+                    ProductId = reader.IsDBNull(O("ProductId")) ? null : reader.GetInt32(O("ProductId")),
+                    ProductCode = reader.IsDBNull(O("ProductCode")) ? null : reader.GetString(O("ProductCode")),
+                    ProductName = reader.IsDBNull(O("ProductName")) ? null : reader.GetString(O("ProductName")),
+                    Quantity = reader.IsDBNull(O("Quantity")) ? 0 : reader.GetInt32(O("Quantity")),
+                    UOM = reader.IsDBNull(O("UOM")) ? null : reader.GetString(O("UOM")),
+                    MachineModel = reader.IsDBNull(O("MachineModel")) ? null : reader.GetString(O("MachineModel")),
+                    RollerType = reader.IsDBNull(O("RollerType")) ? null : reader.GetString(O("RollerType")),
+                    NumberOfTeeth = reader.IsDBNull(O("NumberOfTeeth")) ? null : reader.GetInt32(O("NumberOfTeeth")),
+                    Remarks = reader.IsDBNull(O("Remarks")) ? null : reader.GetString(O("Remarks")),
+                });
+            }
+            return items;
         }
 
         public async Task<bool> UpdateAsync(DeliveryChallan challan)
@@ -445,7 +517,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 DeliveryRemarks = reader.IsDBNull(reader.GetOrdinal("DeliveryRemarks")) ? null : reader.GetString(reader.GetOrdinal("DeliveryRemarks")),
                 Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
-                CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy"))
+                CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
+                IsConsolidated = !reader.IsDBNull(reader.GetOrdinal("IsConsolidated")) && reader.GetBoolean(reader.GetOrdinal("IsConsolidated"))
             };
         }
     }

@@ -40,6 +40,9 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<bool> DeleteRequisitionItemsAsync(int requisitionId);
         Task<bool> UpdateItemSelectedPiecesAsync(int itemId, string? selectedPieceIds);
         Task<bool> UpdateItemPiecesAndQuantitiesAsync(int itemId, string? selectedPieceIds, string? selectedPieceQuantities);
+        Task<MaterialRequisitionItem?> GetItemByIdAsync(int itemId);
+        Task<bool> UpdateItemMaterialAsync(MaterialRequisitionItem item);
+        Task<int> InsertMaterialChangeLogAsync(RequisitionMaterialChangeLog log);
         Task<IEnumerable<MaterialRequisitionItem>> GetItemsByRequisitionIdsAsync(IEnumerable<int> requisitionIds);
 
         // Returns requisitionId -> (ModelName, NumberOfTeeth, RollerType) via order item / order -> product

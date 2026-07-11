@@ -55,5 +55,31 @@ namespace MultiHitechERP.API.Models.Dispatch
         public string? Remarks { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
+
+        // True when this challan consolidates multiple orders/items onto one bill.
+        // The per-line breakdown lives in Dispatch_DeliveryChallanItems.
+        public bool IsConsolidated { get; set; }
+    }
+
+    /// <summary>
+    /// A single line of a (usually consolidated) delivery challan — one dispatched order item.
+    /// </summary>
+    public class DeliveryChallanItem
+    {
+        public int Id { get; set; }
+        public int ChallanId { get; set; }
+        public int? OrderId { get; set; }
+        public int? OrderItemId { get; set; }
+        public string? OrderNo { get; set; }
+        public string? ItemSequence { get; set; }
+        public int? ProductId { get; set; }
+        public string? ProductCode { get; set; }
+        public string? ProductName { get; set; }
+        public int Quantity { get; set; }
+        public string? UOM { get; set; }
+        public string? MachineModel { get; set; }
+        public string? RollerType { get; set; }
+        public int? NumberOfTeeth { get; set; }
+        public string? Remarks { get; set; }
     }
 }

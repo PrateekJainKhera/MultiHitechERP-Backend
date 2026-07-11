@@ -266,21 +266,42 @@ namespace MultiHitechERP.API.Controllers.Dispatch
         }
 
         /// <summary>
-        /// Simple dispatch: create challan directly from an order item with optional invoice document
+        /// Consolidated dispatch — several ready items for one customer on a single challan / bill.
+        /// itemsJson is a JSON array of { orderItemId, qtyToDispatch }.
         /// </summary>
-        [HttpPost("simple-dispatch")]
+        [HttpPost("consolidated-dispatch")]
         [Consumes("multipart/form-data")]
-        public async Task<ActionResult<ApiResponse<int>>> SimpleDispatch(
-            [FromForm] int orderItemId,
-            [FromForm] int qtyToDispatch,
+        public async Task<ActionResult<ApiResponse<int>>> ConsolidatedDispatch(
+            [FromForm] int customerId,
             [FromForm] DateTime dispatchDate,
+            [FromForm] string itemsJson,
             [FromForm] string? invoiceNo,
             [FromForm] DateTime? invoiceDate,
+            [FromForm] string? deliveryAddress,
+            [FromForm] string? transportMode,
+            [FromForm] string? vehicleNumber,
+            [FromForm] string? driverName,
+            [FromForm] string? driverContact,
             [FromForm] string? remarks,
+            [FromForm] string? createdBy,
             IFormFile? invoiceDocument)
         {
-            string? invoiceDocPath = null;
+            List<ConsolidatedDispatchLine>? items;
+            try
+            {
+                items = System.Text.Json.JsonSerializer.Deserialize<List<ConsolidatedDispatchLine>>(
+                    itemsJson ?? "[]",
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch
+            {
+                return BadRequest(ApiResponse<int>.ErrorResponse("Invalid items payload"));
+            }
 
+            if (items == null || items.Count == 0)
+                return BadRequest(ApiResponse<int>.ErrorResponse("Select at least one item to dispatch"));
+
+            string? invoiceDocPath = null;
             if (invoiceDocument != null && invoiceDocument.Length > 0)
             {
                 var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(invoiceDocument.FileName)}";
@@ -289,14 +310,39 @@ namespace MultiHitechERP.API.Controllers.Dispatch
                 invoiceDocPath = await _s3Service.UploadAsync(stream, s3Key, invoiceDocument.ContentType);
             }
 
-            var response = await _service.SimpleDispatchAsync(
-                orderItemId, qtyToDispatch, dispatchDate,
-                invoiceNo, invoiceDate, invoiceDocPath, remarks);
+            var request = new ConsolidatedDispatchRequest
+            {
+                CustomerId = customerId,
+                DispatchDate = dispatchDate,
+                InvoiceNo = invoiceNo,
+                InvoiceDate = invoiceDate,
+                DeliveryAddress = deliveryAddress,
+                TransportMode = transportMode,
+                VehicleNumber = vehicleNumber,
+                DriverName = driverName,
+                DriverContact = driverContact,
+                Remarks = remarks,
+                CreatedBy = createdBy,
+                Items = items,
+            };
 
+            var response = await _service.ConsolidatedDispatchAsync(request, invoiceDocPath);
             if (!response.Success)
                 return BadRequest(response);
 
             return Ok(response);
+        }
+
+        /// <summary>
+        /// Get the line items of a (consolidated) delivery challan.
+        /// </summary>
+        [HttpGet("{id:int}/items")]
+        public async Task<ActionResult<ApiResponse<DeliveryChallanItem[]>>> GetChallanItems(int id)
+        {
+            var response = await _service.GetChallanItemsAsync(id);
+            if (!response.Success)
+                return BadRequest(response);
+            return Ok(ApiResponse<DeliveryChallanItem[]>.SuccessResponse(response.Data.ToArray()));
         }
 
         // Helper Methods
@@ -333,7 +379,8 @@ namespace MultiHitechERP.API.Controllers.Dispatch
                 DeliveryRemarks = challan.DeliveryRemarks,
                 Remarks = challan.Remarks,
                 CreatedAt = challan.CreatedAt,
-                CreatedBy = challan.CreatedBy
+                CreatedBy = challan.CreatedBy,
+                IsConsolidated = challan.IsConsolidated
             };
         }
     }

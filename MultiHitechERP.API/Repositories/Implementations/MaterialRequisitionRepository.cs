@@ -548,6 +548,105 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
+        public async Task<MaterialRequisitionItem?> GetItemByIdAsync(int itemId)
+        {
+            const string query = "SELECT * FROM [Stores_MaterialRequisitionItems] WHERE [Id] = @Id";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", itemId);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+                return MapToRequisitionItem(reader);
+            return null;
+        }
+
+        // Update a requisition line's material + spec (length/diameter/pieces/quantity).
+        // Clears any pre-selected pieces because the old selection no longer matches the new material.
+        public async Task<bool> UpdateItemMaterialAsync(MaterialRequisitionItem item)
+        {
+            const string query = @"
+                UPDATE [Stores_MaterialRequisitionItems]
+                SET [MaterialId]        = @MaterialId,
+                    [MaterialCode]      = @MaterialCode,
+                    [MaterialName]      = @MaterialName,
+                    [MaterialGrade]     = @MaterialGrade,
+                    [LengthRequiredMM]  = @LengthRequiredMM,
+                    [DiameterMM]        = @DiameterMM,
+                    [NumberOfPieces]    = @NumberOfPieces,
+                    [QuantityRequired]  = @QuantityRequired,
+                    [RequestedQuantity] = @QuantityRequired,
+                    [QuantityPending]   = @QuantityRequired,
+                    [SelectedPieceIds]  = NULL,
+                    [SelectedPieceQuantities] = NULL
+                WHERE [Id] = @Id";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", item.Id);
+            command.Parameters.AddWithValue("@MaterialId", (object?)item.MaterialId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MaterialCode", (object?)item.MaterialCode ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MaterialName", (object?)item.MaterialName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@MaterialGrade", (object?)item.MaterialGrade ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LengthRequiredMM", (object?)item.LengthRequiredMM ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DiameterMM", (object?)item.DiameterMM ?? DBNull.Value);
+            command.Parameters.AddWithValue("@NumberOfPieces", (object?)item.NumberOfPieces ?? DBNull.Value);
+            command.Parameters.AddWithValue("@QuantityRequired", item.QuantityRequired);
+
+            await connection.OpenAsync();
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+            return rowsAffected > 0;
+        }
+
+        public async Task<int> InsertMaterialChangeLogAsync(RequisitionMaterialChangeLog log)
+        {
+            const string query = @"
+                INSERT INTO [Stores_RequisitionMaterialChangeLog]
+                ([RequisitionId], [RequisitionNo], [ItemId], [LineNo], [JobCardNo], [OrderNo], [ChangeType],
+                 [FromMaterialId], [FromMaterialCode], [FromMaterialName],
+                 [ToMaterialId], [ToMaterialCode], [ToMaterialName],
+                 [FromLengthMM], [ToLengthMM], [FromPieces], [ToPieces],
+                 [ReApprovalTriggered], [Reason], [ChangedBy], [ChangedByRole], [CreatedAt])
+                VALUES
+                (@RequisitionId, @RequisitionNo, @ItemId, @LineNo, @JobCardNo, @OrderNo, @ChangeType,
+                 @FromMaterialId, @FromMaterialCode, @FromMaterialName,
+                 @ToMaterialId, @ToMaterialCode, @ToMaterialName,
+                 @FromLengthMM, @ToLengthMM, @FromPieces, @ToPieces,
+                 @ReApprovalTriggered, @Reason, @ChangedBy, @ChangedByRole, @CreatedAt);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@RequisitionId", log.RequisitionId);
+            command.Parameters.AddWithValue("@RequisitionNo", (object?)log.RequisitionNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ItemId", log.ItemId);
+            command.Parameters.AddWithValue("@LineNo", (object?)log.LineNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@JobCardNo", (object?)log.JobCardNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@OrderNo", (object?)log.OrderNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ChangeType", log.ChangeType);
+            command.Parameters.AddWithValue("@FromMaterialId", (object?)log.FromMaterialId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@FromMaterialCode", (object?)log.FromMaterialCode ?? DBNull.Value);
+            command.Parameters.AddWithValue("@FromMaterialName", (object?)log.FromMaterialName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ToMaterialId", (object?)log.ToMaterialId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ToMaterialCode", (object?)log.ToMaterialCode ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ToMaterialName", (object?)log.ToMaterialName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@FromLengthMM", (object?)log.FromLengthMM ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ToLengthMM", (object?)log.ToLengthMM ?? DBNull.Value);
+            command.Parameters.AddWithValue("@FromPieces", (object?)log.FromPieces ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ToPieces", (object?)log.ToPieces ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ReApprovalTriggered", log.ReApprovalTriggered);
+            command.Parameters.AddWithValue("@Reason", log.Reason ?? string.Empty);
+            command.Parameters.AddWithValue("@ChangedBy", (object?)log.ChangedBy ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ChangedByRole", (object?)log.ChangedByRole ?? DBNull.Value);
+            command.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+
+            await connection.OpenAsync();
+            var id = (int)await command.ExecuteScalarAsync();
+            return id;
+        }
+
         public async Task<IEnumerable<MaterialRequisitionItem>> GetItemsByRequisitionIdsAsync(IEnumerable<int> requisitionIds)
         {
             var idList = string.Join(",", requisitionIds);

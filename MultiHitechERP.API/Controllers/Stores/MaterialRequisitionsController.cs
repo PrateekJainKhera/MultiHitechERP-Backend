@@ -351,6 +351,23 @@ namespace MultiHitechERP.API.Controllers.Stores
         }
 
         /// <summary>
+        /// Change (substitute) a requisition line's material before it is issued.
+        /// A material change resets the requisition to Pending (re-approval). Reason is compulsory.
+        /// </summary>
+        [HttpPut("{id:int}/items/{itemId:int}/material")]
+        public async Task<ActionResult<ApiResponse<bool>>> ChangeItemMaterial(int id, int itemId, [FromBody] ChangeRequisitionItemMaterialRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<bool>.ErrorResponse("Reason and material are required"));
+
+            var response = await _service.ChangeItemMaterialAsync(id, itemId, request);
+            if (!response.Success)
+                return BadRequest(response);
+
+            return Ok(response);
+        }
+
+        /// <summary>
         /// Update requisition status
         /// </summary>
         [HttpPatch("{id:int}/status")]

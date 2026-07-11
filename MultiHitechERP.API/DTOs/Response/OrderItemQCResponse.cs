@@ -32,6 +32,11 @@ namespace MultiHitechERP.API.DTOs.Response
         public string CustomerName { get; set; } = string.Empty;
         public int Quantity { get; set; }
 
+        // Product spec (from Masters_Products via the order item's ProductId)
+        public string? MachineModel { get; set; }
+        public string? RollerType { get; set; }
+        public int? NumberOfTeeth { get; set; }
+
         // Latest QC record (null if never submitted)
         public int? QCRecordId { get; set; }
         public string? QCStatus { get; set; }    // null = no QC yet

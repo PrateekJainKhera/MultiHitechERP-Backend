@@ -80,6 +80,15 @@ namespace MultiHitechERP.API.Services.Implementations
                     var lengthMM = item.LengthPerPieceMM ?? (pieces > 0 && calcLength > 0 ? calcLength / pieces : 0);
                     var weightPerPiece = item.TotalWeightKG.HasValue ? item.TotalWeightKG.Value / pieces : 0;
 
+                    // Guard: never create phantom stock (e.g. 1 piece of 0 length). Skip empty lines.
+                    if (pieces <= 0 || lengthMM <= 0)
+                        continue;
+
+                    // Guard: bar length can never exceed 4 m (covers weight-derived lengths too).
+                    if (lengthMM > MaxPieceLengthMM)
+                        throw new InvalidOperationException(
+                            $"{item.MaterialName ?? "Material"}: piece length {lengthMM / 1000m:0.###} m exceeds the 4 m maximum — cannot confirm this entry.");
+
                     for (int i = 1; i <= pieces; i++)
                     {
                         var pieceNo = $"{entry.EntryNo}-{item.SequenceNo:D2}-{i:D3}";
@@ -149,11 +158,41 @@ namespace MultiHitechERP.API.Services.Implementations
 
         // ── Helpers ────────────────────────────────────────────────────────────
 
+        // An "empty" line has no real content and must never be saved (it would otherwise
+        // create phantom stock, e.g. 1 piece with 0 length). A RawMaterial line is empty when it
+        // has no material, no pieces, or no size at all (neither length-per-piece nor weight).
+        // A Component line is empty when it has no component or zero quantity.
+        private static bool IsEmptyLine(OpeningStockItemRequest r)
+        {
+            if (r.ItemType == "Component")
+                return !r.ComponentId.HasValue || r.ComponentId.Value <= 0 || (r.Quantity ?? 0) <= 0;
+
+            // RawMaterial (default)
+            var noMaterial = !r.MaterialId.HasValue || r.MaterialId.Value <= 0;
+            var noPieces = (r.NumberOfPieces ?? 0) <= 0;
+            var noSize = (r.LengthPerPieceMM ?? 0) <= 0 && (r.TotalWeightKG ?? 0) <= 0;
+            return noMaterial || noPieces || noSize;
+        }
+
+        // Industry max bar length is 3.657 m; anything over 4 m is a data-entry error.
+        // Mirrors the frontend guard so the API can't be bypassed.
+        private const decimal MaxPieceLengthMM = 4000m;
+
         private static List<OpeningStockItem> MapRequestItems(List<OpeningStockItemRequest> requests)
         {
-            return requests.Select((r, idx) => new OpeningStockItem
+            foreach (var r in requests)
             {
-                SequenceNo = r.SequenceNo > 0 ? r.SequenceNo : idx + 1,
+                if (r.ItemType != "Component" && (r.LengthPerPieceMM ?? 0) > MaxPieceLengthMM)
+                    throw new InvalidOperationException(
+                        $"{r.MaterialName ?? "Material"}: piece length {(r.LengthPerPieceMM ?? 0) / 1000m:0.###} m exceeds the 4 m maximum — a bar cannot be longer than 4 m.");
+            }
+
+            // Drop empty/blank lines and re-number sequentially so no gaps remain.
+            return requests
+                .Where(r => !IsEmptyLine(r))
+                .Select((r, idx) => new OpeningStockItem
+            {
+                SequenceNo = idx + 1,
                 ItemType = r.ItemType,
                 MaterialId = r.MaterialId,
                 MaterialName = r.MaterialName,

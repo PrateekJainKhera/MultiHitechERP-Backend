@@ -20,6 +20,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
 
         // Create, Update, Delete
         Task<int> InsertAsync(DeliveryChallan challan);
+        Task<int> InsertChallanItemAsync(DeliveryChallanItem item);
+        Task<IEnumerable<DeliveryChallanItem>> GetChallanItemsAsync(int challanId);
         Task<bool> UpdateAsync(DeliveryChallan challan);
         Task<bool> DeleteAsync(int id);
 

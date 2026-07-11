@@ -194,20 +194,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             const string query = @"
                 INSERT INTO Masters_Operators
-                (Id, OperatorCode, OperatorName, Email, Phone, Mobile, EmployeeId, JoiningDate, Designation, Department,
+                (OperatorCode, OperatorName, Email, Phone, Mobile, EmployeeId, JoiningDate, Designation, Department,
                  ShopFloor, SkillLevel, Specialization, CertificationDetails, MachineExpertise, ProcessExpertise,
                  Shift, WorkingHours, EfficiencyRating, QualityRating, HourlyRate, MonthlySalary,
                  IsActive, Status, IsAvailable, CurrentJobCardId, CurrentJobCardNo, CurrentMachineId,
                  Remarks, CreatedAt, CreatedBy)
                 VALUES
-                (@Id, @OperatorCode, @OperatorName, @Email, @Phone, @Mobile, @EmployeeId, @JoiningDate, @Designation, @Department,
+                (@OperatorCode, @OperatorName, @Email, @Phone, @Mobile, @EmployeeId, @JoiningDate, @Designation, @Department,
                  @ShopFloor, @SkillLevel, @Specialization, @CertificationDetails, @MachineExpertise, @ProcessExpertise,
                  @Shift, @WorkingHours, @EfficiencyRating, @QualityRating, @HourlyRate, @MonthlySalary,
                  @IsActive, @Status, @IsAvailable, @CurrentJobCardId, @CurrentJobCardNo, @CurrentMachineId,
-                 @Remarks, @CreatedAt, @CreatedBy)";
+                 @Remarks, @CreatedAt, @CreatedBy);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
-            var operatorId = 0;
-            operatorEntity.Id = operatorId;
             operatorEntity.CreatedAt = DateTime.UtcNow;
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -216,7 +215,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             AddOperatorParameters(command, operatorEntity);
 
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            var operatorId = (int)(await command.ExecuteScalarAsync() ?? 0);
 
             return operatorId;
         }

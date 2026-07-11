@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Stores;
 using MultiHitechERP.API.Models.Inventory;
@@ -218,6 +219,111 @@ namespace MultiHitechERP.API.Services.Implementations
                 return ApiResponse<bool>.ErrorResponse("Failed to update selected pieces");
 
             return ApiResponse<bool>.SuccessResponse(true, "Selected pieces updated successfully");
+        }
+
+        // Change (substitute) a requisition line's material before it is issued.
+        // Allowed only while the requisition is Pending or Approved and the line is not yet issued.
+        // A material change resets the requisition to Pending (re-approval); a reason is compulsory;
+        // every change is written to the audit log.
+        public async Task<ApiResponse<bool>> ChangeItemMaterialAsync(int requisitionId, int itemId, ChangeRequisitionItemMaterialRequest request)
+        {
+            if (request == null)
+                return ApiResponse<bool>.ErrorResponse("Request is required");
+
+            if (string.IsNullOrWhiteSpace(request.Reason))
+                return ApiResponse<bool>.ErrorResponse("Reason is required");
+
+            if (request.MaterialId <= 0)
+                return ApiResponse<bool>.ErrorResponse("A valid material must be selected");
+
+            var requisition = await _requisitionRepository.GetByIdAsync(requisitionId);
+            if (requisition == null)
+                return ApiResponse<bool>.ErrorResponse("Material requisition not found");
+
+            // Only before issue. Issued/Completed/Cancelled/Rejected cannot be edited.
+            if (requisition.Status == "Issued" || requisition.Status == "Completed"
+                || requisition.Status == "Cancelled" || requisition.Status == "Rejected")
+                return ApiResponse<bool>.ErrorResponse($"Cannot change material — requisition is already '{requisition.Status}'");
+
+            var item = await _requisitionRepository.GetItemByIdAsync(itemId);
+            if (item == null || item.RequisitionId != requisitionId)
+                return ApiResponse<bool>.ErrorResponse("Requisition item not found");
+
+            if (item.ComponentId.HasValue)
+                return ApiResponse<bool>.ErrorResponse("This line is a purchased component, not a raw material");
+
+            if (item.Status == "Issued" || (item.QuantityIssued ?? 0) > 0)
+                return ApiResponse<bool>.ErrorResponse("This line has already been issued and cannot be changed");
+
+            var newMaterial = await _materialRepository.GetByIdAsync(request.MaterialId);
+            if (newMaterial == null)
+                return ApiResponse<bool>.ErrorResponse("Selected material not found");
+
+            // Capture "from" values for the audit trail.
+            var fromMaterialId = item.MaterialId;
+            var fromMaterialCode = item.MaterialCode;
+            var fromMaterialName = item.MaterialName;
+            var fromLength = item.LengthRequiredMM;
+            var fromPieces = item.NumberOfPieces;
+
+            var materialChanged = fromMaterialId != newMaterial.Id;
+
+            // Apply new material + optional spec overrides.
+            item.MaterialId = newMaterial.Id;
+            item.MaterialCode = newMaterial.MaterialCode;
+            item.MaterialName = newMaterial.MaterialName;
+            item.MaterialGrade = newMaterial.Grade;
+            item.DiameterMM = newMaterial.Diameter;
+            if (request.LengthRequiredMM.HasValue && request.LengthRequiredMM.Value > 0)
+                item.LengthRequiredMM = request.LengthRequiredMM.Value;
+            if (request.NumberOfPieces.HasValue && request.NumberOfPieces.Value > 0)
+                item.NumberOfPieces = request.NumberOfPieces.Value;
+
+            // QuantityRequired (total mm) = length per piece × pieces, when both are known.
+            if (item.LengthRequiredMM.HasValue && (item.NumberOfPieces ?? 0) > 0)
+                item.QuantityRequired = item.LengthRequiredMM.Value * item.NumberOfPieces!.Value;
+
+            var updated = await _requisitionRepository.UpdateItemMaterialAsync(item);
+            if (!updated)
+                return ApiResponse<bool>.ErrorResponse("Failed to update requisition line");
+
+            // A material change requires re-approval — reset the requisition to Pending.
+            var reApproval = materialChanged && requisition.Status == "Approved";
+            if (reApproval)
+                await _requisitionRepository.UpdateStatusAsync(requisitionId, "Pending");
+
+            // Audit.
+            await _requisitionRepository.InsertMaterialChangeLogAsync(new RequisitionMaterialChangeLog
+            {
+                RequisitionId = requisitionId,
+                RequisitionNo = requisition.RequisitionNo,
+                ItemId = item.Id,
+                LineNo = item.LineNo,
+                JobCardNo = item.JobCardNo,
+                OrderNo = requisition.OrderNo,
+                ChangeType = materialChanged ? "MaterialChange" : "SpecChange",
+                FromMaterialId = fromMaterialId,
+                FromMaterialCode = fromMaterialCode,
+                FromMaterialName = fromMaterialName,
+                ToMaterialId = newMaterial.Id,
+                ToMaterialCode = newMaterial.MaterialCode,
+                ToMaterialName = newMaterial.MaterialName,
+                FromLengthMM = fromLength,
+                ToLengthMM = item.LengthRequiredMM,
+                FromPieces = fromPieces,
+                ToPieces = item.NumberOfPieces,
+                ReApprovalTriggered = reApproval,
+                Reason = request.Reason.Trim(),
+                ChangedBy = request.ChangedBy,
+                ChangedByRole = request.ChangedByRole
+            });
+
+            var msg = materialChanged
+                ? (reApproval
+                    ? $"Material changed to {newMaterial.MaterialName}. Requisition reset to Pending for re-approval."
+                    : $"Material changed to {newMaterial.MaterialName}.")
+                : "Requisition line updated.";
+            return ApiResponse<bool>.SuccessResponse(true, msg);
         }
 
         public async Task<ApiResponse<bool>> DeleteRequisitionAsync(int id)
