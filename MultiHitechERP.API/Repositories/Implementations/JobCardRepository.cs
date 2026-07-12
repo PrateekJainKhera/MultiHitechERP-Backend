@@ -110,6 +110,65 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return jobCards;
         }
 
+        // Lean load for summary/aggregate views — only the columns the production
+        // dashboards need. Skips instructions/drawing/dimension text, halving the
+        // payload pulled over the (remote) DB link.
+        public async Task<IEnumerable<JobCard>> GetAllLiteAsync()
+        {
+            const string query = @"
+                SELECT jc.Id, jc.JobCardNo, jc.CreationType, jc.OrderId, jc.OrderItemId, jc.ItemSequence,
+                       jc.ChildPartId, jc.ChildPartName, jc.ChildPartTemplateId,
+                       jc.ProcessId, jc.ProcessName, jc.StepNo,
+                       jc.Quantity, jc.Status, jc.Priority,
+                       jc.ProductionStatus, jc.CompletedQty, jc.RejectedQty, jc.ReadyForAssembly,
+                       p.ModelName AS MachineModelName,
+                       p.RollerType AS RollerType,
+                       p.NumberOfTeeth AS NumberOfTeeth
+                FROM Planning_JobCards jc
+                LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
+                LEFT JOIN Orders o ON jc.OrderId = o.Id
+                LEFT JOIN Masters_Products p ON COALESCE(oi.ProductId, o.ProductId) = p.Id";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            var jobCards = new List<JobCard>();
+            int O(string c) => reader.GetOrdinal(c);
+            while (await reader.ReadAsync())
+            {
+                jobCards.Add(new JobCard
+                {
+                    Id = reader.GetInt32(O("Id")),
+                    JobCardNo = reader.GetString(O("JobCardNo")),
+                    CreationType = reader.GetString(O("CreationType")),
+                    OrderId = reader.GetInt32(O("OrderId")),
+                    OrderItemId = reader.IsDBNull(O("OrderItemId")) ? null : reader.GetInt32(O("OrderItemId")),
+                    ItemSequence = reader.IsDBNull(O("ItemSequence")) ? null : reader.GetString(O("ItemSequence")),
+                    ChildPartId = reader.IsDBNull(O("ChildPartId")) ? null : reader.GetInt32(O("ChildPartId")),
+                    ChildPartName = reader.IsDBNull(O("ChildPartName")) ? null : reader.GetString(O("ChildPartName")),
+                    ChildPartTemplateId = reader.IsDBNull(O("ChildPartTemplateId")) ? null : reader.GetInt32(O("ChildPartTemplateId")),
+                    ProcessId = reader.GetInt32(O("ProcessId")),
+                    ProcessName = reader.IsDBNull(O("ProcessName")) ? null : reader.GetString(O("ProcessName")),
+                    StepNo = reader.IsDBNull(O("StepNo")) ? null : reader.GetInt32(O("StepNo")),
+                    Quantity = reader.GetInt32(O("Quantity")),
+                    Status = reader.GetString(O("Status")),
+                    Priority = reader.GetString(O("Priority")),
+                    ProductionStatus = reader.GetString(O("ProductionStatus")),
+                    CompletedQty = reader.GetInt32(O("CompletedQty")),
+                    RejectedQty = reader.GetInt32(O("RejectedQty")),
+                    ReadyForAssembly = reader.GetBoolean(O("ReadyForAssembly")),
+                    MachineModelName = reader.IsDBNull(O("MachineModelName")) ? null : reader.GetString(O("MachineModelName")),
+                    RollerType = reader.IsDBNull(O("RollerType")) ? null : reader.GetString(O("RollerType")),
+                    NumberOfTeeth = reader.IsDBNull(O("NumberOfTeeth")) ? null : reader.GetInt32(O("NumberOfTeeth")),
+                });
+            }
+
+            return jobCards;
+        }
+
         public async Task<(IEnumerable<JobCard> Items, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search, string? status)
         {
             if (page < 1) page = 1;
@@ -334,6 +393,44 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@Status", status);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            var jobCards = new List<JobCard>();
+            while (await reader.ReadAsync())
+            {
+                jobCards.Add(MapToJobCard(reader));
+            }
+
+            return jobCards;
+        }
+
+        // All job cards that have recorded rejections — the QC rejections register.
+        public async Task<IEnumerable<JobCard>> GetRejectionsAsync()
+        {
+            const string query = @"
+                SELECT jc.Id, jc.JobCardNo, jc.CreationType, jc.OrderId, jc.OrderNo, jc.OrderItemId, jc.ItemSequence,
+                       jc.DrawingId, jc.DrawingNumber, jc.DrawingRevision, jc.DrawingName, jc.DrawingSelectionType,
+                       jc.ChildPartId, jc.ChildPartName, jc.ChildPartTemplateId,
+                       jc.ProcessId, jc.ProcessName, jc.ProcessCode, jc.StepNo, jc.ProcessTemplateId,
+                       jc.WorkInstructions, jc.QualityCheckpoints, jc.SpecialNotes,
+                       jc.Quantity, jc.Status, jc.Priority, jc.ManufacturingDimensions,
+                       jc.ProductionStatus, jc.ActualStartTime, jc.ActualEndTime,
+                       jc.CompletedQty, jc.RejectedQty, jc.ReadyForAssembly,
+                       jc.CreatedAt, jc.CreatedBy, jc.UpdatedAt, jc.UpdatedBy, jc.Version,
+                       p.ModelName AS MachineModelName,
+                       p.RollerType AS RollerType,
+                       p.NumberOfTeeth AS NumberOfTeeth
+                FROM Planning_JobCards jc
+                LEFT JOIN Orders_OrderItems oi ON jc.OrderItemId = oi.Id
+                LEFT JOIN Orders o ON jc.OrderId = o.Id
+                LEFT JOIN Masters_Products p ON COALESCE(oi.ProductId, o.ProductId) = p.Id
+                WHERE jc.RejectedQty > 0
+                ORDER BY jc.UpdatedAt DESC, jc.Id DESC";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
 
             await connection.OpenAsync();
             using var reader = await command.ExecuteReaderAsync();

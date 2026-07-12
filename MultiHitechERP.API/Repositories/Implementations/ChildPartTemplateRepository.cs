@@ -249,6 +249,27 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
+        // How many places actively use this template — product BOMs and job cards.
+        // A template in use must not be deleted (it would break those products/cards).
+        public async Task<(int BomCount, int JobCardCount)> GetUsageCountAsync(int id)
+        {
+            const string query = @"
+                SELECT
+                    (SELECT COUNT(*) FROM Masters_ProductTemplateBOM WHERE ChildPartTemplateId = @Id)
+                  + (SELECT COUNT(*) FROM Masters_ProductTemplateChildParts WHERE ChildPartTemplateId = @Id) AS BomCount,
+                    (SELECT COUNT(*) FROM Planning_JobCards WHERE ChildPartTemplateId = @Id) AS JobCardCount";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", id);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+                return (reader.GetInt32(0), reader.GetInt32(1));
+            return (0, 0);
+        }
+
         public async Task<bool> DeleteAsync(int id)
         {
             // Material requirements and process steps will be deleted automatically due to CASCADE DELETE

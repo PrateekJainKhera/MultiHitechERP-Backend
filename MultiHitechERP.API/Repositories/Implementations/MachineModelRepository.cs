@@ -121,13 +121,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
             using (var connection = new SqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
+                using var tx = connection.BeginTransaction();
 
                 var command = new SqlCommand(@"
                     UPDATE Masters_MachineModels
                     SET ModelName = @ModelName,
                         UpdatedAt = @UpdatedAt,
                         IsActive = @IsActive
-                    WHERE Id = @Id", connection);
+                    WHERE Id = @Id", connection, tx);
 
                 command.Parameters.AddWithValue("@Id", model.Id);
                 command.Parameters.AddWithValue("@ModelName", model.ModelName);
@@ -135,6 +136,16 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 command.Parameters.AddWithValue("@IsActive", model.IsActive);
 
                 var rowsAffected = await command.ExecuteNonQueryAsync();
+
+                // Cascade the new name to the denormalized copy every product keeps,
+                // so a rename reflects across orders / execution / MIS / dispatch.
+                var cascade = new SqlCommand(
+                    "UPDATE Masters_Products SET ModelName = @ModelName WHERE ModelId = @Id", connection, tx);
+                cascade.Parameters.AddWithValue("@ModelName", model.ModelName);
+                cascade.Parameters.AddWithValue("@Id", model.Id);
+                await cascade.ExecuteNonQueryAsync();
+
+                tx.Commit();
                 return rowsAffected > 0;
             }
         }

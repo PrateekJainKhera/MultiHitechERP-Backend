@@ -30,6 +30,7 @@ namespace MultiHitechERP.API.Models.Stores
         public decimal? LengthRequiredMM { get; set; }
         public decimal? DiameterMM { get; set; }
         public int? NumberOfPieces { get; set; }
+        public decimal? WastageMM { get; set; }   // per-piece wastage allowance (from planning)
 
         // Allocation Status
         public decimal? QuantityAllocated { get; set; }

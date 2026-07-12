@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using MultiHitechERP.API.Data;
@@ -206,6 +207,23 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
+        // How many orders reference this product (header + order items). Used to
+        // block deletion of a product that is in use.
+        public async Task<int> GetOrderUsageCountAsync(int id)
+        {
+            const string query = @"
+                SELECT (SELECT COUNT(*) FROM Orders WHERE ProductId = @Id)
+                     + (SELECT COUNT(*) FROM Orders_OrderItems WHERE ProductId = @Id)";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", id);
+
+            await connection.OpenAsync();
+            var result = await command.ExecuteScalarAsync();
+            return result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
+        }
+
         public async Task<IEnumerable<Product>> SearchByNameAsync(string name)
         {
             const string query = @"
@@ -252,22 +270,32 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return products;
         }
 
-        public async Task<IEnumerable<Product>> SearchByCriteriaAsync(int modelId, string rollerType, int numberOfTeeth)
+        public async Task<IEnumerable<Product>> SearchByCriteriaAsync(int modelId, string? rollerType, int? numberOfTeeth)
         {
-            const string query = @"
+            // Progressive filter: ModelId is always required; RollerType and NumberOfTeeth
+            // narrow the result only when supplied. This lets callers search by model alone
+            // (see all variants/teeth), model + roller (2-filter), or all three (exact match).
+            var sql = new StringBuilder(@"
                 SELECT * FROM Masters_Products
-                WHERE ModelId = @ModelId
-                  AND RollerType = @RollerType
-                  AND NumberOfTeeth = @NumberOfTeeth
-                ORDER BY PartCode";
+                WHERE ModelId = @ModelId");
+
+            if (!string.IsNullOrWhiteSpace(rollerType))
+                sql.Append(" AND RollerType = @RollerType");
+
+            if (numberOfTeeth.HasValue)
+                sql.Append(" AND NumberOfTeeth = @NumberOfTeeth");
+
+            sql.Append(" ORDER BY RollerType, NumberOfTeeth, PartCode");
 
             var products = new List<Product>();
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
-            using var command = new SqlCommand(query, connection);
+            using var command = new SqlCommand(sql.ToString(), connection);
             command.Parameters.AddWithValue("@ModelId", modelId);
-            command.Parameters.AddWithValue("@RollerType", rollerType);
-            command.Parameters.AddWithValue("@NumberOfTeeth", numberOfTeeth);
+            if (!string.IsNullOrWhiteSpace(rollerType))
+                command.Parameters.AddWithValue("@RollerType", rollerType);
+            if (numberOfTeeth.HasValue)
+                command.Parameters.AddWithValue("@NumberOfTeeth", numberOfTeeth.Value);
 
             await connection.OpenAsync();
             using var reader = await command.ExecuteReaderAsync();

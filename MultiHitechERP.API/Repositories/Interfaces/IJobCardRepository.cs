@@ -20,6 +20,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<IEnumerable<JobCard>> GetByOrderItemIdAsync(int orderItemId);
         Task<IEnumerable<JobCard>> GetByProcessIdAsync(int processId);
         Task<IEnumerable<JobCard>> GetByStatusAsync(string status);
+        Task<IEnumerable<JobCard>> GetRejectionsAsync();
+        Task<IEnumerable<JobCard>> GetAllLiteAsync();
 
         Task<int> InsertAsync(JobCard jobCard);
         Task<bool> UpdateAsync(JobCard jobCard);

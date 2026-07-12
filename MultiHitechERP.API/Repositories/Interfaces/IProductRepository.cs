@@ -19,11 +19,12 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<int> InsertAsync(Product product);
         Task<bool> UpdateAsync(Product product);
         Task<bool> DeleteAsync(int id);
+        Task<int> GetOrderUsageCountAsync(int id);
 
         // Queries
         Task<IEnumerable<Product>> SearchByNameAsync(string name);
         Task<IEnumerable<Product>> GetByRollerTypeAsync(string rollerType);
-        Task<IEnumerable<Product>> SearchByCriteriaAsync(int modelId, string rollerType, int numberOfTeeth);
+        Task<IEnumerable<Product>> SearchByCriteriaAsync(int modelId, string? rollerType, int? numberOfTeeth);
         Task<bool> ExistsAsync(string partCode);
 
         // Code Generation

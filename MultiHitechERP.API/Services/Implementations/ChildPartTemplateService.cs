@@ -238,6 +238,18 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse($"Child part template with ID {id} not found");
                 }
 
+                // Block deletion while the template is used anywhere — deleting it
+                // would break those product BOMs / job cards.
+                var (bomCount, jobCardCount) = await _childPartTemplateRepository.GetUsageCountAsync(id);
+                if (bomCount > 0 || jobCardCount > 0)
+                {
+                    var uses = new List<string>();
+                    if (bomCount > 0) uses.Add($"{bomCount} product BOM entr{(bomCount == 1 ? "y" : "ies")}");
+                    if (jobCardCount > 0) uses.Add($"{jobCardCount} job card(s)");
+                    return ApiResponse<bool>.ErrorResponse(
+                        $"Cannot delete '{template.TemplateName}' — it is used in {string.Join(" and ", uses)}. Remove those references first.");
+                }
+
                 // Delete template (material requirements and process steps will cascade)
                 var success = await _childPartTemplateRepository.DeleteAsync(id);
                 if (!success)

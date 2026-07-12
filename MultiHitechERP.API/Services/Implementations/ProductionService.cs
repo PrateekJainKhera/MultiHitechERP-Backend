@@ -125,7 +125,8 @@ namespace MultiHitechERP.API.Services.Implementations
 
                 // Batch-load everything up front — a few queries instead of the previous
                 // per-order / per-item N+1 (which issued ~600 round-trips and took ~60s).
-                var allJobCards = (await _jobCardRepository.GetAllAsync()).ToList();
+                // Lite load: only the summary columns, not instructions/drawings text.
+                var allJobCards = (await _jobCardRepository.GetAllLiteAsync()).ToList();
                 var allOrderItems = await _orderItemRepository.GetAllAsync();
                 var allOrders = (await _orderRepository.GetAllAsync()).ToList();
                 var ordersById = allOrders.GroupBy(o => o.Id).ToDictionary(g => g.Key, g => g.First());
@@ -866,23 +867,26 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (!allScheduled.Any())
                     return ApiResponse<IEnumerable<ExecutionViewCategory>>.SuccessResponse(new List<ExecutionViewCategory>());
 
-                // Cache process → category info (one DB call per unique process)
-                var processCache = new Dictionary<int, Models.Masters.Process>();
-                foreach (var pid in allScheduled.Select(jc => jc.ProcessId).Distinct())
-                {
-                    var proc = await _processRepository.GetByIdAsync(pid);
-                    if (proc != null) processCache[pid] = proc;
-                }
+                // Cache process → category info. Load the (small) processes master once
+                // instead of one DB round-trip per distinct process.
+                var processCache = (await _processRepository.GetAllAsync())
+                    .GroupBy(p => p.Id)
+                    .ToDictionary(g => g.Key, g => g.First());
 
                 // Cache OSP status per job card (only "Sent" entries)
                 var ospStatusMap = await _ospRepository.GetActiveOspStatusByJobCardIdsAsync(
                     allScheduled.Select(jc => jc.Id));
 
-                // Cache schedule → machine name
+                // Cache schedule → machine name. Load all schedules once and group in
+                // memory — previously this was one DB round-trip PER job card (the
+                // dominant cost of this endpoint over a remote DB).
+                var schedulesByJc = (await _scheduleRepository.GetAllAsync())
+                    .GroupBy(s => s.JobCardId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
                 var machineCache = new Dictionary<int, string?>();
                 foreach (var jc in allScheduled)
                 {
-                    var schedules = await _scheduleRepository.GetByJobCardIdAsync(jc.Id);
+                    var schedules = schedulesByJc.TryGetValue(jc.Id, out var list) ? list : new List<Models.Scheduling.MachineSchedule>();
                     var active = schedules
                         .Where(s => s.Status == "Scheduled" || s.Status == "InProgress")
                         .OrderByDescending(s => s.CreatedAt)

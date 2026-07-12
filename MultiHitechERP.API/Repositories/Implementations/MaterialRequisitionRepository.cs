@@ -419,14 +419,14 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 ([RequisitionId], [LineNo], [MaterialId], [MaterialCode], [MaterialName], [MaterialGrade],
                  [ComponentId], [ComponentCode], [ComponentName],
                  [RequestedQuantity], [IssuedQuantity],
-                 [QuantityRequired], [UOM], [LengthRequiredMM], [DiameterMM], [NumberOfPieces],
+                 [QuantityRequired], [UOM], [LengthRequiredMM], [DiameterMM], [NumberOfPieces], [WastageMM],
                  [QuantityAllocated], [QuantityIssued], [QuantityPending], [Status],
                  [JobCardId], [JobCardNo], [ProcessId], [ProcessName], [SelectedPieceIds], [SelectedPieceQuantities], [Remarks], [CreatedAt])
                 VALUES
                 (@RequisitionId, @LineNo, @MaterialId, @MaterialCode, @MaterialName, @MaterialGrade,
                  @ComponentId, @ComponentCode, @ComponentName,
                  @RequestedQuantity, @IssuedQuantity,
-                 @QuantityRequired, @UOM, @LengthRequiredMM, @DiameterMM, @NumberOfPieces,
+                 @QuantityRequired, @UOM, @LengthRequiredMM, @DiameterMM, @NumberOfPieces, @WastageMM,
                  @QuantityAllocated, @QuantityIssued, @QuantityPending, @Status,
                  @JobCardId, @JobCardNo, @ProcessId, @ProcessName, @SelectedPieceIds, @SelectedPieceQuantities, @Remarks, @CreatedAt);
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
@@ -455,6 +455,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LengthRequiredMM", (object?)item.LengthRequiredMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@DiameterMM", (object?)item.DiameterMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@NumberOfPieces", (object?)item.NumberOfPieces ?? DBNull.Value);
+            command.Parameters.AddWithValue("@WastageMM", (object?)item.WastageMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@QuantityAllocated", (object?)item.QuantityAllocated ?? DBNull.Value);
             command.Parameters.AddWithValue("@QuantityIssued", (object?)item.QuantityIssued ?? DBNull.Value);
             command.Parameters.AddWithValue("@QuantityPending", (object?)item.QuantityPending ?? DBNull.Value);
@@ -576,6 +577,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     [LengthRequiredMM]  = @LengthRequiredMM,
                     [DiameterMM]        = @DiameterMM,
                     [NumberOfPieces]    = @NumberOfPieces,
+                    [WastageMM]         = @WastageMM,
                     [QuantityRequired]  = @QuantityRequired,
                     [RequestedQuantity] = @QuantityRequired,
                     [QuantityPending]   = @QuantityRequired,
@@ -593,6 +595,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LengthRequiredMM", (object?)item.LengthRequiredMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@DiameterMM", (object?)item.DiameterMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@NumberOfPieces", (object?)item.NumberOfPieces ?? DBNull.Value);
+            command.Parameters.AddWithValue("@WastageMM", (object?)item.WastageMM ?? DBNull.Value);
             command.Parameters.AddWithValue("@QuantityRequired", item.QuantityRequired);
 
             await connection.OpenAsync();
@@ -720,6 +723,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 LengthRequiredMM = reader.IsDBNull(reader.GetOrdinal("LengthRequiredMM")) ? null : reader.GetDecimal(reader.GetOrdinal("LengthRequiredMM")),
                 DiameterMM = reader.IsDBNull(reader.GetOrdinal("DiameterMM")) ? null : reader.GetDecimal(reader.GetOrdinal("DiameterMM")),
                 NumberOfPieces = reader.IsDBNull(reader.GetOrdinal("NumberOfPieces")) ? null : reader.GetInt32(reader.GetOrdinal("NumberOfPieces")),
+                WastageMM = reader.IsDBNull(reader.GetOrdinal("WastageMM")) ? null : reader.GetDecimal(reader.GetOrdinal("WastageMM")),
                 QuantityAllocated = reader.IsDBNull(reader.GetOrdinal("QuantityAllocated")) ? null : reader.GetDecimal(reader.GetOrdinal("QuantityAllocated")),
                 QuantityIssued = reader.IsDBNull(reader.GetOrdinal("QuantityIssued")) ? null : reader.GetDecimal(reader.GetOrdinal("QuantityIssued")),
                 QuantityPending = reader.IsDBNull(reader.GetOrdinal("QuantityPending")) ? null : reader.GetDecimal(reader.GetOrdinal("QuantityPending")),

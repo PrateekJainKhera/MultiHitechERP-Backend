@@ -20,6 +20,7 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByOrderIdAsync(int orderId);
         Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByProcessIdAsync(int processId);
         Task<ApiResponse<IEnumerable<JobCardResponse>>> GetByStatusAsync(string status);
+        Task<ApiResponse<IEnumerable<JobCardResponse>>> GetRejectionsAsync();
 
         // Create, Update, Delete
         Task<ApiResponse<int>> CreateJobCardAsync(CreateJobCardRequest request);

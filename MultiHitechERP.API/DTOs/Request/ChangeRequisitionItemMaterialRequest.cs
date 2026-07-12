@@ -15,6 +15,7 @@ namespace MultiHitechERP.API.DTOs.Request
         // Optional spec overrides. When null, the existing value on the line is kept.
         public decimal? LengthRequiredMM { get; set; }
         public int? NumberOfPieces { get; set; }
+        public decimal? WastageMM { get; set; }
 
         [Required(ErrorMessage = "Reason is required")]
         public string Reason { get; set; } = string.Empty;

@@ -104,6 +104,20 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<IEnumerable<JobCardResponse>>> GetRejectionsAsync()
+        {
+            try
+            {
+                var jobCards = await _jobCardRepository.GetRejectionsAsync();
+                var responses = jobCards.Select(MapToResponse).ToList();
+                return ApiResponse<IEnumerable<JobCardResponse>>.SuccessResponse(responses);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<JobCardResponse>>.ErrorResponse($"Error retrieving rejections: {ex.Message}");
+            }
+        }
+
         public async Task<ApiResponse<PagedJobCardsResponse>> GetPagedAsync(int page, int pageSize, string? search, string? status)
         {
             try

@@ -21,6 +21,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<int> InsertAsync(ChildPartTemplate template);
         Task<bool> UpdateAsync(ChildPartTemplate template);
         Task<bool> DeleteAsync(int id);
+        Task<(int BomCount, int JobCardCount)> GetUsageCountAsync(int id);
 
         // Queries
         Task<IEnumerable<ChildPartTemplate>> GetByChildPartTypeAsync(string childPartType);

@@ -43,6 +43,16 @@ namespace MultiHitechERP.API.Controllers.Planning
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
+        /// <summary>
+        /// QC rejections register — job cards with RejectedQty > 0.
+        /// </summary>
+        [HttpGet("rejections")]
+        public async Task<IActionResult> GetRejections()
+        {
+            var result = await _jobCardService.GetRejectionsAsync();
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {

@@ -27,6 +27,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public decimal? LengthRequiredMM { get; set; }
         public decimal? DiameterMM { get; set; }
         public int? NumberOfPieces { get; set; }
+        public decimal? WastageMM { get; set; }
 
         public decimal? QuantityAllocated { get; set; }
         public decimal? QuantityIssued { get; set; }

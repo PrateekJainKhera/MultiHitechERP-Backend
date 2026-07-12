@@ -104,7 +104,10 @@ namespace MultiHitechERP.API.Services.Implementations
                     var jobCardNo = item.JobCardNo ?? (reqInfo.TryGetValue(item.RequisitionId, out var ri2) ? ri2.JobCardNo : null);
                     var qty = item.NumberOfPieces ?? 1;
 
-                    // Expand each unit into a separate cut row
+                    // Expand each unit into a separate cut row.
+                    // Physical cut length = net length + wastage allowance — cutting only
+                    // the net length would leave the finished part short after machining.
+                    var cutLength = item.LengthRequiredMM!.Value + (item.WastageMM ?? 0);
                     for (int i = 0; i < qty; i++)
                     {
                         cuts.Add(new MaterialGroupCutItem
@@ -112,7 +115,7 @@ namespace MultiHitechERP.API.Services.Implementations
                             RequisitionItemId = item.Id,
                             RequisitionId = item.RequisitionId,
                             CutIndex = i,
-                            CutLengthMM = item.LengthRequiredMM!.Value,
+                            CutLengthMM = cutLength,
                             PartName = jobCardNo,
                             JobCardNo = jobCardNo,
                             RequisitionNo = reqNo,

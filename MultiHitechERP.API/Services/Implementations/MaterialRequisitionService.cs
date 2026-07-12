@@ -265,6 +265,7 @@ namespace MultiHitechERP.API.Services.Implementations
             var fromMaterialName = item.MaterialName;
             var fromLength = item.LengthRequiredMM;
             var fromPieces = item.NumberOfPieces;
+            var fromWastage = item.WastageMM;
 
             var materialChanged = fromMaterialId != newMaterial.Id;
 
@@ -278,6 +279,8 @@ namespace MultiHitechERP.API.Services.Implementations
                 item.LengthRequiredMM = request.LengthRequiredMM.Value;
             if (request.NumberOfPieces.HasValue && request.NumberOfPieces.Value > 0)
                 item.NumberOfPieces = request.NumberOfPieces.Value;
+            if (request.WastageMM.HasValue && request.WastageMM.Value >= 0)
+                item.WastageMM = request.WastageMM.Value;
 
             // QuantityRequired (total mm) = length per piece × pieces, when both are known.
             if (item.LengthRequiredMM.HasValue && (item.NumberOfPieces ?? 0) > 0)
@@ -287,8 +290,10 @@ namespace MultiHitechERP.API.Services.Implementations
             if (!updated)
                 return ApiResponse<bool>.ErrorResponse("Failed to update requisition line");
 
-            // A material change requires re-approval — reset the requisition to Pending.
-            var reApproval = materialChanged && requisition.Status == "Approved";
+            // ANY effective change (material OR size) on an approved requisition
+            // requires re-approval — reset to Pending so a planner signs off again.
+            var specChanged = fromLength != item.LengthRequiredMM || fromPieces != item.NumberOfPieces || fromWastage != item.WastageMM;
+            var reApproval = (materialChanged || specChanged) && requisition.Status == "Approved";
             if (reApproval)
                 await _requisitionRepository.UpdateStatusAsync(requisitionId, "Pending");
 
@@ -318,11 +323,12 @@ namespace MultiHitechERP.API.Services.Implementations
                 ChangedByRole = request.ChangedByRole
             });
 
-            var msg = materialChanged
-                ? (reApproval
-                    ? $"Material changed to {newMaterial.MaterialName}. Requisition reset to Pending for re-approval."
-                    : $"Material changed to {newMaterial.MaterialName}.")
-                : "Requisition line updated.";
+            var what = materialChanged
+                ? $"Material changed to {newMaterial.MaterialName}"
+                : specChanged ? "Size updated" : "Requisition line updated";
+            var msg = reApproval
+                ? $"{what}. Requisition reset to Pending for re-approval."
+                : $"{what}.";
             return ApiResponse<bool>.SuccessResponse(true, msg);
         }
 

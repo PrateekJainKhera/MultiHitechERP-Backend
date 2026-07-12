@@ -70,8 +70,8 @@ namespace MultiHitechERP.API.Controllers.Masters
         [HttpGet("search-by-criteria")]
         public async Task<IActionResult> SearchByCriteria(
             [FromQuery] int modelId,
-            [FromQuery] string rollerType,
-            [FromQuery] int numberOfTeeth)
+            [FromQuery] string? rollerType,
+            [FromQuery] int? numberOfTeeth)
         {
             var result = await _productService.SearchByCriteriaAsync(modelId, rollerType, numberOfTeeth);
             return result.Success ? Ok(result) : BadRequest(result);

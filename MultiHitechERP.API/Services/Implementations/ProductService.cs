@@ -221,6 +221,13 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (product == null)
                     return ApiResponse<bool>.ErrorResponse($"Product with ID {id} not found");
 
+                // Block deletion if the product is used by any order — deleting it
+                // would break those orders' spec/history.
+                var orderUsage = await _productRepository.GetOrderUsageCountAsync(id);
+                if (orderUsage > 0)
+                    return ApiResponse<bool>.ErrorResponse(
+                        $"Cannot delete '{product.PartCode}' ({product.ModelName}) — it is linked to {orderUsage} order(s). Only products not used in any order can be deleted.");
+
                 var success = await _productRepository.DeleteAsync(id);
                 if (!success)
                     return ApiResponse<bool>.ErrorResponse("Failed to delete product");
@@ -264,7 +271,7 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
-        public async Task<ApiResponse<IEnumerable<ProductResponse>>> SearchByCriteriaAsync(int modelId, string rollerType, int numberOfTeeth)
+        public async Task<ApiResponse<IEnumerable<ProductResponse>>> SearchByCriteriaAsync(int modelId, string? rollerType, int? numberOfTeeth)
         {
             try
             {

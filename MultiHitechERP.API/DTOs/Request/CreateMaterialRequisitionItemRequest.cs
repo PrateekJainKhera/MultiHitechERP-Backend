@@ -31,6 +31,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public decimal? LengthRequiredMM { get; set; }
         public decimal? DiameterMM { get; set; }
         public int? NumberOfPieces { get; set; }
+        public decimal? WastageMM { get; set; }
 
         // Reference
         public int? JobCardId { get; set; }

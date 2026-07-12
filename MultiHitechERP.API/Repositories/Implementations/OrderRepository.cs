@@ -824,11 +824,23 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<bool> UpdateWithVersionCheckAsync(Order order)
         {
+            // Must persist every field UpdateOrderAsync sets — this previously wrote only
+            // 6 columns and silently dropped AdjustedDueDate, Priority, DelayReason, etc.
             const string query = @"
                 UPDATE Orders SET
                     OrderDate = @OrderDate,
                     DueDate = @DueDate,
+                    AdjustedDueDate = @AdjustedDueDate,
+                    CustomerId = @CustomerId,
+                    ProductId = @ProductId,
+                    Quantity = @Quantity,
                     Status = @Status,
+                    Priority = @Priority,
+                    PlanningStatus = @PlanningStatus,
+                    OrderValue = @OrderValue,
+                    AdvancePayment = @AdvancePayment,
+                    BalancePayment = @BalancePayment,
+                    DelayReason = @DelayReason,
                     UpdatedAt = @UpdatedAt,
                     UpdatedBy = @UpdatedBy,
                     Version = @NewVersion
@@ -842,7 +854,17 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@Id", order.Id);
             command.Parameters.AddWithValue("@OrderDate", order.OrderDate);
             command.Parameters.AddWithValue("@DueDate", order.DueDate);
+            command.Parameters.AddWithValue("@AdjustedDueDate", (object?)order.AdjustedDueDate ?? DBNull.Value);
+            command.Parameters.AddWithValue("@CustomerId", order.CustomerId);
+            command.Parameters.AddWithValue("@ProductId", order.ProductId);
+            command.Parameters.AddWithValue("@Quantity", order.Quantity);
             command.Parameters.AddWithValue("@Status", order.Status);
+            command.Parameters.AddWithValue("@Priority", order.Priority);
+            command.Parameters.AddWithValue("@PlanningStatus", (object?)order.PlanningStatus ?? DBNull.Value);
+            command.Parameters.AddWithValue("@OrderValue", (object?)order.OrderValue ?? DBNull.Value);
+            command.Parameters.AddWithValue("@AdvancePayment", (object?)order.AdvancePayment ?? DBNull.Value);
+            command.Parameters.AddWithValue("@BalancePayment", (object?)order.BalancePayment ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DelayReason", (object?)order.DelayReason ?? DBNull.Value);
             command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
             command.Parameters.AddWithValue("@UpdatedBy", (object?)order.UpdatedBy ?? DBNull.Value);
             command.Parameters.AddWithValue("@CurrentVersion", order.Version);
