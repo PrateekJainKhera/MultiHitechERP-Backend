@@ -83,6 +83,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public int? OrderItemId { get; set; }
         public string? ItemSequence { get; set; }
         public string? ChildPartName { get; set; }
+        public int ProcessId { get; set; }
         public string? ProcessName { get; set; }
         public int Quantity { get; set; }
     }

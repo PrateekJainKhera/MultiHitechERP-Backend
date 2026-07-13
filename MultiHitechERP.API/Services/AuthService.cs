@@ -216,14 +216,21 @@ namespace MultiHitechERP.API.Services
 
         private static Dictionary<string, Dictionary<string, bool>> BuildMap(IEnumerable<AuthPermission> rows)
         {
+            // Seed the known top-level modules (so those keys always exist), then add
+            // every stored row — including submenu keys like '/masters/customers' — so
+            // page-level permissions survive read-back and login, not just the 12 modules.
             var map = Modules.ToDictionary(
                 m => m,
                 m => Actions.ToDictionary(a => a, _ => false));
 
             foreach (var p in rows)
             {
-                if (map.ContainsKey(p.Module) && map[p.Module].ContainsKey(p.Action))
-                    map[p.Module][p.Action] = p.IsAllowed;
+                if (!map.TryGetValue(p.Module, out var actions))
+                {
+                    actions = new Dictionary<string, bool>();
+                    map[p.Module] = actions;
+                }
+                actions[p.Action] = p.IsAllowed;
             }
 
             return map;

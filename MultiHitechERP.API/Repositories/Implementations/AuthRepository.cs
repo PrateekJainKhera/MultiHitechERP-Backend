@@ -1,4 +1,5 @@
 using System.Data;
+using System.Linq;
 using Dapper;
 using MultiHitechERP.API.Data;
 using MultiHitechERP.API.Models.Auth;
@@ -149,7 +150,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
             // Delete all existing permissions for this role and re-insert
             await db.ExecuteAsync("DELETE FROM Auth_Permissions WHERE RoleId = @RoleId", new { RoleId = roleId });
 
-            foreach (var p in permissions)
+            // De-duplicate on (Module, Action): a page can be listed under two menus,
+            // and the UNIQUE (RoleId, Module, Action) constraint would reject the second row.
+            var deduped = permissions
+                .GroupBy(p => new { p.Module, p.Action })
+                .Select(g => g.First());
+
+            foreach (var p in deduped)
             {
                 await db.ExecuteAsync(@"
                     INSERT INTO Auth_Permissions (RoleId, Module, Action, IsAllowed)

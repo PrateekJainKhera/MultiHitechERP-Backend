@@ -50,6 +50,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
         /// </summary>
         public async Task<IEnumerable<OSPJobCardOption>> GetAvailableJobCardsAsync()
         {
+            // Only job cards whose process is flagged as outsourced (IsOutsourced = 1)
+            // are eligible for OSP — these are the "ready to send" options.
             const string sql = @"
                 SELECT
                     jc.Id           AS JobCardId,
@@ -59,16 +61,19 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     jc.OrderItemId,
                     jc.ItemSequence,
                     jc.ChildPartName,
+                    jc.ProcessId,
                     jc.ProcessName,
                     jc.Quantity
                 FROM Planning_JobCards jc
+                INNER JOIN Masters_Processes p ON p.Id = jc.ProcessId
                 WHERE jc.Status = 'Scheduled'
                   AND jc.ProductionStatus NOT IN ('Completed')
+                  AND p.IsOutsourced = 1
                   AND NOT EXISTS (
                       SELECT 1 FROM Production_OSPTracking osp
                       WHERE osp.JobCardId = jc.Id AND osp.Status = 'Sent'
                   )
-                ORDER BY jc.CreatedAt DESC";
+                ORDER BY jc.ProcessName, jc.OrderNo, jc.CreatedAt DESC";
 
             using var conn = GetConnection();
             await conn.OpenAsync();
