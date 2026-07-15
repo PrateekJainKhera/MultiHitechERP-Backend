@@ -100,6 +100,15 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (machineModel == null)
                     return ApiResponse<int>.ErrorResponse($"Machine model with ID {request.ModelId} not found");
 
+                // Prevent duplicates: a product with the same Model + Roller Type + Teeth
+                // must not be created twice. Point the user to the existing part instead.
+                int teethForCheck = request.NumberOfTeeth;
+                var existingSame = await _productRepository.SearchByCriteriaAsync(request.ModelId, request.RollerType, teethForCheck);
+                var dup = existingSame.FirstOrDefault();
+                if (dup != null)
+                    return ApiResponse<int>.ErrorResponse(
+                        $"A product for {machineModel.ModelName} · {request.RollerType}{(teethForCheck > 0 ? $" · {teethForCheck}T" : "")} already exists ({dup.PartCode}). Use that product instead of creating a duplicate.");
+
                 // Auto-generate PartCode prefix from first 3 letters of first word of roller type
                 string firstWord = request.RollerType.Split(' ')[0];
                 string partCodePrefix = firstWord[..Math.Min(3, firstWord.Length)].ToUpper();
