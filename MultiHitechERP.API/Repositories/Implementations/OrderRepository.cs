@@ -21,8 +21,29 @@ namespace MultiHitechERP.API.Repositories.Implementations
             _connectionFactory = connectionFactory;
         }
 
+        // Derived pipeline stage — the highest stage the order has reached wins.
+        // Signals: dispatched qty, production completion/status, WIP/production start,
+        // planningStatus ('Released' = material issued, 'Planned' = planning done).
+        // Used both as a SELECT column and (via EffectiveStatusFilter) as a WHERE filter.
+        private const string WorkflowStageExpr = @"CASE
+                WHEN o.Status IN ('Cancelled','On Hold','Rejected') THEN o.Status
+                WHEN o.Quantity > 0 AND ISNULL((SELECT SUM(oi.QtyDispatched) FROM Orders_OrderItems oi WHERE oi.OrderId = o.Id),0) >= o.Quantity THEN 'Dispatched'
+                WHEN EXISTS (
+                        SELECT 1 FROM Orders_OrderItems oi
+                        WHERE oi.OrderId = o.Id
+                          AND EXISTS (SELECT 1 FROM Planning_JobCards jc WHERE jc.OrderItemId = oi.Id AND jc.ChildPartName LIKE '%Assembly%' AND jc.ProductionStatus = 'Completed')
+                          AND NOT EXISTS (SELECT 1 FROM Production_OrderItemQC q WHERE q.OrderItemId = oi.Id AND q.QCStatus = 'Passed')
+                     ) THEN 'Pending QC'
+                WHEN o.Status IN ('Completed','QC Approved') OR (o.Quantity > 0 AND ISNULL(o.QtyCompleted,0) >= o.Quantity) THEN 'Ready to Dispatch'
+                WHEN ISNULL(o.QtyInProgress,0) > 0 OR o.ProductionStartDate IS NOT NULL THEN 'In Production'
+                WHEN o.PlanningStatus = 'Released' THEN 'Ready for Scheduling'
+                WHEN o.PlanningStatus = 'Planned' THEN 'Ready for Cutting'
+                WHEN o.DrawingReviewStatus IS NOT NULL AND o.DrawingReviewStatus <> 'Approved' THEN 'Drawing Pending'
+                ELSE 'Pending'
+            END";
+
         // SQL fragment shared across read queries — resolves CustomerName and ProductName via JOIN
-        private const string SelectOrderWithNames = @"
+        private static readonly string SelectOrderWithNames = @"
             SELECT
                 o.Id, o.OrderNo, o.OrderDate, o.DueDate, o.AdjustedDueDate,
                 o.CustomerId,
@@ -41,7 +62,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 o.DelayReason, o.RescheduleCount,
                 o.MaterialGradeApproved, o.MaterialGradeApprovalDate, o.MaterialGradeApprovedBy,
                 o.OrderValue, o.AdvancePayment, o.BalancePayment,
-                o.CreatedAt, o.CreatedBy, o.UpdatedAt, o.UpdatedBy, o.Version
+                o.CreatedAt, o.CreatedBy, o.UpdatedAt, o.UpdatedBy, o.Version,
+                " + WorkflowStageExpr + @" AS WorkflowStage
             FROM Orders o
             LEFT JOIN Masters_Customers c ON o.CustomerId = c.Id
             LEFT JOIN Masters_Products mp ON o.ProductId = mp.Id";
@@ -107,14 +129,29 @@ namespace MultiHitechERP.API.Repositories.Implementations
         }
 
         // Effective-status WHERE fragments (order-level approximation of the UI's effective status)
-        private static string EffectiveStatusFilter(string? status) => (status ?? "all").ToLowerInvariant() switch
+        private static string EffectiveStatusFilter(string? status)
         {
-            "completed"  => "o.Status = 'Completed'",
-            "ready"      => "o.Status <> 'Completed' AND o.Quantity > 0 AND o.QtyCompleted >= o.Quantity",
-            "inprogress" => "o.Status <> 'Completed' AND NOT (o.Quantity > 0 AND o.QtyCompleted >= o.Quantity) AND (ISNULL(o.QtyInProgress,0) > 0 OR ISNULL(o.QtyCompleted,0) > 0)",
-            "pending"    => "o.Status <> 'Completed' AND ISNULL(o.QtyInProgress,0) = 0 AND ISNULL(o.QtyCompleted,0) = 0",
-            _            => ""
-        };
+            // Match a workflow stage against the same derivation used for display.
+            string StageIs(string stage) => $"({WorkflowStageExpr}) = '{stage}'";
+            return (status ?? "all").Trim().ToLowerInvariant() switch
+            {
+                // workflow-stage filters (accept spaced or hyphenated form)
+                "drawing pending"      or "drawing-pending"    => StageIs("Drawing Pending"),
+                "pending"                                      => StageIs("Pending"),
+                "ready for cutting"    or "ready-for-cutting"  => StageIs("Ready for Cutting"),
+                "planning done"        or "planning-done"      => StageIs("Ready for Cutting"),
+                "ready for scheduling" or "ready-for-scheduling"=> StageIs("Ready for Scheduling"),
+                "in production"        or "in-production"      => StageIs("In Production"),
+                "pending qc"           or "pending-qc"         => StageIs("Pending QC"),
+                "ready to dispatch"    or "ready-to-dispatch"  => StageIs("Ready to Dispatch"),
+                "dispatched"                                   => StageIs("Dispatched"),
+                // legacy coarse buckets kept for backward compatibility
+                "completed"  => "o.Status = 'Completed'",
+                "ready"      => "o.Status <> 'Completed' AND o.Quantity > 0 AND o.QtyCompleted >= o.Quantity",
+                "inprogress" => "o.Status <> 'Completed' AND NOT (o.Quantity > 0 AND o.QtyCompleted >= o.Quantity) AND (ISNULL(o.QtyInProgress,0) > 0 OR ISNULL(o.QtyCompleted,0) > 0)",
+                _            => ""
+            };
+        }
 
         public async Task<(IEnumerable<Order> Items, int TotalCount)> GetPagedAsync(
             int page, int pageSize, string? search, string? status, DTOs.Request.OrderListFilter? filter = null)
@@ -1045,8 +1082,18 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     ? null : reader.GetDateTime(reader.GetOrdinal("UpdatedAt")),
                 UpdatedBy = reader.IsDBNull(reader.GetOrdinal("UpdatedBy"))
                     ? null : reader.GetString(reader.GetOrdinal("UpdatedBy")),
-                Version = reader.GetInt32(reader.GetOrdinal("Version"))
+                Version = reader.GetInt32(reader.GetOrdinal("Version")),
+                // Present only on the shared read queries (SelectOrderWithNames); null elsewhere.
+                WorkflowStage = HasColumn(reader, "WorkflowStage") && !reader.IsDBNull(reader.GetOrdinal("WorkflowStage"))
+                    ? reader.GetString(reader.GetOrdinal("WorkflowStage")) : null
             };
+        }
+
+        private static bool HasColumn(SqlDataReader reader, string name)
+        {
+            for (int i = 0; i < reader.FieldCount; i++)
+                if (string.Equals(reader.GetName(i), name, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
         }
 
         private static void AddOrderParameters(SqlCommand command, Order order)

@@ -103,13 +103,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 // Auto-generate PartCode prefix from first 3 letters of first word of roller type
                 string firstWord = request.RollerType.Split(' ')[0];
                 string partCodePrefix = firstWord[..Math.Min(3, firstWord.Length)].ToUpper();
-                int nextSequence = await _productRepository.GetNextSequenceNumberAsync(request.RollerType);
-                string generatedPartCode = $"{partCodePrefix}-{nextSequence:D4}";
 
                 // Create product entity
                 var product = new Product
                 {
-                    PartCode = generatedPartCode,
                     CustomerName = request.CustomerName?.Trim(),
                     ModelId = request.ModelId,
                     ModelName = machineModel.ModelName, // Populated from MachineModel
@@ -133,7 +130,27 @@ namespace MultiHitechERP.API.Services.Implementations
                     DrawingRequestedBy = request.RequestDrawing ? (request.CreatedBy?.Trim() ?? "System") : null
                 };
 
-                var productId = await _productRepository.InsertAsync(product);
+                // Generate the code from MAX+1 and insert. If two creates race for the same
+                // number (or any residual gap), retry with the next number instead of failing.
+                int productId = 0;
+                string generatedPartCode = "";
+                for (int attempt = 1; ; attempt++)
+                {
+                    int nextSequence = await _productRepository.GetNextSequenceNumberAsync(partCodePrefix);
+                    generatedPartCode = $"{partCodePrefix}-{nextSequence + attempt - 1:D4}";
+                    product.PartCode = generatedPartCode;
+                    try
+                    {
+                        productId = await _productRepository.InsertAsync(product);
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < 10 &&
+                        (ex.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+                         || ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // code was taken between read and insert — try the next number
+                    }
+                }
 
                 string successMessage = request.RequestDrawing
                     ? $"Product '{generatedPartCode}' created and drawing requested successfully"

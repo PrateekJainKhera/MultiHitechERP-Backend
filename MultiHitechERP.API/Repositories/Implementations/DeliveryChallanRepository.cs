@@ -512,6 +512,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 DeliveredAt = reader.IsDBNull(reader.GetOrdinal("DeliveredAt")) ? null : reader.GetDateTime(reader.GetOrdinal("DeliveredAt")),
                 InvoiceNo = reader.IsDBNull(reader.GetOrdinal("InvoiceNo")) ? null : reader.GetString(reader.GetOrdinal("InvoiceNo")),
                 InvoiceDate = reader.IsDBNull(reader.GetOrdinal("InvoiceDate")) ? null : reader.GetDateTime(reader.GetOrdinal("InvoiceDate")),
+                InvoiceDocument = reader.IsDBNull(reader.GetOrdinal("InvoiceDocument")) ? null : reader.GetString(reader.GetOrdinal("InvoiceDocument")),
                 ReceivedBy = reader.IsDBNull(reader.GetOrdinal("ReceivedBy")) ? null : reader.GetString(reader.GetOrdinal("ReceivedBy")),
                 AcknowledgedAt = reader.IsDBNull(reader.GetOrdinal("AcknowledgedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("AcknowledgedAt")),
                 DeliveryRemarks = reader.IsDBNull(reader.GetOrdinal("DeliveryRemarks")) ? null : reader.GetString(reader.GetOrdinal("DeliveryRemarks")),

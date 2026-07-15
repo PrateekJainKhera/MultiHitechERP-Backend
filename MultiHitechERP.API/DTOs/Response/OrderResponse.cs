@@ -37,6 +37,9 @@ namespace MultiHitechERP.API.DTOs.Response
         public string Status { get; set; } = string.Empty;
         public string Priority { get; set; } = string.Empty;
         public string PlanningStatus { get; set; } = string.Empty;
+        // Derived 6-stage pipeline position (Pending, Planning Done, Ready for Scheduling,
+        // In Production, Ready to Dispatch, Dispatched — or a raw exception state).
+        public string WorkflowStage { get; set; } = string.Empty;
 
         // Order Source & Agent
         public string OrderSource { get; set; } = string.Empty;

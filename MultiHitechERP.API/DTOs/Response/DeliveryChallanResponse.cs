@@ -45,6 +45,7 @@ namespace MultiHitechERP.API.DTOs.Response
         // Invoice Reference
         public string? InvoiceNo { get; set; }
         public DateTime? InvoiceDate { get; set; }
+        public string? InvoiceDocument { get; set; }   // full S3 URL of the uploaded invoice PDF
 
         // Acknowledgment
         public string? ReceivedBy { get; set; }

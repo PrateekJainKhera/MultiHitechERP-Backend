@@ -250,6 +250,31 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<List<BulkOrderResult>>> BulkCreateOrdersAsync(BulkCreateOrdersRequest request)
+        {
+            var results = new List<BulkOrderResult>();
+            if (request?.Orders == null || request.Orders.Count == 0)
+                return ApiResponse<List<BulkOrderResult>>.ErrorResponse("No orders to create");
+
+            // Create each order independently so one bad row does not block the rest.
+            foreach (var entry in request.Orders)
+            {
+                try
+                {
+                    var res = await CreateOrderAsync(entry.Order);
+                    results.Add(new BulkOrderResult { Ref = entry.Ref, Success = res.Success, Message = res.Message });
+                }
+                catch (Exception ex)
+                {
+                    results.Add(new BulkOrderResult { Ref = entry.Ref, Success = false, Message = ex.Message });
+                }
+            }
+
+            var created = results.Count(r => r.Success);
+            return ApiResponse<List<BulkOrderResult>>.SuccessResponse(results,
+                $"{created} of {results.Count} order(s) created");
+        }
+
         public async Task<ApiResponse<int>> CreateOrderAsync(CreateOrderRequest request)
         {
             try
@@ -967,6 +992,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 Status = order.Status,
                 Priority = order.Priority,
                 PlanningStatus = order.PlanningStatus,
+                WorkflowStage = order.WorkflowStage ?? "",
 
                 OrderSource = order.OrderSource,
                 AgentCustomerId = order.AgentCustomerId,

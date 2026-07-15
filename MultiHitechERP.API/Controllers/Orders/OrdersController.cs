@@ -328,6 +328,15 @@ namespace MultiHitechERP.API.Controllers.Orders
             );
         }
 
+        /// <summary>Bulk-create orders from an uploaded/resolved spreadsheet. Each order is
+        /// created independently; the response reports per-row success/failure.</summary>
+        [HttpPost("bulk")]
+        public async Task<IActionResult> BulkCreate([FromBody] BulkCreateOrdersRequest request)
+        {
+            var response = await _orderService.BulkCreateOrdersAsync(request);
+            return response.Success ? Ok(response) : BadRequest(response);
+        }
+
         /// <summary>
         /// Update an existing order
         /// </summary>

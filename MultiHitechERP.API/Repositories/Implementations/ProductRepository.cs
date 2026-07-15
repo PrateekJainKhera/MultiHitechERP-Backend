@@ -320,17 +320,23 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return (int)await command.ExecuteScalarAsync() > 0;
         }
 
-        public async Task<int> GetNextSequenceNumberAsync(string rollerType)
+        public async Task<int> GetNextSequenceNumberAsync(string prefix)
         {
-            const string query = "SELECT COUNT(1) FROM Masters_Products WHERE RollerType = @RollerType";
+            // Next number = highest existing numeric suffix for this prefix + 1.
+            // COUNT-based numbering collides whenever there's a gap (e.g. a deleted
+            // product), so use MAX over the actual PartCode namespace (e.g. 'MAG-%').
+            const string query = @"
+                SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(PartCode, CHARINDEX('-', PartCode) + 1, 20) AS INT)), 0) + 1
+                FROM Masters_Products
+                WHERE PartCode LIKE @Prefix + '-%'";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@RollerType", rollerType);
+            command.Parameters.AddWithValue("@Prefix", prefix);
 
             await connection.OpenAsync();
-            var count = (int)await command.ExecuteScalarAsync();
-            return count + 1;
+            var next = await command.ExecuteScalarAsync();
+            return next == null || next == DBNull.Value ? 1 : (int)next;
         }
 
         private Product MapToProduct(SqlDataReader reader)

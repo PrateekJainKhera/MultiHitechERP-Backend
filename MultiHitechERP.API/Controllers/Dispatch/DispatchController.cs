@@ -374,6 +374,7 @@ namespace MultiHitechERP.API.Controllers.Dispatch
                 DeliveredAt = challan.DeliveredAt,
                 InvoiceNo = challan.InvoiceNo,
                 InvoiceDate = challan.InvoiceDate,
+                InvoiceDocument = challan.InvoiceDocument,
                 ReceivedBy = challan.ReceivedBy,
                 AcknowledgedAt = challan.AcknowledgedAt,
                 DeliveryRemarks = challan.DeliveryRemarks,
