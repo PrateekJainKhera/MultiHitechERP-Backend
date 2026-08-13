@@ -12,6 +12,9 @@ namespace MultiHitechERP.API.DTOs.Request
         [Required]
         public string TemplateName { get; set; } = string.Empty;
 
+        // Roller type (editable). Comma-separated allowed.
+        public string? RollerType { get; set; }
+
         public string? Description { get; set; }
 
         public string? DrawingNumber { get; set; }

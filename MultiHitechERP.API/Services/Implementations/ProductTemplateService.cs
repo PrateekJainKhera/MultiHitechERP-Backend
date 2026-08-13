@@ -179,14 +179,17 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<bool>.ErrorResponse($"Product template with ID {request.Id} not found");
                 }
 
-                // Update template entity (preserve TemplateCode and RollerType - they're immutable)
+                // Update template entity (TemplateCode is immutable; RollerType is editable)
                 var template = new ProductTemplate
                 {
                     Id = request.Id,
                     TemplateCode = existingTemplate.TemplateCode, // Preserve original code
                     TemplateName = request.TemplateName,
                     Description = request.Description,
-                    RollerType = existingTemplate.RollerType, // Preserve original roller type
+                    // Allow roller type change; fall back to existing when not supplied
+                    RollerType = string.IsNullOrWhiteSpace(request.RollerType)
+                        ? existingTemplate.RollerType
+                        : request.RollerType,
                     ProcessTemplateId = request.ProcessTemplateId,
                     IsActive = request.IsActive,
                     CreatedAt = existingTemplate.CreatedAt,
