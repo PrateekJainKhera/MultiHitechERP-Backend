@@ -13,6 +13,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         // Basic CRUD Operations
         Task<Customer?> GetByIdAsync(int id);
         Task<Customer?> GetByCustomerCodeAsync(string customerCode);
+        Task<Customer?> GetByGSTNoAsync(string gstNo);
         Task<IEnumerable<Customer>> GetAllAsync();
         Task<IEnumerable<Customer>> GetActiveCustomersAsync();
 

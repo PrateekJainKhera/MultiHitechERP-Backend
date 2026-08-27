@@ -61,22 +61,32 @@ namespace MultiHitechERP.API.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<IEnumerable<DrawingResponse>>> GetDrawingsByProductIdAsync(int productId)
+        {
+            try
+            {
+                var drawings = await _drawingRepository.GetByProductIdAsync(productId);
+                return ApiResponse<IEnumerable<DrawingResponse>>.SuccessResponse(drawings.Select(MapToResponse).ToList());
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<DrawingResponse>>.ErrorResponse($"Error retrieving drawings for product: {ex.Message}");
+            }
+        }
+
         public async Task<ApiResponse<int>> CreateDrawingAsync(CreateDrawingRequest request)
         {
             try
             {
-                // Use provided drawing number or auto-generate if not provided
-                var drawingNumber = !string.IsNullOrWhiteSpace(request.DrawingNumber)
-                    ? request.DrawingNumber.Trim()
-                    : await _drawingRepository.GetNextDrawingNumberAsync();
+                bool numberProvided = !string.IsNullOrWhiteSpace(request.DrawingNumber);
 
-                // Check if drawing number already exists
-                if (await _drawingRepository.ExistsAsync(drawingNumber))
-                    return ApiResponse<int>.ErrorResponse($"Drawing number '{drawingNumber}' already exists");
+                // Check if a provided drawing number already exists (friendly message);
+                // an auto-generated one is checked implicitly by the retry loop below.
+                if (numberProvided && await _drawingRepository.ExistsAsync(request.DrawingNumber!.Trim()))
+                    return ApiResponse<int>.ErrorResponse($"Drawing number '{request.DrawingNumber!.Trim()}' already exists");
 
                 var drawing = new Drawing
                 {
-                    DrawingNumber = drawingNumber,
                     DrawingName = request.DrawingName.Trim(),
                     DrawingType = request.DrawingType.Trim(),
                     Revision = request.Revision?.Trim(),
@@ -91,13 +101,42 @@ namespace MultiHitechERP.API.Services.Implementations
                     LinkedProductId = request.LinkedProductId,
                     LinkedCustomerId = request.LinkedCustomerId,
                     LinkedOrderId = request.LinkedOrderId,
+                    LinkedChildPartTemplateId = request.LinkedChildPartTemplateId,
                     Description = request.Description?.Trim(),
                     Notes = request.Notes?.Trim(),
                     IsActive = true,
                     CreatedBy = "System"
                 };
 
-                var drawingId = await _drawingRepository.InsertAsync(drawing);
+                // DrawingNumber is backed by a UNIQUE constraint — a race between two
+                // concurrent creates throws on insert instead of silently duplicating.
+                // For an auto-generated number, retry with the next one; for a
+                // client-provided number, the race is rare enough to just report it.
+                int drawingId = 0;
+                for (int attempt = 1; ; attempt++)
+                {
+                    var drawingNumber = numberProvided
+                        ? request.DrawingNumber!.Trim()
+                        : await _drawingRepository.GetNextDrawingNumberAsync();
+                    drawing.DrawingNumber = drawingNumber;
+                    try
+                    {
+                        drawingId = await _drawingRepository.InsertAsync(drawing);
+                        break;
+                    }
+                    catch (Exception ex) when (!numberProvided && attempt < 10 &&
+                        (ex.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+                         || ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // code was taken between read and insert — try the next number
+                    }
+                    catch (Exception ex) when (numberProvided &&
+                        (ex.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+                         || ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return ApiResponse<int>.ErrorResponse($"Drawing number '{drawingNumber}' already exists");
+                    }
+                }
                 return ApiResponse<int>.SuccessResponse(drawingId, $"Drawing '{drawing.DrawingNumber}' created successfully");
             }
             catch (Exception ex)
@@ -135,6 +174,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 existingDrawing.LinkedPartId = request.LinkedPartId;
                 existingDrawing.LinkedProductId = request.LinkedProductId;
                 existingDrawing.LinkedCustomerId = request.LinkedCustomerId;
+                existingDrawing.LinkedChildPartTemplateId = request.LinkedChildPartTemplateId;
                 existingDrawing.Description = request.Description?.Trim();
                 existingDrawing.Notes = request.Notes?.Trim();
                 existingDrawing.IsActive = request.IsActive;
@@ -194,6 +234,8 @@ namespace MultiHitechERP.API.Services.Implementations
                 LinkedCustomerId = drawing.LinkedCustomerId,
                 LinkedCustomerName = drawing.LinkedCustomerName,
                 LinkedOrderId = drawing.LinkedOrderId,
+                LinkedChildPartTemplateId = drawing.LinkedChildPartTemplateId,
+                LinkedChildPartTemplateName = drawing.LinkedChildPartTemplateName,
                 Description = drawing.Description,
                 Notes = drawing.Notes,
                 IsActive = drawing.IsActive,

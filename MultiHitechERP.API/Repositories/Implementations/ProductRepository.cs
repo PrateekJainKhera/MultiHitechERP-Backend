@@ -325,8 +325,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
             // Next number = highest existing numeric suffix for this prefix + 1.
             // COUNT-based numbering collides whenever there's a gap (e.g. a deleted
             // product), so use MAX over the actual PartCode namespace (e.g. 'MAG-%').
+            // Extract from the LAST dash, not the first — a prefix containing its own
+            // dash (e.g. "MG-" from a roller type like "MG-Gear") would otherwise make
+            // CHARINDEX split right after that embedded dash instead of before the
+            // sequence number, parsing e.g. "MG--0001" as a negative number and
+            // corrupting every future MAX()+1 for that prefix.
             const string query = @"
-                SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(PartCode, CHARINDEX('-', PartCode) + 1, 20) AS INT)), 0) + 1
+                SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(PartCode, LEN(PartCode) - CHARINDEX('-', REVERSE(PartCode)) + 2, 20) AS INT)), 0) + 1
                 FROM Masters_Products
                 WHERE PartCode LIKE @Prefix + '-%'";
 

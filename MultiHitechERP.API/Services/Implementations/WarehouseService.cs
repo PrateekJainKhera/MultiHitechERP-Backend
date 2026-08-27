@@ -124,6 +124,13 @@ namespace MultiHitechERP.API.Services.Implementations
                     ? ApiResponse<bool>.SuccessResponse(true, "Warehouse deleted successfully")
                     : ApiResponse<bool>.ErrorResponse("Failed to delete warehouse");
             }
+            catch (Exception ex) when (ex.Message.Contains("REFERENCE constraint", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("conflicted with the", StringComparison.OrdinalIgnoreCase))
+            {
+                // Warehouse still holds tracked stock (Inventory_Stock) — surface a clean
+                // message instead of the raw SQL FK-violation exception.
+                return ApiResponse<bool>.ErrorResponse("Cannot delete this warehouse — it still has stock recorded against it. Move or clear the stock first.");
+            }
             catch (Exception ex)
             {
                 return ApiResponse<bool>.ErrorResponse($"Error deleting warehouse: {ex.Message}");

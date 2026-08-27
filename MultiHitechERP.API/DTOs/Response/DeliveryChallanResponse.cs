@@ -55,6 +55,8 @@ namespace MultiHitechERP.API.DTOs.Response
         public string? Remarks { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string? UpdatedBy { get; set; }
         public bool IsConsolidated { get; set; }
     }
 }

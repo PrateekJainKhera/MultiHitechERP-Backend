@@ -22,16 +22,14 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
+                // 2 queries total (models + all counts) instead of 1 + N per-model counts.
                 var models = await _repository.GetAllAsync();
-                var response = new List<MachineModelResponse>();
+                var counts = await _repository.GetProductCountsByModelAsync();
+                var response = models
+                    .Select(m => MapToResponse(m, counts.TryGetValue(m.Id, out var c) ? c : 0))
+                    .ToArray();
 
-                foreach (var model in models)
-                {
-                    var productCount = await _repository.GetProductCountAsync(model.Id);
-                    response.Add(MapToResponse(model, productCount));
-                }
-
-                return ApiResponse<MachineModelResponse[]>.SuccessResponse(response.ToArray(), "Models retrieved successfully");
+                return ApiResponse<MachineModelResponse[]>.SuccessResponse(response, "Models retrieved successfully");
             }
             catch (Exception ex)
             {

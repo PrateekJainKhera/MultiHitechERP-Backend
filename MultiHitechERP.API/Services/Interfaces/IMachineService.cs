@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MultiHitechERP.API.DTOs.Request;
@@ -17,5 +18,9 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<int>> CreateMachineAsync(CreateMachineRequest request);
         Task<ApiResponse<bool>> UpdateMachineAsync(UpdateMachineRequest request);
         Task<ApiResponse<bool>> DeleteMachineAsync(int id);
+
+        Task<ApiResponse<IEnumerable<MachineUtilizationResponse>>> GetUtilizationAsync();
+        Task<ApiResponse<IEnumerable<MachineScheduleJobResponse>>> GetMachineJobsAsync(int machineId, DateTime? date);
+        Task<ApiResponse<IEnumerable<MachineDailyScheduleResponse>>> GetDailyScheduleAsync(DateTime? date);
     }
 }

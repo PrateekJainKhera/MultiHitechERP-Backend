@@ -60,6 +60,26 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return null;
         }
 
+        public async Task<Customer?> GetByGSTNoAsync(string gstNo)
+        {
+            const string query = "SELECT * FROM Masters_Customers WHERE GSTNo = @GSTNo";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+
+            command.Parameters.AddWithValue("@GSTNo", gstNo);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return MapToCustomer(reader);
+            }
+
+            return null;
+        }
+
         public async Task<IEnumerable<Customer>> GetAllAsync()
         {
             const string query = "SELECT * FROM Masters_Customers ORDER BY CustomerName";
@@ -342,11 +362,15 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<int> GetNextSequenceNumberAsync(string customerType)
         {
+            // Extract from the LAST dash (not the first) and TRY_CAST (not CAST) — a
+            // CustomerCode with an embedded dash before the sequence number (e.g. a
+            // hand-entered or imported code) would otherwise make CHARINDEX split at
+            // the wrong point and either throw or silently corrupt the next sequence.
             const string query = @"
                 SELECT ISNULL(MAX(
                     CASE
                         WHEN CHARINDEX('-', CustomerCode) > 0
-                        THEN CAST(SUBSTRING(CustomerCode, CHARINDEX('-', CustomerCode) + 1, LEN(CustomerCode)) AS INT)
+                        THEN TRY_CAST(SUBSTRING(CustomerCode, LEN(CustomerCode) - CHARINDEX('-', REVERSE(CustomerCode)) + 2, LEN(CustomerCode)) AS INT)
                         ELSE 0
                     END
                 ), 0) + 1

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using MultiHitechERP.API.DTOs.Request;
 using MultiHitechERP.API.DTOs.Response;
 using MultiHitechERP.API.Models.Masters;
+using MultiHitechERP.API.Models.Scheduling;
 using MultiHitechERP.API.Repositories.Interfaces;
 using MultiHitechERP.API.Services.Interfaces;
 
@@ -13,10 +14,37 @@ namespace MultiHitechERP.API.Services.Implementations
     public class MachineService : IMachineService
     {
         private readonly IMachineRepository _machineRepository;
+        private readonly IScheduleRepository _scheduleRepository;
+        private readonly IJobCardRepository _jobCardRepository;
 
-        public MachineService(IMachineRepository machineRepository)
+        public MachineService(IMachineRepository machineRepository, IScheduleRepository scheduleRepository, IJobCardRepository jobCardRepository)
         {
             _machineRepository = machineRepository;
+            _scheduleRepository = scheduleRepository;
+            _jobCardRepository = jobCardRepository;
+        }
+
+        private async Task<MachineScheduleJobResponse> MapScheduleToJobResponseAsync(MachineSchedule s)
+        {
+            var jobCard = await _jobCardRepository.GetByIdAsync(s.JobCardId);
+            return new MachineScheduleJobResponse
+            {
+                ScheduleId = s.Id,
+                JobCardId = s.JobCardId,
+                JobCardNo = s.JobCardNo ?? string.Empty,
+                OrderNo = s.OrderNo,
+                ItemSequence = jobCard?.ItemSequence,
+                ProcessName = s.ProcessName,
+                ChildPartName = jobCard?.ChildPartName,
+                MachineModelName = jobCard?.MachineModelName,
+                Quantity = jobCard?.Quantity ?? 0,
+                ScheduledStartTime = s.ScheduledStartTime,
+                ScheduledEndTime = s.ScheduledEndTime,
+                ActualStartTime = s.ActualStartTime,
+                ActualEndTime = s.ActualEndTime,
+                Status = s.Status,
+                FinishedEarly = s.ActualEndTime.HasValue && s.ActualEndTime.Value < s.ScheduledEndTime
+            };
         }
 
         public async Task<ApiResponse<MachineResponse>> GetByIdAsync(int id)
@@ -137,11 +165,8 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             try
             {
-                var machineCode = await _machineRepository.GetNextMachineCodeAsync();
-
                 var machine = new Machine
                 {
-                    MachineCode = machineCode,
                     MachineName = request.MachineName.Trim(),
                     MachineType = request.MachineType?.Trim(),
                     Location = request.Location?.Trim(),
@@ -154,7 +179,32 @@ namespace MultiHitechERP.API.Services.Implementations
                     CreatedBy = "System"
                 };
 
-                var machineId = await _machineRepository.InsertAsync(machine);
+                // MachineCode is backed by a UNIQUE constraint — a race between two
+                // concurrent creates throws on insert instead of silently duplicating;
+                // retry with the next number.
+                int machineId = 0;
+                for (int attempt = 1; ; attempt++)
+                {
+                    var machineCode = await _machineRepository.GetNextMachineCodeAsync();
+                    if (attempt > 1)
+                    {
+                        var prefix = machineCode.Substring(0, machineCode.LastIndexOf('-') + 1);
+                        var baseNum = int.Parse(machineCode.Substring(machineCode.LastIndexOf('-') + 1));
+                        machineCode = $"{prefix}{baseNum + attempt - 1:D3}";
+                    }
+                    machine.MachineCode = machineCode;
+                    try
+                    {
+                        machineId = await _machineRepository.InsertAsync(machine);
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < 10 &&
+                        (ex.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+                         || ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // code was taken between read and insert — try the next number
+                    }
+                }
 
                 // Save process category mappings
                 if (request.ProcessCategoryIds != null && request.ProcessCategoryIds.Count > 0)
@@ -221,6 +271,142 @@ namespace MultiHitechERP.API.Services.Implementations
             catch (Exception ex)
             {
                 return ApiResponse<bool>.ErrorResponse($"Error deleting machine: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<MachineUtilizationResponse>>> GetUtilizationAsync()
+        {
+            try
+            {
+                var machines = (await _machineRepository.GetAllAsync()).Where(m => m.IsActive).ToList();
+                var now = DateTime.UtcNow;
+                var todayStart = now.Date;
+                var todayEnd = todayStart.AddDays(1);
+
+                var result = new List<MachineUtilizationResponse>();
+                foreach (var machine in machines)
+                {
+                    var todaySchedules = (await _scheduleRepository.GetByMachineAndDateRangeAsync(machine.Id, todayStart, todayEnd))
+                        .Where(s => s.Status != "Cancelled")
+                        .ToList();
+
+                    // "Currently busy" is derived from real progress, not the original plan:
+                    // a schedule with ActualEndTime already set is done — even if that's before
+                    // its ScheduledEndTime — so it no longer counts as occupying the machine.
+                    var current = todaySchedules.FirstOrDefault(s =>
+                        s.ActualEndTime == null &&
+                        now >= (s.ActualStartTime ?? s.ScheduledStartTime) &&
+                        now <= s.ScheduledEndTime);
+
+                    decimal usedMinutes = 0;
+                    int completedCount = 0;
+                    foreach (var s in todaySchedules)
+                    {
+                        if (s.Status == "Completed") completedCount++;
+
+                        if (s.ActualEndTime.HasValue)
+                        {
+                            var start = s.ActualStartTime ?? s.ScheduledStartTime;
+                            usedMinutes += (decimal)Math.Max(0, (s.ActualEndTime.Value - start).TotalMinutes);
+                        }
+                        else
+                        {
+                            var start = s.ActualStartTime ?? s.ScheduledStartTime;
+                            if (now > start)
+                            {
+                                var end = now < s.ScheduledEndTime ? now : s.ScheduledEndTime;
+                                usedMinutes += (decimal)Math.Max(0, (end - start).TotalMinutes);
+                            }
+                        }
+                    }
+
+                    var capacityMinutes = machine.DailyCapacityHours * 60m;
+                    var utilizationPercent = capacityMinutes > 0
+                        ? Math.Min(100m, Math.Round(usedMinutes / capacityMinutes * 100m, 1))
+                        : 0m;
+
+                    result.Add(new MachineUtilizationResponse
+                    {
+                        MachineId = machine.Id,
+                        MachineCode = machine.MachineCode,
+                        MachineName = machine.MachineName,
+                        MachineType = machine.MachineType,
+                        MachineStatus = machine.Status ?? "Idle",
+                        IsCurrentlyBusy = current != null,
+                        CurrentJobCardNo = current?.JobCardNo,
+                        CurrentProcessName = current?.ProcessName,
+                        CurrentJobExpectedFreeAt = current?.ScheduledEndTime,
+                        UtilizationPercentToday = utilizationPercent,
+                        ScheduledJobsToday = todaySchedules.Count,
+                        CompletedJobsToday = completedCount
+                    });
+                }
+
+                return ApiResponse<IEnumerable<MachineUtilizationResponse>>.SuccessResponse(result);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<MachineUtilizationResponse>>.ErrorResponse($"Error computing machine utilization: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<MachineScheduleJobResponse>>> GetMachineJobsAsync(int machineId, DateTime? date)
+        {
+            try
+            {
+                var day = (date ?? DateTime.UtcNow).Date;
+                var scheduleRows = (await _scheduleRepository.GetByMachineAndDateRangeAsync(machineId, day, day.AddDays(1)))
+                    .Where(s => s.Status != "Cancelled")
+                    .OrderBy(s => s.ScheduledStartTime)
+                    .ToList();
+
+                var schedules = new List<MachineScheduleJobResponse>();
+                foreach (var s in scheduleRows)
+                    schedules.Add(await MapScheduleToJobResponseAsync(s));
+
+                return ApiResponse<IEnumerable<MachineScheduleJobResponse>>.SuccessResponse(schedules);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<MachineScheduleJobResponse>>.ErrorResponse($"Error retrieving machine jobs: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<MachineDailyScheduleResponse>>> GetDailyScheduleAsync(DateTime? date)
+        {
+            try
+            {
+                var day = (date ?? DateTime.UtcNow).Date;
+                var machines = (await _machineRepository.GetAllAsync()).Where(m => m.IsActive).ToList();
+
+                var allSchedules = (await _scheduleRepository.GetByDateRangeAsync(day, day.AddDays(1)))
+                    .Where(s => s.Status != "Cancelled" && s.MachineId.HasValue)
+                    .ToList();
+
+                var byMachine = allSchedules.ToLookup(s => s.MachineId!.Value);
+
+                var result = new List<MachineDailyScheduleResponse>();
+                foreach (var machine in machines)
+                {
+                    var jobs = new List<MachineScheduleJobResponse>();
+                    foreach (var s in byMachine[machine.Id].OrderBy(s => s.ScheduledStartTime))
+                        jobs.Add(await MapScheduleToJobResponseAsync(s));
+
+                    result.Add(new MachineDailyScheduleResponse
+                    {
+                        MachineId = machine.Id,
+                        MachineCode = machine.MachineCode,
+                        MachineName = machine.MachineName,
+                        MachineType = machine.MachineType,
+                        Jobs = jobs
+                    });
+                }
+
+                return ApiResponse<IEnumerable<MachineDailyScheduleResponse>>.SuccessResponse(result);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<MachineDailyScheduleResponse>>.ErrorResponse($"Error loading daily schedule: {ex.Message}");
             }
         }
 

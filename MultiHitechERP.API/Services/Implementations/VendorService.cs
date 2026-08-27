@@ -117,8 +117,18 @@ namespace MultiHitechERP.API.Services.Implementations
             if (existing == null)
                 return ApiResponse<bool>.ErrorResponse("Vendor not found");
 
-            await _vendorRepository.DeleteAsync(id);
-            return ApiResponse<bool>.SuccessResponse(true, "Vendor deleted successfully");
+            try
+            {
+                await _vendorRepository.DeleteAsync(id);
+                return ApiResponse<bool>.SuccessResponse(true, "Vendor deleted successfully");
+            }
+            catch (Exception ex) when (ex.Message.Contains("REFERENCE constraint", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("conflicted with the", StringComparison.OrdinalIgnoreCase))
+            {
+                // Vendor still referenced by a Purchase Order/Request Item/OSP record —
+                // surface a clean message instead of the raw SQL FK-violation exception.
+                return ApiResponse<bool>.ErrorResponse($"Cannot delete '{existing.VendorName}' — it is still referenced by existing purchase orders, purchase request items, or OSP records. Deactivate it instead.");
+            }
         }
 
         private static VendorResponse MapToResponse(Vendor v) => new()

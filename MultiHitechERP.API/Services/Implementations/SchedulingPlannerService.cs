@@ -176,6 +176,9 @@ namespace MultiHitechERP.API.Services.Implementations
                         o.DueDate,
                         ISNULL(jc.ChildPartName, 'Unknown Part') AS ChildPartName,
                         ISNULL(jc.CreationType, 'ChildPart') AS CreationType,
+                        COALESCE(poi.ModelName, po.ModelName) AS MachineModelName,
+                        COALESCE(poi.RollerType, po.RollerType) AS RollerType,
+                        COALESCE(poi.NumberOfTeeth, po.NumberOfTeeth) AS NumberOfTeeth,
                         jc.ProcessId,
                         ISNULL(jc.ProcessName, '') AS ProcessName,
                         jc.ProcessCode,
@@ -222,6 +225,9 @@ namespace MultiHitechERP.API.Services.Implementations
                     LEFT JOIN Masters_Customers c ON c.Id = o.CustomerId
                     LEFT JOIN Masters_Processes p ON p.Id = jc.ProcessId
                     LEFT JOIN Masters_ProcessCategories pc ON pc.Id = p.ProcessCategoryId
+                    LEFT JOIN Orders_OrderItems oi ON oi.Id = jc.OrderItemId
+                    LEFT JOIN Masters_Products poi ON poi.Id = oi.ProductId
+                    LEFT JOIN Masters_Products po ON po.Id = o.ProductId
                     WHERE {whereClause}
                     AND jc.Status NOT IN ('Completed', 'Cancelled')
                     AND ISNULL(jc.ProductionStatus, 'Pending') NOT IN ('Completed')
@@ -253,6 +259,9 @@ namespace MultiHitechERP.API.Services.Implementations
                         DueDate = (DateTime?)r.DueDate,
                         ChildPartName = (string?)r.ChildPartName,
                         CreationType = (string?)r.CreationType,
+                        MachineModelName = (string?)r.MachineModelName,
+                        RollerType = (string?)r.RollerType,
+                        NumberOfTeeth = (int?)r.NumberOfTeeth,
                         ProcessId = (int)r.ProcessId,
                         ProcessName = (string)r.ProcessName ?? "",
                         ProcessCode = (string?)r.ProcessCode,

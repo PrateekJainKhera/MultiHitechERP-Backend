@@ -19,5 +19,6 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<bool> UpdateAsync(MachineSchedule schedule);
         Task<bool> DeleteAsync(int id);
         Task<bool> UpdateStatusAsync(int id, string status, string? updatedBy = null);
+        Task<bool> UpdateActualTimesAsync(int id, string status, DateTime? actualStartTime, DateTime? actualEndTime, string? updatedBy = null);
     }
 }

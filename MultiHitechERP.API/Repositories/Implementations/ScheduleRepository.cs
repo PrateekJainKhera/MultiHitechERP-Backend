@@ -282,6 +282,34 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
+        public async Task<bool> UpdateActualTimesAsync(int id, string status, DateTime? actualStartTime, DateTime? actualEndTime, string? updatedBy = null)
+        {
+            const string query = @"
+                UPDATE Scheduling_MachineSchedules
+                SET Status = @Status,
+                    ActualStartTime = COALESCE(@ActualStartTime, ActualStartTime),
+                    ActualEndTime = @ActualEndTime,
+                    ActualDurationMinutes = CASE
+                        WHEN @ActualEndTime IS NOT NULL AND COALESCE(@ActualStartTime, ActualStartTime) IS NOT NULL
+                        THEN DATEDIFF(MINUTE, COALESCE(@ActualStartTime, ActualStartTime), @ActualEndTime)
+                        ELSE ActualDurationMinutes
+                    END,
+                    UpdatedAt = @UpdatedAt, UpdatedBy = @UpdatedBy
+                WHERE Id = @Id";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", id);
+            command.Parameters.AddWithValue("@Status", status);
+            command.Parameters.AddWithValue("@ActualStartTime", (object?)actualStartTime ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ActualEndTime", (object?)actualEndTime ?? DBNull.Value);
+            command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@UpdatedBy", (object?)updatedBy ?? DBNull.Value);
+
+            await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync() > 0;
+        }
+
         private static MachineSchedule MapToSchedule(SqlDataReader reader)
         {
             return new MachineSchedule

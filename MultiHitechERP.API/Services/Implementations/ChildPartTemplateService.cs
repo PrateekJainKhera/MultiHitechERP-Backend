@@ -128,18 +128,9 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<int>.ErrorResponse($"Child part template with name '{request.TemplateName}' already exists");
                 }
 
-                // Use provided TemplateCode or auto-generate
-                string templateCode = request.TemplateCode ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(templateCode))
-                {
-                    int sequence = await _childPartTemplateRepository.GetNextSequenceNumberAsync();
-                    templateCode = $"CPT-{sequence:D4}";
-                }
-
-                // Create template entity
+                // Create template entity (TemplateCode is set per-attempt below)
                 var template = new ChildPartTemplate
                 {
-                    TemplateCode = templateCode,
                     TemplateName = request.TemplateName,
                     ChildPartType = request.ChildPartType,
                     RollerType = request.RollerType,
@@ -159,13 +150,44 @@ namespace MultiHitechERP.API.Services.Implementations
                     CreatedBy = request.CreatedBy
                 };
 
-                // Insert template
-                var templateId = await _childPartTemplateRepository.InsertAsync(template);
+                bool codeProvided = !string.IsNullOrWhiteSpace(request.TemplateCode);
+                int templateId = 0;
+                string templateCode = request.TemplateCode ?? string.Empty;
 
-                // Material requirements and process steps are now handled via ProcessTemplateId reference
-                // No need to insert them separately
+                for (int attempt = 1; ; attempt++)
+                {
+                    if (!codeProvided)
+                    {
+                        int sequence = await _childPartTemplateRepository.GetNextSequenceNumberAsync();
+                        templateCode = $"CPT-{sequence + attempt - 1:D4}";
+                    }
+                    template.TemplateCode = templateCode;
+                    try
+                    {
+                        // Insert template — material requirements and process steps are
+                        // handled via ProcessTemplateId reference, no separate insert needed
+                        templateId = await _childPartTemplateRepository.InsertAsync(template);
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < 10 &&
+                        (ex.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+                         || ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // A caller-supplied code collided (extremely unlikely — it's normally
+                        // timestamp-based) — nothing to retry with, since we can't invent a new
+                        // one on their behalf. An auto-generated code just tries the next number.
+                        if (codeProvided)
+                            return ApiResponse<int>.ErrorResponse($"Template code '{templateCode}' already exists — please try again");
+                    }
+                }
 
                 return ApiResponse<int>.SuccessResponse(templateId, $"Child part template '{templateCode}' created successfully");
+            }
+            catch (Exception ex) when (ex.Message.Contains("FOREIGN KEY constraint", StringComparison.OrdinalIgnoreCase))
+            {
+                // Referenced Process Template no longer exists (e.g. deleted in another tab) —
+                // surface a clean message instead of the raw SQL FK-violation exception.
+                return ApiResponse<int>.ErrorResponse("The selected process template no longer exists. Please refresh and select another.");
             }
             catch (Exception ex)
             {

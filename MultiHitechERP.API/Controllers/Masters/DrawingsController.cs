@@ -36,6 +36,13 @@ namespace MultiHitechERP.API.Controllers.Masters
             return result.Success ? Ok(result) : NotFound(result);
         }
 
+        [HttpGet("by-product/{productId}")]
+        public async Task<IActionResult> GetByProductId(int productId)
+        {
+            var result = await _drawingService.GetDrawingsByProductIdAsync(productId);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateDrawingRequest request)
         {

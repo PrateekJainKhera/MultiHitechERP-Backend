@@ -67,7 +67,7 @@ namespace MultiHitechERP.API.Controllers.Masters
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _vendorService.DeleteVendorAsync(id);
-            return result.Success ? Ok(result) : NotFound(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
     }
 }

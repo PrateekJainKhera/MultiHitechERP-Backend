@@ -119,13 +119,20 @@ namespace MultiHitechERP.API.Services.Implementations
                     _ => "CUST"
                 };
 
-                int nextSequence = await _customerRepository.GetNextSequenceNumberAsync(request.CustomerType);
-                string generatedCode = $"{prefix}-{nextSequence:D4}";
+                // Business Rule 4: Reject an exact GST match — GST numbers are legally
+                // unique per business, so this can only be an accidental duplicate entry.
+                if (!string.IsNullOrWhiteSpace(request.GSTNo))
+                {
+                    var gstMatch = await _customerRepository.GetByGSTNoAsync(request.GSTNo.Trim().ToUpper());
+                    if (gstMatch != null)
+                        return ApiResponse<int>.ErrorResponse($"A customer with GST number '{request.GSTNo.Trim().ToUpper()}' already exists: '{gstMatch.CustomerName}' ({gstMatch.CustomerCode})");
+                }
 
-                // Create Customer
+                // Create Customer — code generated per-attempt below. CustomerCode is
+                // backed by a UNIQUE constraint, so a race between two concurrent creates
+                // throws on insert instead of silently duplicating; retry with the next number.
                 var customer = new Customer
                 {
-                    CustomerCode = generatedCode,
                     CustomerName = request.CustomerName.Trim(),
                     CustomerType = request.CustomerType.Trim(),
                     ContactPerson = request.ContactPerson?.Trim(),
@@ -145,7 +152,25 @@ namespace MultiHitechERP.API.Services.Implementations
                     CreatedBy = request.CreatedBy?.Trim() ?? "System"
                 };
 
-                var customerId = await _customerRepository.InsertAsync(customer);
+                int customerId = 0;
+                string generatedCode = "";
+                for (int attempt = 1; ; attempt++)
+                {
+                    int nextSequence = await _customerRepository.GetNextSequenceNumberAsync(request.CustomerType);
+                    generatedCode = $"{prefix}-{nextSequence + attempt - 1:D4}";
+                    customer.CustomerCode = generatedCode;
+                    try
+                    {
+                        customerId = await _customerRepository.InsertAsync(customer);
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < 10 &&
+                        (ex.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+                         || ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // code was taken between read and insert — try the next number
+                    }
+                }
 
                 return ApiResponse<int>.SuccessResponse(customerId, $"Customer '{generatedCode}' created successfully");
             }

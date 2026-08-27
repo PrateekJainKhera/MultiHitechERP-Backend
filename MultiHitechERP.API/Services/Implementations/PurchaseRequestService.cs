@@ -13,17 +13,20 @@ namespace MultiHitechERP.API.Services.Implementations
         private readonly IPurchaseOrderRepository _poRepo;
         private readonly IVendorRepository _vendorRepo;
         private readonly IMaterialRepository _materialRepo;
+        private readonly IComponentRepository _componentRepo;
 
         public PurchaseRequestService(
             IPurchaseRequestRepository prRepo,
             IPurchaseOrderRepository poRepo,
             IVendorRepository vendorRepo,
-            IMaterialRepository materialRepo)
+            IMaterialRepository materialRepo,
+            IComponentRepository componentRepo)
         {
             _prRepo = prRepo;
             _poRepo = poRepo;
             _vendorRepo = vendorRepo;
             _materialRepo = materialRepo;
+            _componentRepo = componentRepo;
         }
 
         public async Task<ApiResponse<IEnumerable<PurchaseRequestResponse>>> GetAllAsync()
@@ -58,6 +61,25 @@ namespace MultiHitechERP.API.Services.Implementations
         {
             if (request.Items.Count == 0)
                 return ApiResponse<int>.ErrorResponse("At least one item is required");
+
+            // Validate each item's ItemId against the real Material/Component record —
+            // a stale or client-supplied bad ItemId would otherwise sail through and
+            // only surface as a broken reference later (e.g. at PO conversion).
+            foreach (var item in request.Items)
+            {
+                if (item.ItemType == "RawMaterial")
+                {
+                    var material = await _materialRepo.GetByIdAsync(item.ItemId);
+                    if (material == null)
+                        return ApiResponse<int>.ErrorResponse($"Material with ID {item.ItemId} not found");
+                }
+                else if (item.ItemType == "Component")
+                {
+                    var component = await _componentRepo.GetByIdAsync(item.ItemId);
+                    if (component == null)
+                        return ApiResponse<int>.ErrorResponse($"Component with ID {item.ItemId} not found");
+                }
+            }
 
             var seq = await _prRepo.GetNextSequenceNumberAsync();
             var month = DateTime.UtcNow.ToString("yyyyMM");

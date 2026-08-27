@@ -123,13 +123,10 @@ namespace MultiHitechERP.API.Services.Implementations
                 // Auto-generate TemplateCode
                 // Format: ROLLERTYPE-SEQ (e.g., MAG-0001, PRT-0001)
                 string prefix = request.RollerType.Length >= 3 ? request.RollerType.Substring(0, 3).ToUpper() : request.RollerType.ToUpper();
-                int sequence = await _productTemplateRepository.GetNextSequenceNumberAsync(request.RollerType);
-                string templateCode = $"{prefix}-{sequence:D4}";
 
                 // Create template entity
                 var template = new ProductTemplate
                 {
-                    TemplateCode = templateCode,
                     TemplateName = request.TemplateName,
                     Description = request.Description,
                     RollerType = request.RollerType,
@@ -138,8 +135,28 @@ namespace MultiHitechERP.API.Services.Implementations
                     CreatedBy = request.CreatedBy?.Trim() ?? "System"
                 };
 
-                // Insert template
-                var templateId = await _productTemplateRepository.InsertAsync(template);
+                // TemplateCode is backed by a UNIQUE constraint — a race between two
+                // concurrent creates for the same RollerType throws on insert instead of
+                // silently duplicating; retry with the next number.
+                int templateId = 0;
+                string templateCode = "";
+                for (int attempt = 1; ; attempt++)
+                {
+                    int sequence = await _productTemplateRepository.GetNextSequenceNumberAsync(request.RollerType);
+                    templateCode = $"{prefix}-{sequence + attempt - 1:D4}";
+                    template.TemplateCode = templateCode;
+                    try
+                    {
+                        templateId = await _productTemplateRepository.InsertAsync(template);
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < 10 &&
+                        (ex.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+                         || ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // code was taken between read and insert — try the next number
+                    }
+                }
 
                 // Insert BOM items if any
                 if (request.BomItems != null && request.BomItems.Any())
@@ -157,10 +174,28 @@ namespace MultiHitechERP.API.Services.Implementations
                         ChildPartCode = ""  // Placeholder - not used in new architecture
                     }).ToList();
 
-                    await _productTemplateRepository.InsertChildPartsAsync(templateId, childParts);
+                    try
+                    {
+                        await _productTemplateRepository.InsertChildPartsAsync(templateId, childParts);
+                    }
+                    catch (Exception)
+                    {
+                        // No shared transaction across the header insert and the BOM insert —
+                        // if a BOM item references a Child Part Template that doesn't exist
+                        // (e.g. deleted in another tab), roll back the header ourselves so a
+                        // broken, BOM-less template doesn't linger after a reported failure.
+                        await _productTemplateRepository.DeleteAsync(templateId);
+                        throw;
+                    }
                 }
 
                 return ApiResponse<int>.SuccessResponse(templateId, $"Product template '{templateCode}' created successfully");
+            }
+            catch (Exception ex) when (ex.Message.Contains("FOREIGN KEY constraint", StringComparison.OrdinalIgnoreCase))
+            {
+                // A referenced Process Template or a BOM's Child Part Template no longer
+                // exists — surface a clean message instead of the raw SQL FK-violation exception.
+                return ApiResponse<int>.ErrorResponse("One or more selected process/child part templates no longer exist. Please refresh and try again.");
             }
             catch (Exception ex)
             {

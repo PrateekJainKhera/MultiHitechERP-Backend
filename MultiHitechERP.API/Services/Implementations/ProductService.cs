@@ -109,9 +109,14 @@ namespace MultiHitechERP.API.Services.Implementations
                     return ApiResponse<int>.ErrorResponse(
                         $"A product for {machineModel.ModelName} · {request.RollerType}{(teethForCheck > 0 ? $" · {teethForCheck}T" : "")} already exists ({dup.PartCode}). Use that product instead of creating a duplicate.");
 
-                // Auto-generate PartCode prefix from first 3 letters of first word of roller type
+                // Auto-generate PartCode prefix from first 3 letters of first word of roller type.
+                // Strip anything that isn't a letter/digit first — a roller type like "MG-Gear"
+                // would otherwise leave the dash in the prefix (e.g. "MG-"), producing a
+                // double-dash PartCode ("MG--0001") that corrupts sequence-number parsing.
                 string firstWord = request.RollerType.Split(' ')[0];
-                string partCodePrefix = firstWord[..Math.Min(3, firstWord.Length)].ToUpper();
+                string alphanumeric = new string(firstWord.Where(char.IsLetterOrDigit).ToArray());
+                string prefixSource = alphanumeric.Length > 0 ? alphanumeric : firstWord;
+                string partCodePrefix = prefixSource[..Math.Min(3, prefixSource.Length)].ToUpper();
 
                 // Create product entity
                 var product = new Product
@@ -166,6 +171,13 @@ namespace MultiHitechERP.API.Services.Implementations
                     : $"Product '{generatedPartCode}' created successfully";
 
                 return ApiResponse<int>.SuccessResponse(productId, successMessage);
+            }
+            catch (Exception ex) when (ex.Message.Contains("FOREIGN KEY constraint", StringComparison.OrdinalIgnoreCase))
+            {
+                // A referenced Machine Model, Product Template, or Process Template no
+                // longer exists — surface a clean message instead of the raw SQL
+                // FK-violation exception.
+                return ApiResponse<int>.ErrorResponse("The selected machine model, product template, or process template no longer exists. Please refresh and try again.");
             }
             catch (Exception ex)
             {

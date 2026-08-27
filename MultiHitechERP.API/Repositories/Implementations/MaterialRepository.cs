@@ -220,7 +220,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
         {
             // MaterialCode format: GRADE-SHAPE-DIMENSION-SEQ
             // Example: EN8-ROD-050-001, SS304-SHE-500-001
-            string prefix = $"{grade.Replace(" ", "")}-{shape.ToUpper().Substring(0, 3)}-{((int)diameter):D3}";
+            // Grade is free text (e.g. a long spec name) and, unlike shape, was never
+            // truncated — cap it so MaterialCode can't grow unbounded and overflow its
+            // NVARCHAR(50) column, the same class of bug that overflowed JobCardNo.
+            string gradeNoSpaces = grade.Replace(" ", "");
+            string gradePart = gradeNoSpaces[..Math.Min(15, gradeNoSpaces.Length)];
+            string prefix = $"{gradePart}-{shape.ToUpper().Substring(0, 3)}-{((int)diameter):D3}";
 
             const string query = @"
                 SELECT ISNULL(MAX(CAST(RIGHT(MaterialCode, 3) AS INT)), 0) + 1

@@ -364,7 +364,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         OrderValue = request.OrderValue,
                         AdvancePayment = request.AdvancePayment,
                         BalancePayment = request.OrderValue.HasValue ? request.OrderValue - (request.AdvancePayment ?? 0) : null,
-                        CreatedBy = request.CreatedBy,
+                        CreatedBy = request.CreatedBy ?? "System",
                         Version = 1,
 
                         // Legacy fields kept for compatibility - will be aggregate of first item or defaults
@@ -376,7 +376,7 @@ namespace MultiHitechERP.API.Services.Implementations
                         OriginalQuantity = request.Items.Sum(i => i.Quantity)
                     };
 
-                    var orderId = await _orderRepository.InsertAsync(order);
+                    var orderId = await InsertOrderWithRetryAsync(order);
 
                     // Create OrderItems with sequences (A, B, C...)
                     var itemSequence = 'A';
@@ -469,11 +469,11 @@ namespace MultiHitechERP.API.Services.Implementations
                         OrderValue = request.OrderValue,
                         AdvancePayment = request.AdvancePayment,
                         BalancePayment = request.OrderValue.HasValue ? request.OrderValue - (request.AdvancePayment ?? 0) : null,
-                        CreatedBy = request.CreatedBy,
+                        CreatedBy = request.CreatedBy ?? "System",
                         Version = 1
                     };
 
-                    var orderId = await _orderRepository.InsertAsync(order);
+                    var orderId = await InsertOrderWithRetryAsync(order);
 
                     // Create single OrderItem with sequence 'A' for backward compatibility
                     var orderItem = new OrderItem
@@ -878,6 +878,26 @@ namespace MultiHitechERP.API.Services.Implementations
         }
 
         // Helper Methods
+
+        // OrderNo is backed by a UNIQUE constraint — a race between two concurrent
+        // creates in the same month throws on insert instead of silently duplicating;
+        // regenerate the number (in-memory MAX+1 scan) and retry.
+        private async Task<int> InsertOrderWithRetryAsync(Order order)
+        {
+            for (int attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    return await _orderRepository.InsertAsync(order);
+                }
+                catch (Exception ex) when (attempt < 10 &&
+                    (ex.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+                     || ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+                {
+                    order.OrderNo = await GenerateOrderNoInternalAsync();
+                }
+            }
+        }
 
         private async Task<string> GenerateOrderNoInternalAsync()
         {

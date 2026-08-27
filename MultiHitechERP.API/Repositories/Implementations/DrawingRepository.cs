@@ -20,10 +20,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<Drawing?> GetByIdAsync(int id)
         {
             const string query = @"
-                SELECT d.*, p.PartCode AS LinkedProductName, c.CustomerName AS LinkedCustomerName
+                SELECT d.*, p.PartCode AS LinkedProductName, c.CustomerName AS LinkedCustomerName,
+                    cpt.TemplateName AS LinkedChildPartTemplateName
                 FROM Masters_Drawings d
                 LEFT JOIN Masters_Products p ON d.LinkedProductId = p.Id
                 LEFT JOIN Masters_Customers c ON d.LinkedCustomerId = c.Id
+                LEFT JOIN Masters_ChildPartTemplates cpt ON d.LinkedChildPartTemplateId = cpt.Id
                 WHERE d.Id = @Id";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -39,10 +41,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
         public async Task<IEnumerable<Drawing>> GetAllAsync()
         {
             const string query = @"
-                SELECT d.*, p.PartCode AS LinkedProductName, c.CustomerName AS LinkedCustomerName
+                SELECT d.*, p.PartCode AS LinkedProductName, c.CustomerName AS LinkedCustomerName,
+                    cpt.TemplateName AS LinkedChildPartTemplateName
                 FROM Masters_Drawings d
                 LEFT JOIN Masters_Products p ON d.LinkedProductId = p.Id
                 LEFT JOIN Masters_Customers c ON d.LinkedCustomerId = c.Id
+                LEFT JOIN Masters_ChildPartTemplates cpt ON d.LinkedChildPartTemplateId = cpt.Id
                 ORDER BY d.DrawingName";
 
             var drawings = new List<Drawing>();
@@ -60,12 +64,44 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<IEnumerable<Drawing>> GetByOrderIdAsync(int orderId)
         {
-            const string query = "SELECT * FROM Masters_Drawings WHERE LinkedOrderId = @OrderId ORDER BY DrawingNumber";
+            const string query = @"
+                SELECT d.*, p.PartCode AS LinkedProductName, c.CustomerName AS LinkedCustomerName,
+                    cpt.TemplateName AS LinkedChildPartTemplateName
+                FROM Masters_Drawings d
+                LEFT JOIN Masters_Products p ON d.LinkedProductId = p.Id
+                LEFT JOIN Masters_Customers c ON d.LinkedCustomerId = c.Id
+                LEFT JOIN Masters_ChildPartTemplates cpt ON d.LinkedChildPartTemplateId = cpt.Id
+                WHERE d.LinkedOrderId = @OrderId ORDER BY d.DrawingNumber";
 
             var drawings = new List<Drawing>();
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
             using var command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@OrderId", orderId);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+                drawings.Add(MapToDrawing(reader));
+
+            return drawings;
+        }
+
+        public async Task<IEnumerable<Drawing>> GetByProductIdAsync(int productId)
+        {
+            const string query = @"
+                SELECT d.*, p.PartCode AS LinkedProductName, c.CustomerName AS LinkedCustomerName,
+                    cpt.TemplateName AS LinkedChildPartTemplateName
+                FROM Masters_Drawings d
+                LEFT JOIN Masters_Products p ON d.LinkedProductId = p.Id
+                LEFT JOIN Masters_Customers c ON d.LinkedCustomerId = c.Id
+                LEFT JOIN Masters_ChildPartTemplates cpt ON d.LinkedChildPartTemplateId = cpt.Id
+                WHERE d.LinkedProductId = @ProductId ORDER BY d.DrawingNumber";
+
+            var drawings = new List<Drawing>();
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@ProductId", productId);
 
             await connection.OpenAsync();
             using var reader = await command.ExecuteReaderAsync();
@@ -83,13 +119,13 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     DrawingNumber, DrawingName, DrawingType, Revision, RevisionDate, Status,
                     FileName, FileType, FileUrl, FileSize,
                     ManufacturingDimensionsJSON,
-                    LinkedPartId, LinkedProductId, LinkedCustomerId, LinkedOrderId,
+                    LinkedPartId, LinkedProductId, LinkedCustomerId, LinkedOrderId, LinkedChildPartTemplateId,
                     Description, Notes, IsActive, CreatedAt, CreatedBy
                 ) VALUES (
                     @DrawingNumber, @DrawingName, @DrawingType, @Revision, @RevisionDate, @Status,
                     @FileName, @FileType, @FileUrl, @FileSize,
                     @ManufacturingDimensionsJSON,
-                    @LinkedPartId, @LinkedProductId, @LinkedCustomerId, @LinkedOrderId,
+                    @LinkedPartId, @LinkedProductId, @LinkedCustomerId, @LinkedOrderId, @LinkedChildPartTemplateId,
                     @Description, @Notes, @IsActive, @CreatedAt, @CreatedBy
                 );
                 SELECT CAST(SCOPE_IDENTITY() AS INT);";
@@ -113,6 +149,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LinkedProductId", (object?)drawing.LinkedProductId ?? DBNull.Value);
             command.Parameters.AddWithValue("@LinkedCustomerId", (object?)drawing.LinkedCustomerId ?? DBNull.Value);
             command.Parameters.AddWithValue("@LinkedOrderId", (object?)drawing.LinkedOrderId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LinkedChildPartTemplateId", (object?)drawing.LinkedChildPartTemplateId ?? DBNull.Value);
             command.Parameters.AddWithValue("@Description", (object?)drawing.Description ?? DBNull.Value);
             command.Parameters.AddWithValue("@Notes", (object?)drawing.Notes ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", drawing.IsActive);
@@ -142,6 +179,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
                     LinkedProductId = @LinkedProductId,
                     LinkedCustomerId = @LinkedCustomerId,
                     LinkedOrderId = @LinkedOrderId,
+                    LinkedChildPartTemplateId = @LinkedChildPartTemplateId,
                     Description = @Description,
                     Notes = @Notes,
                     IsActive = @IsActive,
@@ -169,6 +207,7 @@ namespace MultiHitechERP.API.Repositories.Implementations
             command.Parameters.AddWithValue("@LinkedProductId", (object?)drawing.LinkedProductId ?? DBNull.Value);
             command.Parameters.AddWithValue("@LinkedCustomerId", (object?)drawing.LinkedCustomerId ?? DBNull.Value);
             command.Parameters.AddWithValue("@LinkedOrderId", (object?)drawing.LinkedOrderId ?? DBNull.Value);
+            command.Parameters.AddWithValue("@LinkedChildPartTemplateId", (object?)drawing.LinkedChildPartTemplateId ?? DBNull.Value);
             command.Parameters.AddWithValue("@Description", (object?)drawing.Description ?? DBNull.Value);
             command.Parameters.AddWithValue("@Notes", (object?)drawing.Notes ?? DBNull.Value);
             command.Parameters.AddWithValue("@IsActive", drawing.IsActive);
@@ -193,8 +232,12 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<string> GetNextDrawingNumberAsync()
         {
+            // Extract from the LAST dash and TRY_CAST (not CAST) — some drawing numbers
+            // are timestamp-based (e.g. "DWG-20260709090353-30dd36") with an embedded
+            // dash before a non-numeric suffix; CHARINDEX on the first dash plus a hard
+            // CAST would throw on those instead of just skipping them via TRY_CAST.
             const string query = @"
-                SELECT COALESCE(MAX(CAST(RIGHT(DrawingNumber, LEN(DrawingNumber) - CHARINDEX('-', DrawingNumber)) AS INT)), 0)
+                SELECT COALESCE(MAX(TRY_CAST(SUBSTRING(DrawingNumber, LEN(DrawingNumber) - CHARINDEX('-', REVERSE(DrawingNumber)) + 2, 20) AS INT)), 0)
                 FROM Masters_Drawings";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -256,6 +299,8 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 LinkedCustomerId = reader.IsDBNull(reader.GetOrdinal("LinkedCustomerId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedCustomerId")),
                 LinkedCustomerName = reader.IsDBNull(reader.GetOrdinal("LinkedCustomerName")) ? null : reader.GetString(reader.GetOrdinal("LinkedCustomerName")),
                 LinkedOrderId = reader.IsDBNull(reader.GetOrdinal("LinkedOrderId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedOrderId")),
+                LinkedChildPartTemplateId = reader.IsDBNull(reader.GetOrdinal("LinkedChildPartTemplateId")) ? null : reader.GetInt32(reader.GetOrdinal("LinkedChildPartTemplateId")),
+                LinkedChildPartTemplateName = reader.IsDBNull(reader.GetOrdinal("LinkedChildPartTemplateName")) ? null : reader.GetString(reader.GetOrdinal("LinkedChildPartTemplateName")),
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                 Notes = reader.IsDBNull(reader.GetOrdinal("Notes")) ? null : reader.GetString(reader.GetOrdinal("Notes")),
                 IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
