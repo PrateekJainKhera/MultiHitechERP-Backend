@@ -85,5 +85,9 @@ namespace MultiHitechERP.API.Models.Orders
         public DateTime? UpdatedAt { get; set; }
         public string? UpdatedBy { get; set; }
         public int Version { get; set; } = 1; // Optimistic locking
+
+        // Derived pipeline stage (Pending → Planning Done → Ready for Scheduling →
+        // In Production → Ready to Dispatch → Dispatched). Computed in the read query.
+        public string? WorkflowStage { get; set; }
     }
 }

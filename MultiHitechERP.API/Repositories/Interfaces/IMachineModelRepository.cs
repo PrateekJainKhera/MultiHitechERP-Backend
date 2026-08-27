@@ -15,5 +15,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<bool> ExistsAsync(int id);
         Task<bool> ExistsByNameAsync(string modelName);
         Task<int> GetProductCountAsync(int modelId);
+        // Product counts for ALL models in one query (avoids N+1 in GetAll).
+        Task<System.Collections.Generic.Dictionary<int, int>> GetProductCountsByModelAsync();
     }
 }

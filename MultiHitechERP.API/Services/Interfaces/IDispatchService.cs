@@ -41,6 +41,7 @@ namespace MultiHitechERP.API.Services.Interfaces
         // Simple Dispatch Flow
         Task<ApiResponse<List<ReadyToDispatchItem>>> GetReadyToDispatchAsync();
         Task<ApiResponse<int>> ConsolidatedDispatchAsync(ConsolidatedDispatchRequest request, string? invoiceDocument);
+        Task<ApiResponse<bool>> EditDispatchAsync(EditDispatchRequest request);
         Task<ApiResponse<IEnumerable<DeliveryChallanItem>>> GetChallanItemsAsync(int challanId);
     }
 }

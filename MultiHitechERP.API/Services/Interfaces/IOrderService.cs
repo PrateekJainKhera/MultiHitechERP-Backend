@@ -25,6 +25,7 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<IEnumerable<OrderResponse>>> GetByStatusAsync(string status);
 
         Task<ApiResponse<int>> CreateOrderAsync(CreateOrderRequest request);
+        Task<ApiResponse<List<BulkOrderResult>>> BulkCreateOrdersAsync(BulkCreateOrdersRequest request);
         Task<ApiResponse<bool>> UpdateOrderAsync(UpdateOrderRequest request);
         Task<ApiResponse<bool>> UpdateQuantityAsync(int orderId, int newQuantity, int? orderItemId, string updatedBy);
         Task<ApiResponse<bool>> DeleteOrderAsync(int id);

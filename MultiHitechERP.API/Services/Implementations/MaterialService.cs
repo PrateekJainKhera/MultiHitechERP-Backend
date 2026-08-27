@@ -92,16 +92,18 @@ namespace MultiHitechERP.API.Services.Implementations
                 // Auto-generate MaterialCode
                 // For Sheet: use Width as the dimension in code; for others use Diameter
                 decimal codeDimension = request.Shape == "Sheet" ? (request.Width ?? 0) : request.Diameter;
-                string grade = request.Grade.Replace(" ", "");
+                // Cap grade at 15 chars (matching GetNextSequenceNumberAsync's prefix, which
+                // MUST stay identical here or the next-sequence query would never match the
+                // actual stored MaterialCode, always returning 1 and colliding on a second
+                // material sharing the same long grade name).
+                string gradeNoSpaces = request.Grade.Replace(" ", "");
+                string grade = gradeNoSpaces[..Math.Min(15, gradeNoSpaces.Length)];
                 string shape = request.Shape.ToUpper().Substring(0, 3);
                 string dimensionStr = ((int)codeDimension).ToString("D3");
-                int sequence = await _materialRepository.GetNextSequenceNumberAsync(request.Grade, request.Shape, codeDimension);
-                string materialCode = $"{grade}-{shape}-{dimensionStr}-{sequence:D3}";
 
                 // Create material entity
                 var material = new Material
                 {
-                    MaterialCode = materialCode,
                     MaterialName = request.MaterialName.Trim(),
                     MaterialType = request.MaterialType.Trim(),
                     Grade = request.Grade.Trim(),
@@ -117,7 +119,30 @@ namespace MultiHitechERP.API.Services.Implementations
                     CreatedBy = request.CreatedBy?.Trim() ?? "System"
                 };
 
-                var materialId = await _materialRepository.InsertAsync(material);
+                // Generate the code from MAX+1 and insert. If two creates race for the same
+                // number, retry with the next number instead of failing (now backed by a
+                // UNIQUE constraint on MaterialCode, so a race can no longer silently insert
+                // a duplicate — it throws and we retry here).
+                int materialId = 0;
+                string materialCode = "";
+                for (int attempt = 1; ; attempt++)
+                {
+                    int sequence = await _materialRepository.GetNextSequenceNumberAsync(request.Grade, request.Shape, codeDimension);
+                    materialCode = $"{grade}-{shape}-{dimensionStr}-{sequence + attempt - 1:D3}";
+                    material.MaterialCode = materialCode;
+                    try
+                    {
+                        materialId = await _materialRepository.InsertAsync(material);
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < 10 &&
+                        (ex.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+                         || ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // code was taken between read and insert — try the next number
+                    }
+                }
+
                 return ApiResponse<int>.SuccessResponse(materialId, $"Material '{materialCode}' created successfully");
             }
             catch (Exception ex)

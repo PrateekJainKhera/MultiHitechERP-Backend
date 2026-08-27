@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MultiHitechERP.API.DTOs.Request;
@@ -28,6 +29,30 @@ namespace MultiHitechERP.API.Controllers.Masters
         {
             var result = await _machineService.GetByIdAsync(id);
             return result.Success ? Ok(result) : NotFound(result);
+        }
+
+        /// <summary>Real-time busy/free status + today's utilization % for every active machine</summary>
+        [HttpGet("utilization")]
+        public async Task<IActionResult> GetUtilization()
+        {
+            var result = await _machineService.GetUtilizationAsync();
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>Jobs scheduled on this machine for a given day (defaults to today)</summary>
+        [HttpGet("{id}/jobs")]
+        public async Task<IActionResult> GetMachineJobs(int id, [FromQuery] DateTime? date)
+        {
+            var result = await _machineService.GetMachineJobsAsync(id, date);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>Every active machine's full schedule for a given day (defaults to today) — for the combined daily-schedule grid</summary>
+        [HttpGet("daily-schedule")]
+        public async Task<IActionResult> GetDailySchedule([FromQuery] DateTime? date)
+        {
+            var result = await _machineService.GetDailyScheduleAsync(date);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpGet("by-code/{machineCode}")]

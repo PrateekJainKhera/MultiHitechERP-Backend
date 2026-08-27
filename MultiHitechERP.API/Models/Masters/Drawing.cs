@@ -30,6 +30,8 @@ namespace MultiHitechERP.API.Models.Masters
         public int? LinkedCustomerId { get; set; }
         public string? LinkedCustomerName { get; set; }
         public int? LinkedOrderId { get; set; }
+        public int? LinkedChildPartTemplateId { get; set; }
+        public string? LinkedChildPartTemplateName { get; set; }
 
         // Metadata
         public string? Description { get; set; }

@@ -23,6 +23,8 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<int> InsertChallanItemAsync(DeliveryChallanItem item);
         Task<IEnumerable<DeliveryChallanItem>> GetChallanItemsAsync(int challanId);
         Task<bool> UpdateAsync(DeliveryChallan challan);
+        // Surgical admin edit of shipping/invoice fields on an already-dispatched challan.
+        Task<bool> UpdateDispatchDetailsAsync(MultiHitechERP.API.DTOs.Request.EditDispatchRequest req);
         Task<bool> DeleteAsync(int id);
 
         // Status Operations

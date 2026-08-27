@@ -10,6 +10,7 @@ namespace MultiHitechERP.API.Services.Interfaces
         Task<ApiResponse<DrawingResponse>> GetByIdAsync(int id);
         Task<ApiResponse<IEnumerable<DrawingResponse>>> GetAllAsync();
         Task<ApiResponse<IEnumerable<DrawingResponse>>> GetDrawingsByOrderIdAsync(int orderId);
+        Task<ApiResponse<IEnumerable<DrawingResponse>>> GetDrawingsByProductIdAsync(int productId);
         Task<ApiResponse<int>> CreateDrawingAsync(CreateDrawingRequest request);
         Task<ApiResponse<bool>> UpdateDrawingAsync(UpdateDrawingRequest request);
         Task<ApiResponse<bool>> DeleteDrawingAsync(int id);

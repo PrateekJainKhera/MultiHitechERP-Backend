@@ -19,6 +19,21 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         }
 
+        // One query → product count per ModelId. Replaces the per-model N+1 in GetAll.
+        public async Task<Dictionary<int, int>> GetProductCountsByModelAsync()
+        {
+            var counts = new Dictionary<int, int>();
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+            var command = new SqlCommand(
+                "SELECT ModelId, COUNT(*) FROM Masters_Products WHERE ModelId IS NOT NULL GROUP BY ModelId",
+                connection);
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+                counts[reader.GetInt32(0)] = reader.GetInt32(1);
+            return counts;
+        }
+
         public async Task<IEnumerable<MachineModel>> GetAllAsync()
         {
             var models = new List<MachineModel>();

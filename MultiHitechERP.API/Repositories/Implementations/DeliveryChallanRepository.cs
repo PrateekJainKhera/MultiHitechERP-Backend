@@ -340,6 +340,43 @@ namespace MultiHitechERP.API.Repositories.Implementations
             return rowsAffected > 0;
         }
 
+        public async Task<bool> UpdateDispatchDetailsAsync(MultiHitechERP.API.DTOs.Request.EditDispatchRequest req)
+        {
+            // Only shipping/invoice fields are editable post-dispatch; item lines & quantities stay locked.
+            const string query = @"
+                UPDATE Dispatch_DeliveryChallans SET
+                    InvoiceNo       = @InvoiceNo,
+                    InvoiceDate     = @InvoiceDate,
+                    ChallanDate     = COALESCE(@DispatchDate, ChallanDate),
+                    VehicleNumber   = @VehicleNumber,
+                    TransportMode   = @TransportMode,
+                    DriverName      = @DriverName,
+                    DriverContact   = @DriverContact,
+                    DeliveryAddress = @DeliveryAddress,
+                    Remarks         = @Remarks,
+                    UpdatedAt       = GETUTCDATE(),
+                    UpdatedBy       = @UpdatedBy
+                WHERE Id = @Id";
+
+            using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", req.ChallanId);
+            command.Parameters.AddWithValue("@InvoiceNo", (object?)req.InvoiceNo ?? DBNull.Value);
+            command.Parameters.AddWithValue("@InvoiceDate", (object?)req.InvoiceDate ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DispatchDate", (object?)req.DispatchDate ?? DBNull.Value);
+            command.Parameters.AddWithValue("@VehicleNumber", (object?)req.VehicleNumber ?? DBNull.Value);
+            command.Parameters.AddWithValue("@TransportMode", (object?)req.TransportMode ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DriverName", (object?)req.DriverName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DriverContact", (object?)req.DriverContact ?? DBNull.Value);
+            command.Parameters.AddWithValue("@DeliveryAddress", (object?)req.DeliveryAddress ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Remarks", (object?)req.Remarks ?? DBNull.Value);
+            command.Parameters.AddWithValue("@UpdatedBy", (object?)req.PerformedBy ?? DBNull.Value);
+
+            await connection.OpenAsync();
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+            return rowsAffected > 0;
+        }
+
         public async Task<bool> DeleteAsync(int id)
         {
             const string query = "DELETE FROM Dispatch_DeliveryChallans WHERE Id = @Id";
@@ -512,14 +549,26 @@ namespace MultiHitechERP.API.Repositories.Implementations
                 DeliveredAt = reader.IsDBNull(reader.GetOrdinal("DeliveredAt")) ? null : reader.GetDateTime(reader.GetOrdinal("DeliveredAt")),
                 InvoiceNo = reader.IsDBNull(reader.GetOrdinal("InvoiceNo")) ? null : reader.GetString(reader.GetOrdinal("InvoiceNo")),
                 InvoiceDate = reader.IsDBNull(reader.GetOrdinal("InvoiceDate")) ? null : reader.GetDateTime(reader.GetOrdinal("InvoiceDate")),
+                InvoiceDocument = reader.IsDBNull(reader.GetOrdinal("InvoiceDocument")) ? null : reader.GetString(reader.GetOrdinal("InvoiceDocument")),
                 ReceivedBy = reader.IsDBNull(reader.GetOrdinal("ReceivedBy")) ? null : reader.GetString(reader.GetOrdinal("ReceivedBy")),
                 AcknowledgedAt = reader.IsDBNull(reader.GetOrdinal("AcknowledgedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("AcknowledgedAt")),
                 DeliveryRemarks = reader.IsDBNull(reader.GetOrdinal("DeliveryRemarks")) ? null : reader.GetString(reader.GetOrdinal("DeliveryRemarks")),
                 Remarks = reader.IsDBNull(reader.GetOrdinal("Remarks")) ? null : reader.GetString(reader.GetOrdinal("Remarks")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                 CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetString(reader.GetOrdinal("CreatedBy")),
-                IsConsolidated = !reader.IsDBNull(reader.GetOrdinal("IsConsolidated")) && reader.GetBoolean(reader.GetOrdinal("IsConsolidated"))
+                IsConsolidated = !reader.IsDBNull(reader.GetOrdinal("IsConsolidated")) && reader.GetBoolean(reader.GetOrdinal("IsConsolidated")),
+                // Audit columns (added by migration 118) — read defensively in case a DB hasn't migrated yet.
+                UpdatedAt = HasColumn(reader, "UpdatedAt") && !reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? reader.GetDateTime(reader.GetOrdinal("UpdatedAt")) : (DateTime?)null,
+                UpdatedBy = HasColumn(reader, "UpdatedBy") && !reader.IsDBNull(reader.GetOrdinal("UpdatedBy")) ? reader.GetString(reader.GetOrdinal("UpdatedBy")) : null
             };
+        }
+
+        private static bool HasColumn(IDataReader reader, string name)
+        {
+            for (var i = 0; i < reader.FieldCount; i++)
+                if (string.Equals(reader.GetName(i), name, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            return false;
         }
     }
 }

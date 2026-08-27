@@ -40,6 +40,11 @@ namespace MultiHitechERP.API.DTOs.Response
         public DateTime? DueDate { get; set; }
         public string? ChildPartName { get; set; }
         public string? CreationType { get; set; }
+        // Product spec (denormalized on the job card) — shown per row so the scheduler
+        // knows "this Product · Model · RollerType · Teeth · this child part's process".
+        public string? MachineModelName { get; set; }
+        public string? RollerType { get; set; }
+        public int? NumberOfTeeth { get; set; }
         public int ProcessId { get; set; }
         public string ProcessName { get; set; } = string.Empty;
         public string? ProcessCode { get; set; }

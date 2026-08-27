@@ -55,6 +55,8 @@ builder.Services.AddScoped<IMaterialPieceRepository, MaterialPieceRepository>();
 builder.Services.AddScoped<IMaterialReconcileRepository, MaterialReconcileRepository>();
 builder.Services.AddScoped<IMISRepository, MISRepository>();
 builder.Services.AddScoped<IMaterialReconcileService, MaterialReconcileService>();
+builder.Services.AddScoped<IScrapSaleRepository, ScrapSaleRepository>();
+builder.Services.AddScoped<IScrapSaleService, ScrapSaleService>();
 builder.Services.AddScoped<IMaterialIssueRepository, MaterialIssueRepository>();
 builder.Services.AddScoped<IQCResultRepository, QCResultRepository>();
 builder.Services.AddScoped<IDeliveryChallanRepository, DeliveryChallanRepository>();

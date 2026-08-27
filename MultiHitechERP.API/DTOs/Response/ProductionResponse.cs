@@ -12,6 +12,7 @@ namespace MultiHitechERP.API.DTOs.Response
         public string JobCardNo { get; set; } = string.Empty;
         public int OrderId { get; set; }
         public int? OrderItemId { get; set; }
+        public int? ProductId { get; set; }
         public string OrderNo { get; set; } = string.Empty;
         public string? MachineModel { get; set; }
         public string? RollerType { get; set; }
@@ -97,6 +98,7 @@ namespace MultiHitechERP.API.DTOs.Response
     {
         public int OrderId { get; set; }
         public string OrderNo { get; set; } = string.Empty;
+        public int? ProductId { get; set; }
         public string? CustomerName { get; set; }
         public string? ProductName { get; set; }
         public string? MachineModel { get; set; }

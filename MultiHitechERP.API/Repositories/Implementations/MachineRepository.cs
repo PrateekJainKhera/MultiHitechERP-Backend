@@ -205,8 +205,11 @@ namespace MultiHitechERP.API.Repositories.Implementations
 
         public async Task<string> GetNextMachineCodeAsync()
         {
+            // Extract from the LAST dash and TRY_CAST (not CAST) — a MachineCode with an
+            // embedded dash (e.g. a manually corrected code) would otherwise make
+            // CHARINDEX split at the wrong point and throw instead of just being skipped.
             const string query = @"
-                SELECT COALESCE(MAX(CAST(RIGHT(MachineCode, LEN(MachineCode) - CHARINDEX('-', MachineCode)) AS INT)), 0)
+                SELECT COALESCE(MAX(TRY_CAST(SUBSTRING(MachineCode, LEN(MachineCode) - CHARINDEX('-', REVERSE(MachineCode)) + 2, 20) AS INT)), 0)
                 FROM Masters_Machines";
 
             using var connection = (SqlConnection)_connectionFactory.CreateConnection();

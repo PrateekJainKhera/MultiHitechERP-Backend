@@ -43,6 +43,7 @@ namespace MultiHitechERP.API.DTOs.Request
         public int? LinkedProductId { get; set; }
         public int? LinkedCustomerId { get; set; }
         public int? LinkedOrderId { get; set; }
+        public int? LinkedChildPartTemplateId { get; set; }
 
         [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
         public string? Description { get; set; }

@@ -9,6 +9,7 @@ namespace MultiHitechERP.API.Repositories.Interfaces
         Task<Drawing?> GetByIdAsync(int id);
         Task<IEnumerable<Drawing>> GetAllAsync();
         Task<IEnumerable<Drawing>> GetByOrderIdAsync(int orderId);
+        Task<IEnumerable<Drawing>> GetByProductIdAsync(int productId);
         Task<int> InsertAsync(Drawing drawing);
         Task<bool> UpdateAsync(Drawing drawing);
         Task<bool> DeleteAsync(int id);

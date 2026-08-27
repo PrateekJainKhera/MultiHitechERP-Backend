@@ -100,16 +100,27 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (machineModel == null)
                     return ApiResponse<int>.ErrorResponse($"Machine model with ID {request.ModelId} not found");
 
-                // Auto-generate PartCode prefix from first 3 letters of first word of roller type
+                // Prevent duplicates: a product with the same Model + Roller Type + Teeth
+                // must not be created twice. Point the user to the existing part instead.
+                int teethForCheck = request.NumberOfTeeth;
+                var existingSame = await _productRepository.SearchByCriteriaAsync(request.ModelId, request.RollerType, teethForCheck);
+                var dup = existingSame.FirstOrDefault();
+                if (dup != null)
+                    return ApiResponse<int>.ErrorResponse(
+                        $"A product for {machineModel.ModelName} · {request.RollerType}{(teethForCheck > 0 ? $" · {teethForCheck}T" : "")} already exists ({dup.PartCode}). Use that product instead of creating a duplicate.");
+
+                // Auto-generate PartCode prefix from first 3 letters of first word of roller type.
+                // Strip anything that isn't a letter/digit first — a roller type like "MG-Gear"
+                // would otherwise leave the dash in the prefix (e.g. "MG-"), producing a
+                // double-dash PartCode ("MG--0001") that corrupts sequence-number parsing.
                 string firstWord = request.RollerType.Split(' ')[0];
-                string partCodePrefix = firstWord[..Math.Min(3, firstWord.Length)].ToUpper();
-                int nextSequence = await _productRepository.GetNextSequenceNumberAsync(request.RollerType);
-                string generatedPartCode = $"{partCodePrefix}-{nextSequence:D4}";
+                string alphanumeric = new string(firstWord.Where(char.IsLetterOrDigit).ToArray());
+                string prefixSource = alphanumeric.Length > 0 ? alphanumeric : firstWord;
+                string partCodePrefix = prefixSource[..Math.Min(3, prefixSource.Length)].ToUpper();
 
                 // Create product entity
                 var product = new Product
                 {
-                    PartCode = generatedPartCode,
                     CustomerName = request.CustomerName?.Trim(),
                     ModelId = request.ModelId,
                     ModelName = machineModel.ModelName, // Populated from MachineModel
@@ -133,13 +144,40 @@ namespace MultiHitechERP.API.Services.Implementations
                     DrawingRequestedBy = request.RequestDrawing ? (request.CreatedBy?.Trim() ?? "System") : null
                 };
 
-                var productId = await _productRepository.InsertAsync(product);
+                // Generate the code from MAX+1 and insert. If two creates race for the same
+                // number (or any residual gap), retry with the next number instead of failing.
+                int productId = 0;
+                string generatedPartCode = "";
+                for (int attempt = 1; ; attempt++)
+                {
+                    int nextSequence = await _productRepository.GetNextSequenceNumberAsync(partCodePrefix);
+                    generatedPartCode = $"{partCodePrefix}-{nextSequence + attempt - 1:D4}";
+                    product.PartCode = generatedPartCode;
+                    try
+                    {
+                        productId = await _productRepository.InsertAsync(product);
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < 10 &&
+                        (ex.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+                         || ex.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // code was taken between read and insert — try the next number
+                    }
+                }
 
                 string successMessage = request.RequestDrawing
                     ? $"Product '{generatedPartCode}' created and drawing requested successfully"
                     : $"Product '{generatedPartCode}' created successfully";
 
                 return ApiResponse<int>.SuccessResponse(productId, successMessage);
+            }
+            catch (Exception ex) when (ex.Message.Contains("FOREIGN KEY constraint", StringComparison.OrdinalIgnoreCase))
+            {
+                // A referenced Machine Model, Product Template, or Process Template no
+                // longer exists — surface a clean message instead of the raw SQL
+                // FK-violation exception.
+                return ApiResponse<int>.ErrorResponse("The selected machine model, product template, or process template no longer exists. Please refresh and try again.");
             }
             catch (Exception ex)
             {

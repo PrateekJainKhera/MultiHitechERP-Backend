@@ -149,8 +149,15 @@ namespace MultiHitechERP.API.Services.Implementations
             if (quantityDispatched <= 0)
                 return ApiResponse<int>.ErrorResponse("Quantity dispatched must be greater than zero");
 
-            if (quantityDispatched > order.Quantity)
-                return ApiResponse<int>.ErrorResponse($"Quantity dispatched ({quantityDispatched}) cannot exceed order quantity ({order.Quantity})");
+            // Validate against REMAINING undispatched quantity, not the order's total — this
+            // path previously checked only against the total, so a second (or third) challan
+            // on the same order could ship more than was ever ordered since nothing accounted
+            // for prior dispatches.
+            var existingChallans = await _challanRepository.GetByOrderIdAsync(orderId);
+            var alreadyDispatched = existingChallans.Sum(c => c.QuantityDispatched);
+            var remaining = order.Quantity - alreadyDispatched;
+            if (quantityDispatched > remaining)
+                return ApiResponse<int>.ErrorResponse($"Quantity dispatched ({quantityDispatched}) cannot exceed remaining pending quantity ({remaining}) — {alreadyDispatched} of {order.Quantity} already dispatched");
 
             // Generate challan number
             var challanNo = $"DC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
@@ -260,6 +267,16 @@ namespace MultiHitechERP.API.Services.Implementations
             if (request.CustomerId <= 0)
                 return ApiResponse<int>.ErrorResponse("A customer must be selected");
 
+            // Invoice is always raised before dispatch, so these are mandatory.
+            if (string.IsNullOrWhiteSpace(request.InvoiceNo))
+                return ApiResponse<int>.ErrorResponse("Invoice No is required");
+            if (!request.InvoiceDate.HasValue)
+                return ApiResponse<int>.ErrorResponse("Invoice Date is required");
+            if (request.DispatchDate == default)
+                return ApiResponse<int>.ErrorResponse("Dispatch Date is required");
+            if (string.IsNullOrWhiteSpace(request.VehicleNumber))
+                return ApiResponse<int>.ErrorResponse("Vehicle No is required");
+
             // Load the ready-to-dispatch list once → validate & enrich each line from it.
             var ready = (await _orderItemRepository.GetReadyToDispatchAsync())
                 .ToDictionary(r => r.OrderItemId, r => r);
@@ -335,6 +352,31 @@ namespace MultiHitechERP.API.Services.Implementations
 
             return ApiResponse<int>.SuccessResponse(challanId,
                 $"Dispatched {lines.Count} item(s) across {distinctOrders} order(s) on challan {challanNo}");
+        }
+
+        public async Task<ApiResponse<bool>> EditDispatchAsync(EditDispatchRequest request)
+        {
+            if (!request.IsAdmin)
+                return ApiResponse<bool>.ErrorResponse("Only an admin can edit dispatch details");
+
+            var existing = await _challanRepository.GetByIdAsync(request.ChallanId);
+            if (existing == null)
+                return ApiResponse<bool>.ErrorResponse("Delivery challan not found");
+
+            // Keep the same mandatory rules as dispatch itself.
+            if (string.IsNullOrWhiteSpace(request.InvoiceNo))
+                return ApiResponse<bool>.ErrorResponse("Invoice No is required");
+            if (!request.InvoiceDate.HasValue)
+                return ApiResponse<bool>.ErrorResponse("Invoice Date is required");
+            if (!request.DispatchDate.HasValue)
+                return ApiResponse<bool>.ErrorResponse("Dispatch Date is required");
+            if (string.IsNullOrWhiteSpace(request.VehicleNumber))
+                return ApiResponse<bool>.ErrorResponse("Vehicle No is required");
+
+            var ok = await _challanRepository.UpdateDispatchDetailsAsync(request);
+            return ok
+                ? ApiResponse<bool>.SuccessResponse(true, "Dispatch details updated")
+                : ApiResponse<bool>.ErrorResponse("Failed to update dispatch details");
         }
 
         public async Task<ApiResponse<IEnumerable<DeliveryChallanItem>>> GetChallanItemsAsync(int challanId)

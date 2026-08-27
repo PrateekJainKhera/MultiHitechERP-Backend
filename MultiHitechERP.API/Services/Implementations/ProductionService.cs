@@ -40,9 +40,17 @@ namespace MultiHitechERP.API.Services.Implementations
         }
 
         // Helper: stable key for grouping job cards by child part
-        // Uses ChildPartId when available, falls back to ChildPartName
+        // Uses ChildPartTemplateId when available (set by job card generation), falls back to
+        // the legacy ChildPartId, then to ChildPartName for any job cards created before either existed.
         private static string ChildPartKey(Models.Planning.JobCard jc) =>
-            jc.ChildPartId.HasValue ? $"id:{jc.ChildPartId}" : $"name:{jc.ChildPartName ?? "unknown"}";
+            jc.ChildPartTemplateId.HasValue ? $"tpl:{jc.ChildPartTemplateId}"
+            : jc.ChildPartId.HasValue ? $"id:{jc.ChildPartId}"
+            : $"name:{jc.ChildPartName ?? "unknown"}";
+
+        // Helper: the child part template id to expose on a grouped response (prefers the
+        // reliable ChildPartTemplateId over the legacy, largely-unpopulated ChildPartId)
+        private static int? ChildPartTemplateIdOf(Models.Planning.JobCard jc) =>
+            jc.ChildPartTemplateId ?? jc.ChildPartId;
 
         // ─────────────────────────────────────────────────────────────────────
         // 1. Production Dashboard — list of orders
@@ -393,7 +401,7 @@ namespace MultiHitechERP.API.Services.Implementations
 
                         return new ProductionChildPartGroup
                         {
-                            ChildPartId = first.ChildPartId,
+                            ChildPartId = ChildPartTemplateIdOf(first),
                             ChildPartName = first.ChildPartName ?? "Unknown Part",
                             TotalSteps = steps.Count,
                             CompletedSteps = completedSteps,
@@ -418,6 +426,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 {
                     OrderId = order.Id,
                     OrderNo = order.OrderNo,
+                    ProductId = order.ProductId,
                     CustomerName = order.CustomerName,
                     ProductName = order.ProductName,
                     MachineModel = jobCards.FirstOrDefault()?.MachineModelName,
@@ -505,7 +514,7 @@ namespace MultiHitechERP.API.Services.Implementations
 
                         return new ProductionChildPartGroup
                         {
-                            ChildPartId = first.ChildPartId,
+                            ChildPartId = ChildPartTemplateIdOf(first),
                             ChildPartName = first.ChildPartName ?? "Unknown Part",
                             TotalSteps = steps.Count,
                             CompletedSteps = completedSteps,
@@ -534,6 +543,7 @@ namespace MultiHitechERP.API.Services.Implementations
                 {
                     OrderId = order.Id,
                     OrderNo = fullRef,
+                    ProductId = orderItem.ProductId,
                     CustomerName = order.CustomerName,
                     ProductName = orderItem.ProductName,
                     MachineModel = jobCards.FirstOrDefault()?.MachineModelName,
@@ -572,6 +582,12 @@ namespace MultiHitechERP.API.Services.Implementations
                 string newStatus;
                 DateTime? actualStart = jobCard.ActualStartTime;
                 DateTime? actualEnd = jobCard.ActualEndTime;
+                // CompletedQty/RejectedQty are a running tally across possibly several
+                // partial submissions, not a one-shot final value — default to the card's
+                // existing totals so start/pause/resume never touch them.
+                int completedQty = jobCard.CompletedQty;
+                int rejectedQty = jobCard.RejectedQty;
+                bool isFullyAccountedFor;
 
                 switch (action)
                 {
@@ -595,21 +611,50 @@ namespace MultiHitechERP.API.Services.Implementations
                         break;
 
                     case "complete":
+                        // Simple one-click complete (used by pages with no qty entry) — always
+                        // closes the card out now, same as before this method supported partials.
                         if (jobCard.ProductionStatus != "InProgress")
                             return ApiResponse<bool>.ErrorResponse($"Cannot complete: job card is '{jobCard.ProductionStatus}', expected 'InProgress'");
+                        if (request.CompletedQty < 0 || request.RejectedQty < 0)
+                            return ApiResponse<bool>.ErrorResponse("Completed/rejected quantity cannot be negative");
+                        completedQty = jobCard.CompletedQty + request.CompletedQty;
+                        rejectedQty = jobCard.RejectedQty + request.RejectedQty;
+                        if (completedQty + rejectedQty > jobCard.Quantity)
+                            return ApiResponse<bool>.ErrorResponse($"Completed ({completedQty}) + rejected ({rejectedQty}) cannot exceed job card quantity ({jobCard.Quantity})");
                         newStatus = "Completed";
                         actualEnd = DateTime.UtcNow;
                         break;
 
                     case "direct-complete":
-                        // Allows completing from Ready, InProgress, or Paused in one shot
+                        // Used by the operator execution view, which always supplies an actual
+                        // qty. Allows completing from Ready, InProgress, or Paused in one shot —
+                        // but only truly closes the card once the full quantity is accounted for;
+                        // a partial submission (e.g. 4 of 5) accumulates progress and leaves the
+                        // card InProgress so the remaining pieces can be logged in a later session.
                         if (jobCard.ProductionStatus == "Ready")
                             actualStart = DateTime.UtcNow;
                         else if (jobCard.ProductionStatus != "InProgress" && jobCard.ProductionStatus != "Paused")
                             return ApiResponse<bool>.ErrorResponse($"Cannot complete: job card is '{jobCard.ProductionStatus}'");
-                        newStatus = "Completed";
-                        actualEnd = DateTime.UtcNow;
-                        action = "complete"; // trigger cascade
+
+                        if (request.CompletedQty < 0 || request.RejectedQty < 0)
+                            return ApiResponse<bool>.ErrorResponse("Completed/rejected quantity cannot be negative");
+
+                        completedQty = jobCard.CompletedQty + request.CompletedQty;
+                        rejectedQty = jobCard.RejectedQty + request.RejectedQty;
+                        if (completedQty + rejectedQty > jobCard.Quantity)
+                            return ApiResponse<bool>.ErrorResponse($"Completed ({completedQty}) + rejected ({rejectedQty}) cannot exceed job card quantity ({jobCard.Quantity})");
+                        isFullyAccountedFor = completedQty + rejectedQty >= jobCard.Quantity;
+
+                        if (isFullyAccountedFor)
+                        {
+                            newStatus = "Completed";
+                            actualEnd = DateTime.UtcNow;
+                        }
+                        else
+                        {
+                            newStatus = "InProgress";
+                        }
+                        action = "complete"; // normalize so the sync/cascade checks below cover both cases
                         break;
 
                     default:
@@ -622,12 +667,33 @@ namespace MultiHitechERP.API.Services.Implementations
                     newStatus,
                     actualStart,
                     actualEnd,
-                    request.CompletedQty,
-                    request.RejectedQty
+                    completedQty,
+                    rejectedQty
                 );
 
-                // On complete — cascade to unlock next step + mark issued pieces as Consumed
-                if (action == "complete")
+                bool trulyCompleted = action == "complete" && newStatus == "Completed";
+
+                // Keep the machine schedule's actual times/status in sync for start/complete,
+                // so a job that finishes early actually frees the machine instead of showing
+                // busy until the originally-planned ScheduledEndTime. A partial submission that
+                // keeps the card InProgress leaves the schedule row (and machine) as busy too —
+                // it isn't genuinely free until the full quantity is accounted for.
+                if (action == "start" || trulyCompleted)
+                {
+                    var activeSchedule = (await _scheduleRepository.GetByJobCardIdAsync(jobCardId))
+                        .Where(s => s.Status == "Scheduled" || s.Status == "InProgress")
+                        .OrderByDescending(s => s.CreatedAt)
+                        .FirstOrDefault();
+                    if (activeSchedule != null)
+                    {
+                        await _scheduleRepository.UpdateActualTimesAsync(activeSchedule.Id, newStatus, actualStart, actualEnd);
+                    }
+                }
+
+                // Only cascade / consume material / roll up quantity once the full quantity is
+                // actually accounted for — a partial submission must not unlock the next step
+                // or roll up as if this job card were finished.
+                if (trulyCompleted)
                 {
                     await CascadeOnCompleteAsync(jobCard);
                     await _pieceRepository.ConsumePiecesByJobCardAsync(jobCardId);
@@ -637,7 +703,14 @@ namespace MultiHitechERP.API.Services.Implementations
                     await RollUpQtyCompletedIfDoneAsync(jobCard);
                 }
 
-                return ApiResponse<bool>.SuccessResponse(true, $"Job card {action}ed successfully");
+                var remaining = jobCard.Quantity - completedQty - rejectedQty;
+                var message = trulyCompleted
+                    ? "Job card completed successfully"
+                    : action == "complete"
+                        ? $"Progress saved — {completedQty} completed, {rejectedQty} rejected, {Math.Max(0, remaining)} remaining"
+                        : $"Job card {action}ed successfully";
+
+                return ApiResponse<bool>.SuccessResponse(true, message);
             }
             catch (Exception ex)
             {
@@ -894,6 +967,31 @@ namespace MultiHitechERP.API.Services.Implementations
                     machineCache[jc.Id] = active?.MachineName;
                 }
 
+                // Cache OrderItem/Order → ProductId so the frontend can look up product-level
+                // drawings (child-part and assembly) for the "View Drawing" button.
+                var orderItemProductCache = new Dictionary<int, int>();
+                var orderProductCache = new Dictionary<int, int>();
+                foreach (var jc in allScheduled)
+                {
+                    if (jc.OrderItemId.HasValue)
+                    {
+                        if (!orderItemProductCache.ContainsKey(jc.OrderItemId.Value))
+                        {
+                            var oi = await _orderItemRepository.GetByIdAsync(jc.OrderItemId.Value);
+                            if (oi != null) orderItemProductCache[jc.OrderItemId.Value] = oi.ProductId;
+                        }
+                    }
+                    else if (!orderProductCache.ContainsKey(jc.OrderId))
+                    {
+                        var o = await _orderRepository.GetByIdAsync(jc.OrderId);
+                        if (o != null) orderProductCache[jc.OrderId] = o.ProductId;
+                    }
+                }
+                int? ProductIdOf(Models.Planning.JobCard jc) =>
+                    jc.OrderItemId.HasValue
+                        ? (orderItemProductCache.TryGetValue(jc.OrderItemId.Value, out var p1) ? p1 : (int?)null)
+                        : (orderProductCache.TryGetValue(jc.OrderId, out var p2) ? p2 : (int?)null);
+
                 // Group by ProcessCategory
                 var categoryGroups = allScheduled
                     .GroupBy(jc =>
@@ -948,6 +1046,7 @@ namespace MultiHitechERP.API.Services.Implementations
                                             JobCardNo = jc.JobCardNo,
                                             OrderId = jc.OrderId,
                                             OrderItemId = jc.OrderItemId,
+                                            ProductId = ProductIdOf(jc),
                                             OrderNo = !string.IsNullOrEmpty(jc.ItemSequence)
                                                 ? $"{jc.OrderNo}-{jc.ItemSequence}"
                                                 : (jc.OrderNo ?? jc.OrderId.ToString()),
@@ -977,7 +1076,7 @@ namespace MultiHitechERP.API.Services.Implementations
                                 return new ExecutionViewChildPart
                                 {
                                     ChildPartName = first.ChildPartName ?? "Unknown Part",
-                                    ChildPartId = first.ChildPartId,
+                                    ChildPartId = ChildPartTemplateIdOf(first),
                                     IsReadyForAssembly = isReadyForAssembly,
                                     JobCards = rows
                                 };

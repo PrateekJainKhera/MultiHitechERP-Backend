@@ -96,10 +96,16 @@ namespace MultiHitechERP.API.Services.Implementations
                 if (request.CycleTimePerPieceHours <= 0)
                     return ApiResponse<int>.ErrorResponse("Cycle time per piece must be greater than 0");
 
-                // Auto-generate ProcessCode: Use first 3 letters of ProcessName + sequence
-                string processNamePrefix = request.ProcessName.Length >= 3
-                    ? request.ProcessName.Substring(0, 3).ToUpper()
-                    : request.ProcessName.ToUpper();
+                // Auto-generate ProcessCode: use the first 3 letters/digits of the first word
+                // of ProcessName + sequence. Strip anything that isn't a letter/digit first —
+                // otherwise a name like "QA Turning" produces a prefix with a trailing space
+                // ("QA ") instead of skipping to the next word's letters.
+                string firstWord = request.ProcessName.Split(' ')[0];
+                string alphanumeric = new string(firstWord.Where(char.IsLetterOrDigit).ToArray());
+                string prefixSource = alphanumeric.Length > 0 ? alphanumeric : request.ProcessName.Replace(" ", "");
+                string processNamePrefix = prefixSource.Length >= 3
+                    ? prefixSource.Substring(0, 3).ToUpper()
+                    : prefixSource.ToUpper();
 
                 // Get next sequence number based on process name prefix
                 int nextSequence = await _processRepository.GetNextSequenceNumberAsync(processNamePrefix);

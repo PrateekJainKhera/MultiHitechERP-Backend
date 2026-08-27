@@ -208,6 +208,19 @@ namespace MultiHitechERP.API.Controllers.Dispatch
         }
 
         /// <summary>
+        /// Admin-only edit of a dispatched challan's invoice/shipping details.
+        /// </summary>
+        [HttpPut("{id:int}/edit")]
+        public async Task<ActionResult<ApiResponse<bool>>> EditDispatch(int id, [FromBody] EditDispatchRequest request)
+        {
+            request.ChallanId = id;
+            var response = await _service.EditDispatchAsync(request);
+            if (!response.Success)
+                return BadRequest(response);
+            return Ok(response);
+        }
+
+        /// <summary>
         /// Mark delivery challan as delivered
         /// </summary>
         [HttpPost("{id:guid}/deliver")]
@@ -374,12 +387,15 @@ namespace MultiHitechERP.API.Controllers.Dispatch
                 DeliveredAt = challan.DeliveredAt,
                 InvoiceNo = challan.InvoiceNo,
                 InvoiceDate = challan.InvoiceDate,
+                InvoiceDocument = challan.InvoiceDocument,
                 ReceivedBy = challan.ReceivedBy,
                 AcknowledgedAt = challan.AcknowledgedAt,
                 DeliveryRemarks = challan.DeliveryRemarks,
                 Remarks = challan.Remarks,
                 CreatedAt = challan.CreatedAt,
                 CreatedBy = challan.CreatedBy,
+                UpdatedAt = challan.UpdatedAt,
+                UpdatedBy = challan.UpdatedBy,
                 IsConsolidated = challan.IsConsolidated
             };
         }
